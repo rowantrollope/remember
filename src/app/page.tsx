@@ -1,103 +1,204 @@
-import Image from "next/image";
+"use client"
+
+import { useState } from "react"
+import { Card, CardHeader } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+
+
+// Components
+import {
+    Navbar,
+    ErrorAlert,
+    StatusAlert,
+    RecallTab,
+    InputForm
+} from "@/components"
+import { ContextTab } from "@/components/tabs/ContextTab"
+import { MemoryChatTab } from "@/components/tabs/MemoryChatTab"
+
+// Hooks and types
+import { useMemoryAPI } from "@/hooks"
+import { usePersistentChat } from "@/hooks/usePersistentChat"
+import type { TabType } from "@/types"
+
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    const [input, setInput] = useState("")
+    const [activeTab, setActiveTab] = useState<TabType>("chat")
+    const [chatMode, setChatMode] = useState<'ask' | 'save'>('ask')
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    // Use persistent chat hook for conversations and memory saves
+    const {
+        conversations: persistentConversations,
+        memorySaveResponses,
+        isLoaded: chatLoaded,
+        addConversation,
+        addMemorySaveResponse,
+        clearChatHistory,
+        getTotalMessageCount
+    } = usePersistentChat()
+
+    const {
+        conversations: apiConversations,
+        searchResults,
+        isLoading,
+        error,
+        apiStatus,
+        currentContext,
+        groundingEnabled,
+        saveMemory,
+        askQuestion,
+        searchMemories,
+        deleteMemory,
+        getContext,
+        updateContext,
+        setGroundingEnabled,
+        clearError,
+    } = useMemoryAPI()
+
+    // Sync API conversations with persistent storage
+    const conversations = persistentConversations.length > 0 ? persistentConversations : apiConversations
+
+    const handleTabChange = (value: string) => {
+        setActiveTab(value as TabType)
+    }
+
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault()
+        if (!input.trim()) return
+
+        let success = false
+        switch (activeTab) {
+            case "chat":
+                if (chatMode === 'save') {
+                    const result = await saveMemory(input)
+                    success = result.success
+                    if (result.success && result.response) {
+                        const saveResponse = {
+                            success: true,
+                            response: result.response,
+                            originalText: input,
+                            timestamp: new Date().toISOString()
+                        }
+                        // Add to persistent storage
+                        addMemorySaveResponse(saveResponse)
+                    }
+                } else {
+                    const result = await askQuestion(input)
+                    if (typeof result === 'object' && result.success) {
+                        success = true
+                        // Add the new conversation to persistent storage
+                        addConversation(result.conversation)
+                    } else {
+                        success = result as boolean
+                    }
+                }
+                break
+            case "recall":
+                success = await searchMemories(input)
+                break
+        }
+
+        if (success) {
+            setInput("")
+        }
+    }
+
+    return (
+        <div className="h-screen flex flex-col bg-gray-50">
+            <Navbar />
+
+            {/* Main content area - EXACT copy from test page */}
+            <div className="flex-1 p-6 min-h-0">
+                <Card className="h-full flex flex-col max-w-4xl mx-auto p-2">
+
+                    {/* Error Display */}
+                    {error && (
+                        <ErrorAlert error={error} onDismiss={clearError} />
+                    )}
+
+                    {/* API Status Warning */}
+                    <StatusAlert apiStatus={apiStatus} />
+
+                    {/* Debug Info for Persistent Storage */}
+                    {process.env.NODE_ENV === 'development' && (
+                        <div className="mb-4 p-2 bg-blue-50 border border-blue-200 rounded text-xs">
+                            <div className="flex items-center justify-between">
+                                <span>
+                                    Chat History: {persistentConversations.length} conversations, {memorySaveResponses.length} memory saves
+                                    {chatLoaded ? ' (loaded)' : ' (loading...)'}
+                                </span>
+                                <button
+                                    onClick={clearChatHistory}
+                                    className="text-blue-600 hover:text-blue-800 underline"
+                                >
+                                    Clear History
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                    {/* Tabs Container - EXACT copy from test page */}
+                    <div className="flex-1 min-h-0">
+                        <Tabs value={activeTab} onValueChange={handleTabChange} className="h-full flex flex-col">
+                            {/* Tab List */}
+                            <TabsList className="flex-shrink-0 w-full flex">
+                                <TabsTrigger value="chat">Memory Chat</TabsTrigger>
+                                <TabsTrigger value="recall">Search/Browse</TabsTrigger>
+                                <TabsTrigger value="context">Context</TabsTrigger>
+                            </TabsList>
+
+                            {/* Tab Content Area - EXACT copy from test page */}
+                            <div className="flex-1 min-h-0 mt-4">
+                                <TabsContent value="chat" className="h-full m-0">
+                                    <div className="h-full overflow-y-auto border rounded p-4 bg-white">
+                                        <MemoryChatTab
+                                            conversations={conversations}
+                                            memorySaveResponses={memorySaveResponses}
+                                            chatMode={chatMode}
+                                        />
+                                    </div>
+                                </TabsContent>
+
+                                <TabsContent value="recall" className="h-full m-0">
+                                    <div className="h-full overflow-y-auto border rounded p-4 bg-white">
+                                        <RecallTab
+                                            searchResults={searchResults}
+                                            onMemoryDeleted={deleteMemory}
+                                        />
+                                    </div>
+                                </TabsContent>
+
+                                <TabsContent value="context" className="h-full m-0">
+                                    <div className="h-full overflow-y-auto border rounded p-4 bg-white">
+                                        <ContextTab
+                                            currentContext={currentContext}
+                                            onUpdateContext={updateContext}
+                                            onGetContext={getContext}
+                                            isLoading={isLoading}
+                                        />
+                                    </div>
+                                </TabsContent>
+                            </div>
+                        </Tabs>
+                    </div>
+
+                    {/* Footer */}
+                    <div className="flex-shrink-0 mt-4 p-4 rounded">
+                        <InputForm
+                            input={input}
+                            setInput={setInput}
+                            activeTab={activeTab}
+                            isLoading={isLoading}
+                            onSubmit={handleSubmit}
+                            chatMode={chatMode}
+                            onChatModeChange={setChatMode}
+                            groundingEnabled={groundingEnabled}
+                            onGroundingToggle={setGroundingEnabled}
+                        />
+                    </div>
+                </Card>
+            </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
-  );
+    )
 }
