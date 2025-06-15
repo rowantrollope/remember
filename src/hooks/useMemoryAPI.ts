@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react"
-import { memoryAPI } from "@/lib/api"
+import { useState, useEffect, useCallback } from "react"
+import { useConfiguredAPI } from "./useConfiguredAPI"
 import type { Memory, Conversation, ApiStatus, ContextInfo } from "@/types"
 
 export function useMemoryAPI() {
@@ -11,6 +11,9 @@ export function useMemoryAPI() {
     const [apiStatus, setApiStatus] = useState<ApiStatus>('unknown')
     const [currentContext, setCurrentContext] = useState<ContextInfo | null>(null)
     const [groundingEnabled, setGroundingEnabled] = useState(true)
+
+    // Get the configured API client
+    const { api: memoryAPI } = useConfiguredAPI()
 
     // Check API status on mount
     useEffect(() => {
@@ -24,7 +27,7 @@ export function useMemoryAPI() {
             }
         }
         initializeAPI()
-    }, [])
+    }, [memoryAPI])
 
     const saveMemory = async (content: string) => {
         setIsLoading(true)
@@ -68,12 +71,12 @@ export function useMemoryAPI() {
         }
     }
 
-    const askQuestion = async (question: string) => {
+    const askQuestion = async (question: string, topK: number = 5) => {
         setIsLoading(true)
         setError(null)
 
         try {
-            const response = await memoryAPI.ask(question)
+            const response = await memoryAPI.ask(question, topK)
 
             if (response.success) {
                 // Convert supporting memories to the Memory format
@@ -125,12 +128,12 @@ export function useMemoryAPI() {
         }
     }
 
-    const searchMemories = async (query: string) => {
+    const searchMemories = async (query: string, topK: number = 5) => {
         setIsLoading(true)
         setError(null)
 
         try {
-            const response = await memoryAPI.recall(query, 10)
+            const response = await memoryAPI.recall(query, topK)
 
             // Debug logging to see what the search returns
             console.log('Search memories API response:', response)
@@ -209,7 +212,27 @@ export function useMemoryAPI() {
         }
     }
 
-    const getContext = async () => {
+    const clearAllMemories = async () => {
+        try {
+            const response = await memoryAPI.clearAllMemories()
+
+            if (response.success) {
+                // Clear all local state
+                setMemories([])
+                setSearchResults([])
+                setConversations([])
+                return { success: true, deletedCount: response.deleted_count }
+            } else {
+                setError('Failed to clear all memories')
+                return { success: false, deletedCount: 0 }
+            }
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to clear all memories')
+            return { success: false, deletedCount: 0 }
+        }
+    }
+
+    const getContext = useCallback(async () => {
         try {
             const response = await memoryAPI.getContext()
             if (response.success) {
@@ -221,9 +244,9 @@ export function useMemoryAPI() {
             setError(err instanceof Error ? err.message : 'Failed to get context')
             return null
         }
-    }
+    }, [memoryAPI])
 
-    const updateContext = async (context: {
+    const updateContext = useCallback(async (context: {
         location?: string
         activity?: string
         people_present?: string[]
@@ -243,7 +266,7 @@ export function useMemoryAPI() {
             setError(err instanceof Error ? err.message : 'Failed to update context')
             return false
         }
-    }
+    }, [memoryAPI])
 
     const clearError = () => setError(null)
 
@@ -263,6 +286,7 @@ export function useMemoryAPI() {
         askQuestion,
         searchMemories,
         deleteMemory,
+        clearAllMemories,
         getContext,
         updateContext,
         setGroundingEnabled,

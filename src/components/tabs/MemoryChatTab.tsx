@@ -1,11 +1,13 @@
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { ConfidencePill } from "@/components/ConfidencePill"
 import { SupportingMemoriesDialog } from "@/components/SupportingMemoriesDialog"
-import { MessageCircle, Save, User, Bot, CheckCircle, Anchor } from "lucide-react"
+import { User, Bot, CheckCircle, Anchor, MessageCircle, Save } from "lucide-react"
 import type { Conversation } from "@/types"
 import type { RememberResponse } from "@/lib/api"
 import { formatTimestamp } from "@/utils/formatters"
+import { useEffect, useRef } from "react"
 
 interface ChatMessage {
     id: string
@@ -30,13 +32,16 @@ interface MemoryChatTabProps {
         timestamp: string
     }>
     chatMode: 'ask' | 'save'
+    onChatModeChange: (mode: 'ask' | 'save') => void
 }
 
 export function MemoryChatTab({
     conversations,
     memorySaveResponses,
-    chatMode
+    chatMode,
+    onChatModeChange
 }: MemoryChatTabProps) {
+    const scrollAreaRef = useRef<HTMLDivElement>(null)
 
     // Combine conversations and memory saves into a unified chat history
     const allMessages: ChatMessage[] = [
@@ -76,6 +81,19 @@ export function MemoryChatTab({
             }
         ])
     ].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+
+    // Auto-scroll to bottom when messages change
+    useEffect(() => {
+        if (scrollAreaRef.current) {
+            // Use setTimeout to ensure DOM has been updated
+            setTimeout(() => {
+                const scrollContainer = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]')
+                if (scrollContainer) {
+                    scrollContainer.scrollTop = scrollContainer.scrollHeight
+                }
+            }, 100)
+        }
+    }, [allMessages.length])
 
     const renderMessage = (message: ChatMessage) => {
         switch (message.type) {
@@ -191,29 +209,42 @@ export function MemoryChatTab({
 
     return (
         <div className="flex flex-col h-full">
+            {/* Mode Tabs */}
+            <div className="flex border-b border-gray-200 bg-white">
+                <Button
+                    variant="ghost"
+                    onClick={() => onChatModeChange('ask')}
+                    className={`flex items-center gap-2 rounded-none border-b-2 px-6 py-3 ${
+                        chatMode === 'ask'
+                            ? 'border-blue-500 bg-blue-50 text-blue-700'
+                            : 'border-transparent hover:bg-gray-50'
+                    }`}
+                    type="button"
+                >
+                    <MessageCircle className="w-4 h-4" />
+                    Ask your memory
+                </Button>
+                <Button
+                    variant="ghost"
+                    onClick={() => onChatModeChange('save')}
+                    className={`flex items-center gap-2 rounded-none border-b-2 px-6 py-3 ${
+                        chatMode === 'save'
+                            ? 'border-blue-500 bg-blue-50 text-blue-700'
+                            : 'border-transparent hover:bg-gray-50'
+                    }`}
+                    type="button"
+                >
+                    <Save className="w-4 h-4" />
+                    Add new memory
+                </Button>
+            </div>
 
             {/* Chat Messages */}
             <div className="flex-1 min-h-0">
-                <ScrollArea className="h-full">
+                <ScrollArea ref={scrollAreaRef} className="h-full">
                     <div className="p-4">
                         {allMessages.length === 0 ? (
                             <div className="text-center py-8 text-gray-500">
-                                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                    {chatMode === 'ask' ? (
-                                        <MessageCircle className="w-8 h-8 text-gray-400" />
-                                    ) : (
-                                        <Save className="w-8 h-8 text-gray-400" />
-                                    )}
-                                </div>
-                                <p className="text-lg font-medium mb-2">
-                                    {chatMode === 'ask' ? 'Start a conversation' : 'Add a new memory'}
-                                </p>
-                                <p className="text-sm">
-                                    {chatMode === 'ask' 
-                                        ? 'Ask questions about your stored memories'
-                                        : 'Store important moments and information'
-                                    }
-                                </p>
                             </div>
                         ) : (
                             allMessages.map(renderMessage)

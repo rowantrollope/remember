@@ -1,5 +1,5 @@
 // API client for Memory Agent
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5001'
+const DEFAULT_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5001'
 
 export interface ApiMemory {
     id?: string
@@ -137,6 +137,12 @@ export interface DeleteResponse {
     memory_id: string
 }
 
+export interface ClearAllResponse {
+    success: boolean
+    message: string
+    deleted_count: number
+}
+
 export interface ContextResponse {
     success: boolean
     context: {
@@ -187,8 +193,18 @@ export interface MemoryInfoResponse {
 class MemoryAgentAPI {
     private baseUrl: string
 
-    constructor(baseUrl: string = API_BASE_URL) {
+    constructor(baseUrl: string = DEFAULT_API_BASE_URL) {
         this.baseUrl = baseUrl
+    }
+
+    // Method to update the base URL dynamically
+    updateBaseUrl(newBaseUrl: string) {
+        this.baseUrl = newBaseUrl
+    }
+
+    // Method to get current base URL
+    getBaseUrl(): string {
+        return this.baseUrl
     }
 
     private async request<T>(
@@ -219,17 +235,17 @@ class MemoryAgentAPI {
         })
     }
 
-    async recall(query: string, topK: number = 10): Promise<RecallResponse> {
+    async recall(query: string, topK: number = 5): Promise<RecallResponse> {
         return this.request<RecallResponse>('/api/recall', {
             method: 'POST',
             body: JSON.stringify({ query, top_k: topK }),
         })
     }
 
-    async ask(question: string): Promise<AskResponse> {
+    async ask(question: string, topK: number = 5): Promise<AskResponse> {
         return this.request<AskResponse>('/api/ask', {
             method: 'POST',
-            body: JSON.stringify({ question }),
+            body: JSON.stringify({ question, top_k: topK }),
         })
     }
 
@@ -265,6 +281,16 @@ class MemoryAgentAPI {
             body: JSON.stringify(context),
         })
     }
+
+    async clearAllMemories(): Promise<ClearAllResponse> {
+        return this.request<ClearAllResponse>('/api/delete-all', {
+            method: 'DELETE',
+        })
+    }
 }
 
+// Export the MemoryAgentAPI class for direct instantiation
+export { MemoryAgentAPI }
+
+// Create a default instance for backward compatibility
 export const memoryAPI = new MemoryAgentAPI()

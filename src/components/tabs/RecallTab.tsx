@@ -103,10 +103,6 @@ export function RecallTab({ searchResults, onMemoryDeleted }: RecallTabProps) {
                     ))
                 ) : (
                     <div className="flex-1 flex items-center justify-center h-full">
-                        <div className="text-center text-gray-500">
-                            <Search className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                            <p>Enter a search query to find memories</p>
-                        </div>
                     </div>
                 )}
             </div>

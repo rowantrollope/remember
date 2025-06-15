@@ -22,7 +22,7 @@ export function InputForm({ input, setInput, activeTab, isLoading, onSubmit, cha
             case "chat":
                 return chatMode === 'save'
                     ? "Remember that I..."
-                    : "Ask about your memories..."
+                    : "Remember anything..."
             case "recall":
                 return "Search memories..."
             case "context":
@@ -46,10 +46,10 @@ export function InputForm({ input, setInput, activeTab, isLoading, onSubmit, cha
     }
 
     return (
-        <div className="space-y-3">
+        <div className="space-y-3 border p-4 rounded-xl shadow-md">
             {/* Mode Selector for Chat Tab */}
             {activeTab === 'chat' && onChatModeChange && (
-                <div className="space-y-3 p-3 bg-gray-50 rounded-lg">
+                <div className="space-y-3 p-3">
                     <div className="flex items-center gap-2 w-full">
                         <div className="text-sm font-medium text-gray-700">Mode:</div>
                         <div className="flex gap-2">
