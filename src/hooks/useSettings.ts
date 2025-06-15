@@ -21,15 +21,17 @@ export function useSettings() {
 
     // Load settings from localStorage on initialization
     useEffect(() => {
+        console.log('useSettings: Loading settings from localStorage')
         try {
             const savedData = localStorage.getItem(SETTINGS_STORAGE_KEY)
+            console.log('useSettings: Saved data:', savedData)
             if (savedData) {
                 const parsed = JSON.parse(savedData)
-                
+
                 // Validate the data structure and version
                 if (parsed && parsed.version === SETTINGS_VERSION && parsed.data) {
                     const savedSettings = parsed.data
-                    
+
                     // Validate and merge with defaults
                     const validatedSettings: UserSettings = {
                         questionTopK: typeof savedSettings.questionTopK === 'number' &&
@@ -48,17 +50,22 @@ export function useSettings() {
                                    ? savedSettings.serverPort
                                    : DEFAULT_SETTINGS.serverPort
                     }
-                    
+
                     setSettings(validatedSettings)
-                    console.log('Settings loaded from localStorage:', validatedSettings)
+                    console.log('useSettings: Settings loaded from localStorage:', validatedSettings)
+                } else {
+                    console.log('useSettings: Using default settings (invalid stored data)')
                 }
+            } else {
+                console.log('useSettings: Using default settings (no stored data)')
             }
         } catch (error) {
-            console.error('Failed to load settings from localStorage:', error)
+            console.error('useSettings: Failed to load settings from localStorage:', error)
             // Clear corrupted data
             localStorage.removeItem(SETTINGS_STORAGE_KEY)
         } finally {
             setIsLoaded(true)
+            console.log('useSettings: Settings loading complete, isLoaded set to true')
         }
     }, [])
 

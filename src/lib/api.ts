@@ -126,8 +126,14 @@ export interface AskResponse {
     question?: string
 }
 
+export interface ChatResponse {
+    success: boolean
+    message: string
+    response: string
+}
+
 export interface StatusResponse {
-    status: 'ready' | 'not_initialized'
+    status: 'ready' | 'not_initialized' | 'healthy'
     timestamp: string
 }
 
@@ -229,42 +235,50 @@ class MemoryAgentAPI {
     }
 
     async remember(memory: string, applyGrounding: boolean = true): Promise<RememberResponse> {
-        return this.request<RememberResponse>('/api/remember', {
+        return this.request<RememberResponse>('/api/memory', {
             method: 'POST',
-            body: JSON.stringify({ memory, apply_grounding: applyGrounding }),
+            body: JSON.stringify({ text: memory, apply_grounding: applyGrounding }),
         })
     }
 
     async recall(query: string, topK: number = 5): Promise<RecallResponse> {
-        return this.request<RecallResponse>('/api/recall', {
+        return this.request<RecallResponse>('/api/memory/search', {
             method: 'POST',
             body: JSON.stringify({ query, top_k: topK }),
         })
     }
 
     async ask(question: string, topK: number = 5): Promise<AskResponse> {
-        return this.request<AskResponse>('/api/ask', {
+        return this.request<AskResponse>('/api/memory/answer', {
             method: 'POST',
             body: JSON.stringify({ question, top_k: topK }),
         })
     }
 
+    // New chat endpoint for conversational interface
+    async chat(message: string): Promise<ChatResponse> {
+        return this.request<ChatResponse>('/api/chat', {
+            method: 'POST',
+            body: JSON.stringify({ message }),
+        })
+    }
+
     async getStatus(): Promise<StatusResponse> {
-        return this.request<StatusResponse>('/api/status')
+        return this.request<StatusResponse>('/api/health')
     }
 
     async getMemoryInfo(): Promise<MemoryInfoResponse> {
-        return this.request<MemoryInfoResponse>('/api/memory-info')
+        return this.request<MemoryInfoResponse>('/api/memory')
     }
 
     async deleteMemory(memoryId: string): Promise<DeleteResponse> {
-        return this.request<DeleteResponse>(`/api/delete/${memoryId}`, {
+        return this.request<DeleteResponse>(`/api/memory/${memoryId}`, {
             method: 'DELETE',
         })
     }
 
     async getContext(): Promise<ContextResponse> {
-        return this.request<ContextResponse>('/api/context')
+        return this.request<ContextResponse>('/api/memory/context')
     }
 
     async setContext(context: {
@@ -276,14 +290,14 @@ class MemoryAgentAPI {
         mood?: string
         [key: string]: any
     }): Promise<ContextResponse> {
-        return this.request<ContextResponse>('/api/context', {
+        return this.request<ContextResponse>('/api/memory/context', {
             method: 'POST',
             body: JSON.stringify(context),
         })
     }
 
     async clearAllMemories(): Promise<ClearAllResponse> {
-        return this.request<ClearAllResponse>('/api/delete-all', {
+        return this.request<ClearAllResponse>('/api/memory', {
             method: 'DELETE',
         })
     }

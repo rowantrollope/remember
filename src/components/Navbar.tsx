@@ -1,7 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Info, MessageCircle, Search, MapPin, BookOpen, Menu, X } from "lucide-react"
+import { Info, MessageCircle, Search, MapPin, Brain, Save, Menu, X } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
@@ -14,9 +14,27 @@ export function Navbar() {
     const navItems = [
         {
             href: "/",
-            label: "Chat",
+            label: "Home",
             icon: MessageCircle,
             isActive: pathname === "/"
+        },
+        {
+            href: "/chat-demo",
+            label: "Chat Demo",
+            icon: MessageCircle,
+            isActive: pathname === "/chat-demo"
+        },
+        {
+            href: "/ask",
+            label: "Ask",
+            icon: Brain,
+            isActive: pathname === "/ask"
+        },
+        {
+            href: "/memory/save",
+            label: "Save",
+            icon: Save,
+            isActive: pathname === "/memory/save"
         },
         {
             href: "/search",
@@ -35,12 +53,6 @@ export function Navbar() {
             label: "Settings",
             icon: Info,
             isActive: pathname === "/memory-info"
-        },
-        {
-            href: "/api-docs",
-            label: "Docs",
-            icon: BookOpen,
-            isActive: pathname === "/api-docs"
         }
     ]
 

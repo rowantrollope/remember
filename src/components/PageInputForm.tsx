@@ -6,8 +6,9 @@ interface PageInputFormProps {
     setInput: (value: string) => void
     isLoading: boolean
     onSubmit: (e: React.FormEvent) => void
-    pageType: 'chat' | 'search' | 'context'
-    // Chat-specific props
+    pageType: 'chat' | 'search' | 'context' | 'save'
+    // Optional props
+    placeholder?: string
     chatMode?: 'ask' | 'save'
     groundingEnabled?: boolean
     onGroundingToggle?: (enabled: boolean) => void
@@ -19,6 +20,7 @@ export function PageInputForm({
     isLoading,
     onSubmit,
     pageType,
+    placeholder,
     chatMode,
     groundingEnabled,
     onGroundingToggle
@@ -32,6 +34,11 @@ export function PageInputForm({
         }
     }, [])
     const getPlaceholder = () => {
+        // Use custom placeholder if provided
+        if (placeholder) {
+            return placeholder
+        }
+
         switch (pageType) {
             case "chat":
                 return chatMode === 'save'
@@ -41,6 +48,8 @@ export function PageInputForm({
                 return "Search memories..."
             case "context":
                 return "Update context..."
+            case "save":
+                return "What would you like to remember?"
             default:
                 return "Type something..."
         }
@@ -72,8 +81,8 @@ export function PageInputForm({
                     )}
                 </Button> */}
             </form>
-            {/* Grounding Toggle for Chat Page */}
-            {pageType === 'chat' && chatMode === 'save' && groundingEnabled !== undefined && onGroundingToggle && (
+            {/* Grounding Toggle for Chat and Save Pages */}
+            {((pageType === 'chat' && chatMode === 'save') || pageType === 'save') && groundingEnabled !== undefined && onGroundingToggle && (
                 <div className="p-3">
                     <div className="flex justify-end">
                         <GroundingToggle

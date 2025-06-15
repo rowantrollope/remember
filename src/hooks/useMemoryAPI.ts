@@ -3,6 +3,7 @@ import { useConfiguredAPI } from "./useConfiguredAPI"
 import type { Memory, Conversation, ApiStatus, ContextInfo } from "@/types"
 
 export function useMemoryAPI() {
+    console.log('useMemoryAPI: Hook called')
     const [memories, setMemories] = useState<Memory[]>([])
     const [conversations, setConversations] = useState<Conversation[]>([])
     const [searchResults, setSearchResults] = useState<Memory[]>([])
@@ -13,21 +14,31 @@ export function useMemoryAPI() {
     const [groundingEnabled, setGroundingEnabled] = useState(true)
 
     // Get the configured API client
-    const { api: memoryAPI } = useConfiguredAPI()
+    const { api: memoryAPI, isLoaded } = useConfiguredAPI()
+    console.log('useMemoryAPI: Got API instance, isLoaded:', isLoaded)
 
-    // Check API status on mount
+    // Check API status on mount and when API configuration changes
     useEffect(() => {
+        console.log('useMemoryAPI: useEffect running, isLoaded:', isLoaded, 'memoryAPI:', !!memoryAPI)
         const initializeAPI = async () => {
             try {
+                console.log('Initializing API, isLoaded:', isLoaded, 'baseUrl:', memoryAPI.getBaseUrl())
+                setApiStatus('unknown') // Reset to unknown while checking
                 const status = await memoryAPI.getStatus()
-                setApiStatus(status.status)
+                console.log('API status response:', status)
+                // Map 'healthy' status from server to 'ready' for frontend
+                const mappedStatus = status.status === 'healthy' ? 'ready' : status.status
+                setApiStatus(mappedStatus)
+                setError(null) // Clear any previous errors
+                console.log('API status set to:', mappedStatus)
             } catch (error) {
+                console.error('API status check failed:', error)
                 setApiStatus('not_initialized')
                 setError(`Failed to connect to Memory Agent API: ${error instanceof Error ? error.message : 'Unknown error'}`)
             }
         }
         initializeAPI()
-    }, [memoryAPI])
+    }, [])
 
     const saveMemory = async (content: string) => {
         setIsLoading(true)

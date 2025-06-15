@@ -46,10 +46,12 @@ export default function MemoryInfoPage() {
                 setIsLoading(true)
                 // Check status first
                 const status = await memoryAPI.getStatus()
-                setApiStatus(status.status)
+                // Map 'healthy' status from server to 'ready' for frontend
+                const mappedStatus = status.status === 'healthy' ? 'ready' : status.status
+                setApiStatus(mappedStatus)
 
                 // If API is ready, try to fetch memory info
-                if (status.status === 'ready') {
+                if (mappedStatus === 'ready') {
                     try {
                         const info = await memoryAPI.getMemoryInfo()
                         if (info.success) {

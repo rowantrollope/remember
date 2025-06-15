@@ -1,120 +1,52 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import Link from "next/link"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { MessageCircle, Brain, Save, Zap } from "lucide-react"
 
 // Components
 import { PageLayout } from "@/components/PageLayout"
-import { PageInputForm } from "@/components/PageInputForm"
-import { MemoryChatTab } from "@/components/tabs/MemoryChatTab"
-import { RotatingPrompts } from "@/components/RotatingPrompts"
 
-// Hooks and types
+// Hooks
 import { useMemoryAPI } from "@/hooks"
-import { usePersistentChat } from "@/hooks/usePersistentChat"
-import { useSettings } from "@/hooks/useSettings"
-import { useConfiguredAPI } from "@/hooks/useConfiguredAPI"
 
-// Memory-saving prompts for empty state - moved outside component to prevent re-creation
-const chatPrompts = [
-    "What do you want to remember today?",
-    "Don't forget... it's my anniversary next week",
-    "Capture an important moment",
-    "Remember something meaningful",
-    "Save a thought or feeling",
-    "Record a special memory"
-]
+export default function HomePage() {
+    const { apiStatus, error, clearError } = useMemoryAPI()
 
-export default function MemoryChatPage() {
-    const [input, setInput] = useState("")
-    const [chatMode, setChatMode] = useState<'ask' | 'save'>('ask')
-
-    // Use persistent chat hook for conversations and memory saves
-    const {
-        conversations: persistentConversations,
-        memorySaveResponses,
-        addConversation,
-        addMemorySaveResponse,
-    } = usePersistentChat()
-
-    const {
-        conversations: apiConversations,
-        isLoading,
-        error,
-        apiStatus,
-        groundingEnabled,
-        saveMemory,
-        askQuestion,
-        setGroundingEnabled,
-        clearError,
-    } = useMemoryAPI()
-
-    // Get settings for question top_k and configured API
-    const { settings } = useSettings()
-    const { api: memoryAPI } = useConfiguredAPI()
-
-    // Sync API conversations with persistent storage
-    const conversations = persistentConversations.length > 0 ? persistentConversations : apiConversations
-
-    // Fetch memory count on mount to determine default chat mode
-    useEffect(() => {
-        const fetchMemoryCount = async () => {
-            try {
-                // Only fetch if API is ready
-                if (apiStatus === 'ready') {
-                    const memoryInfo = await memoryAPI.getMemoryInfo()
-                    if (memoryInfo.success) {
-                        // Set default mode to 'save' if no memories exist, otherwise 'ask'
-                        if (memoryInfo.memory_count === 0) {
-                            setChatMode('save')
-                        }
-                    }
-                }
-            } catch (error) {
-                // If memory info is not available, keep default behavior
-                console.warn('Could not fetch memory count:', error)
-            }
+    const features = [
+        {
+            title: "Chat Demo",
+            description: "Have conversational interactions with your memories using the LangGraph workflow",
+            icon: MessageCircle,
+            href: "/chat-demo",
+            color: "bg-blue-500",
+            endpoint: "/api/chat"
+        },
+        {
+            title: "Ask Your Memory",
+            description: "Get structured answers with confidence analysis and supporting evidence",
+            icon: Brain,
+            href: "/ask",
+            color: "bg-green-500",
+            endpoint: "/api/memory/answer"
+        },
+        {
+            title: "Save Memory",
+            description: "Store important moments and information with contextual grounding",
+            icon: Save,
+            href: "/memory/save",
+            color: "bg-purple-500",
+            endpoint: "/api/memory"
+        },
+        {
+            title: "Browse Memories",
+            description: "Search and explore your stored memories",
+            icon: Zap,
+            href: "/search",
+            color: "bg-orange-500",
+            endpoint: "/api/memory/search"
         }
-
-        fetchMemoryCount()
-    }, [apiStatus, memoryAPI]) // Re-run when API status or API instance changes
-
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault()
-        if (!input.trim()) return
-
-        let success = false
-        if (chatMode === 'save') {
-            const result = await saveMemory(input)
-            success = result.success
-            if (result.success && result.response) {
-                const saveResponse = {
-                    success: true,
-                    response: result.response,
-                    originalText: input,
-                    timestamp: new Date().toISOString()
-                }
-                // Add to persistent storage
-                addMemorySaveResponse(saveResponse)
-            }
-        } else {
-            const result = await askQuestion(input, settings.questionTopK)
-            if (typeof result === 'object' && result.success) {
-                success = true
-                // Add the new conversation to persistent storage
-                addConversation(result.conversation)
-            } else {
-                success = result as boolean
-            }
-        }
-
-        if (success) {
-            setInput("")
-        }
-    }
-
-    // Check if there are any chat messages
-    const hasMessages = conversations.length > 0 || memorySaveResponses.length > 0
+    ]
 
     return (
         <PageLayout
@@ -122,52 +54,57 @@ export default function MemoryChatPage() {
             apiStatus={apiStatus}
             onClearError={clearError}
         >
-            {/* Memory Chat Content */}
-            <div className="h-full flex flex-col">
-                {hasMessages ? (
-                    // Layout when there are messages - input at bottom
-                    <>
-                        <div className="flex-1 min-h-0 overflow-y-auto p-4 bg-white">
-                            <MemoryChatTab
-                                conversations={conversations}
-                                memorySaveResponses={memorySaveResponses}
-                                chatMode={chatMode}
-                                onChatModeChange={setChatMode}
-                            />
-                        </div>
+            <div className="h-full flex flex-col items-center justify-center p-8 bg-white">
+                <div className="max-w-4xl w-full">
+                    {/* Header */}
+                    <div className="text-center mb-12">
+                        <h1 className="text-4xl font-bold text-gray-900 mb-4">
+                            Memory Bank
+                        </h1>
+                        <p className="text-xl text-gray-600 mb-2">
+                            Your AI-powered personal memory assistant
+                        </p>
+                        <p className="text-gray-500">
+                            Choose how you&apos;d like to interact with your memories
+                        </p>
+                    </div>
 
-                        {/* Input Form at bottom */}
-                        <div className="flex-shrink-0 rounded">
-                            <PageInputForm
-                                input={input}
-                                setInput={setInput}
-                                pageType="chat"
-                                isLoading={isLoading}
-                                onSubmit={handleSubmit}
-                                chatMode={chatMode}
-                                groundingEnabled={groundingEnabled}
-                                onGroundingToggle={setGroundingEnabled}
-                            />
-                        </div>
-                    </>
-                ) : (
-                    // Layout when no messages - input centered vertically with prompt
-                    <div className="flex-1 flex items-center justify-center -mt-40 bg-white">
-                        <div className="w-full">
-                            <RotatingPrompts prompts={chatPrompts} />
-                            <PageInputForm
-                                input={input}
-                                setInput={setInput}
-                                pageType="chat"
-                                isLoading={isLoading}
-                                onSubmit={handleSubmit}
-                                chatMode={chatMode}
-                                groundingEnabled={groundingEnabled}
-                                onGroundingToggle={setGroundingEnabled}
-                            />
+                    {/* Feature Cards */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {features.map((feature) => (
+                            <Link key={feature.href} href={feature.href}>
+                                <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer border-2 hover:border-gray-300">
+                                    <CardHeader className="pb-4">
+                                        <div className="flex items-center space-x-3">
+                                            <div className={`p-2 rounded-lg ${feature.color} text-white`}>
+                                                <feature.icon className="w-6 h-6" />
+                                            </div>
+                                            <CardTitle className="text-xl">{feature.title}</CardTitle>
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <p className="text-gray-600 mb-3">{feature.description}</p>
+                                        <div className="text-sm text-gray-500 font-mono bg-gray-50 px-2 py-1 rounded">
+                                            {feature.endpoint}
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </Link>
+                        ))}
+                    </div>
+
+                    {/* API Status Info */}
+                    <div className="mt-12 text-center">
+                        <div className="inline-flex items-center space-x-2 text-sm text-gray-500">
+                            <div className={`w-2 h-2 rounded-full ${
+                                apiStatus === 'ready' ? 'bg-green-500' : 'bg-red-500'
+                            }`} />
+                            <span>
+                                API Status: {apiStatus === 'ready' ? 'Connected' : 'Disconnected'}
+                            </span>
                         </div>
                     </div>
-                )}
+                </div>
             </div>
         </PageLayout>
     )
