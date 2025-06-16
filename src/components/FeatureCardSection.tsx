@@ -2,7 +2,7 @@
 
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { MessageCircle, Brain, Save, Search, MapPin, Settings } from "lucide-react"
+import { MessageCircle, Brain, Save, Search, MapPin, Settings, GitPullRequest } from "lucide-react"
 import Link from "next/link"
 
 function FeatureCard({
@@ -48,6 +48,13 @@ export function FeatureCardSection() {
             icon: MessageCircle,
             href: "/chat-demo",
             color: "bg-blue-500"
+        },
+        {
+            title: "Agent Demo",
+            description: "See how memory transforms AI agents from generic to personalized. Compare code review assistance with and without memory.",
+            icon: GitPullRequest,
+            href: "/agent-demo",
+            color: "bg-indigo-500"
         },
         {
             title: "Ask API",

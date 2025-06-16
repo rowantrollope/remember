@@ -52,6 +52,12 @@ export function Navbar() {
             isActive: pathname === "/chat-demo"
         },
         {
+            href: "/agent-demo",
+            label: "Agent Demo",
+            icon: Brain,
+            isActive: pathname === "/agent-demo"
+        },
+        {
             href: "/memory-info",
             label: "Settings",
             icon: Info,
@@ -85,11 +91,11 @@ export function Navbar() {
                             />
                             <div className="flex flex-col min-w-0">
                                 <img
-                                    src="/logo.png"
+                                    src="/requiem-logo.png"
                                     alt="Logo"
-                                    width={70}
-                                    height={55}
-                                    className="object-contain sm:w-[90px] sm:h-[70px]"
+                                    width={100}
+                                    height={75}
+                                    className="object-contain sm:w-[100px] sm:h-[70px]"
                                 />
 
                             </div>
