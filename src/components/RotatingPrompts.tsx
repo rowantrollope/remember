@@ -26,8 +26,8 @@ export function RotatingPrompts({ prompts, className = "" }: RotatingPromptsProp
     }
 
     return (
-        <div className={`text-center mb-8 ${className}`}>
-            <p className="text-3xl text-gray-800 font-light leading-relaxed max-w-md mx-auto">
+        <div className={`text-center ${className}`}>
+            <p className="text-xl text-gray-800 mb-4 font-light leading-relaxed max-w-md mx-auto">
                 {currentPrompt}
             </p>
         </div>

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 
 // Components
 import { PageLayout } from "@/components/PageLayout"
@@ -15,15 +15,16 @@ import { useSettings } from "@/hooks/useSettings"
 
 
 const chatPrompts = [
-    "What restaurants have I been to?",
-    "What did I eat yesterday?",
-    "Tell me about my recent travels",
-    "What books have I read?",
-    "What movies did I enjoy?"
+    "Example: What restaurants have I been to?",
+    "Example: What did I eat yesterday?",
+    "Example: Tell me about my recent travels",
+    "Example: What books have I read?",
+    "Example: What movies did I enjoy?"
 ]
 
 export default function AskPage() {
     const [input, setInput] = useState("")
+    const messagesEndRef = useRef<HTMLDivElement>(null)
 
     // Use persistent chat hook for conversations
     const {
@@ -32,7 +33,6 @@ export default function AskPage() {
     } = usePersistentChat()
 
     const {
-        conversations: apiConversations,
         isLoading,
         error,
         apiStatus,
@@ -44,8 +44,15 @@ export default function AskPage() {
 
     const { settings } = useSettings()
 
-    // Combine conversations from persistent storage and current session
-    const conversations = [...persistentConversations, ...apiConversations]
+    // Use only persistent conversations to avoid duplicates
+    const conversations = persistentConversations
+
+    // Auto-scroll to bottom when new conversations are added
+    useEffect(() => {
+        if (messagesEndRef.current) {
+            messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
+        }
+    }, [conversations])
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -69,7 +76,17 @@ export default function AskPage() {
             onClearError={clearError}
         >
             {/* Ask API Content */}
-            <div className="h-full flex flex-col">
+            <div className="relative h-full flex flex-col">
+                <div className="absolute w-full bg-white/75 backdrop-blur-md flex-shrink-0 flex justify-between items-center">
+                    {/* <ClearHistoryDialog
+                        onConfirm={handleClearHistory}
+                        messageCount={memorySaveResponses.length}
+                    /> */}
+                    <div className="grow"></div>
+                    <div className="font-mono text-muted-foreground">
+                        (POST) /api/memory/answer
+                    </div>
+                </div>
                 {hasMessages ? (
                     // Layout when there are messages - input at bottom
                     <>
@@ -93,13 +110,12 @@ export default function AskPage() {
                                                 {/* Confidence Badge */}
                                                 {conversation.confidence && (
                                                     <div className="mb-2">
-                                                        <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
-                                                            conversation.confidence === 'high' 
+                                                        <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${conversation.confidence === 'high'
                                                                 ? 'bg-green-100 text-green-800'
                                                                 : conversation.confidence === 'medium'
-                                                                ? 'bg-yellow-100 text-yellow-800'
-                                                                : 'bg-red-100 text-red-800'
-                                                        }`}>
+                                                                    ? 'bg-yellow-100 text-yellow-800'
+                                                                    : 'bg-red-100 text-red-800'
+                                                            }`}>
                                                             {conversation.confidence} confidence
                                                         </span>
                                                     </div>
@@ -123,7 +139,7 @@ export default function AskPage() {
                                                         </summary>
                                                         <div className="mt-2 space-y-2">
                                                             {conversation.supporting_memories.map((memory, index) => (
-                                                                <div key={memory.id || index} className="bg-white border rounded p-2 text-sm">
+                                                                <div key={memory.id || `${conversation.id}-memory-${index}`} className="bg-white border rounded p-2 text-sm">
                                                                     <div className="text-gray-700">{memory.content || memory.text}</div>
                                                                     <div className="text-xs text-gray-500 mt-1 flex justify-between">
                                                                         <span>{memory.formatted_time || new Date(memory.timestamp).toLocaleString()}</span>
@@ -144,6 +160,8 @@ export default function AskPage() {
                                         </div>
                                     </div>
                                 ))}
+                                {/* Scroll target */}
+                                <div ref={messagesEndRef} />
                             </div>
                         </div>
 
@@ -166,7 +184,9 @@ export default function AskPage() {
                     <div className="flex-1 flex items-center justify-center -mt-40 bg-white">
                         <div className="w-full">
                             <div className="text-center mb-8">
-                                <h1 className="text-3xl font-bold text-gray-900 mb-2">Ask Your Memory</h1>
+                                <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                                    Ask Memory a Question
+                                </h1>
                                 <p className="text-gray-600">
                                     Get structured answers with confidence analysis and supporting evidence
                                 </p>

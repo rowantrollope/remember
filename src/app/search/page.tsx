@@ -58,7 +58,18 @@ export default function SearchPage() {
             onClearError={clearError}
         >
             {/* Search Content */}
-            <div className="h-full flex flex-col">
+            <div className="relative h-full flex flex-col">
+                <div className="absolute w-full bg-white/75 backdrop-blur-sm -top-0 flex-shrink-0 flex justify-between items-center">
+                    {/* <ClearHistoryDialog
+                        onConfirm={handleClearHistory}
+                        messageCount={memorySaveResponses.length}
+                    /> */}
+                    <div className="grow"></div>
+                    <div className="font-mono text-muted-foreground">
+                        (POST) /api/memory/search
+                    </div>
+                </div>
+
                 {hasSearchResults ? (
                     // Layout when there are search results - input at bottom
                     <>
@@ -85,13 +96,12 @@ export default function SearchPage() {
                     <div className="flex-1 flex items-center justify-center -mt-40 bg-white">
                             <div className="w-full">
                                 <div className="text-center mb-8">
-                                    <h1 className="text-3xl font-bold text-gray-900 mb-2">/api/memory/search</h1>
-                                    <p className="text-gray-600">
+                                    <h1 className="text-3xl font-bold text-gray-900 mb-2">Search Memories</h1>
+                                <p className="text-gray-600">
                                         Vector search for relevant memories and return in JSON
                                     </p>
                                 </div>
 
-                            <RotatingPrompts prompts={searchPrompts} />
                             <PageInputForm
                                 input={input}
                                 setInput={setInput}

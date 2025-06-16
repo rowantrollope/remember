@@ -1,7 +1,13 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Info, MessageCircle, Search, MapPin, Brain, Save, Menu, X } from "lucide-react"
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Info, MessageCircle, Search, MapPin, Brain, Save, Menu, X, ChevronDown } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
@@ -11,24 +17,18 @@ export function Navbar() {
     const pathname = usePathname()
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
-    const navItems = [
+    const apiItems = [
         {
-            href: "/chat-demo",
-            label: "Chat Demo",
-            icon: MessageCircle,
-            isActive: pathname === "/chat-demo"
+            href: "/memory/save",
+            label: "Save",
+            icon: Save,
+            isActive: pathname === "/memory/save"
         },
         {
             href: "/ask",
             label: "Ask",
             icon: Brain,
             isActive: pathname === "/ask"
-        },
-        {
-            href: "/memory/save",
-            label: "Save",
-            icon: Save,
-            isActive: pathname === "/memory/save"
         },
         {
             href: "/search",
@@ -41,6 +41,15 @@ export function Navbar() {
             label: "Context",
             icon: MapPin,
             isActive: pathname === "/context"
+        }
+    ]
+
+    const otherNavItems = [
+        {
+            href: "/chat-demo",
+            label: "Chat Demo",
+            icon: MessageCircle,
+            isActive: pathname === "/chat-demo"
         },
         {
             href: "/memory-info",
@@ -49,6 +58,8 @@ export function Navbar() {
             isActive: pathname === "/memory-info"
         }
     ]
+
+    const isApiActive = apiItems.some(item => item.isActive)
 
     const toggleMobileMenu = () => {
         setIsMobileMenuOpen(!isMobileMenuOpen)
@@ -87,7 +98,8 @@ export function Navbar() {
 
                     {/* Desktop Navigation */}
                     <div className="hidden sm:flex items-center space-x-0">
-                        {navItems.map((item) => {
+                        {/* Other nav items */}
+                        {otherNavItems.map((item) => {
                             return (
                                 <Link key={item.href} href={item.href}>
                                     <Button
@@ -102,6 +114,35 @@ export function Navbar() {
                                 </Link>
                             )
                         })}
+
+                        {/* API Dropdown */}
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button
+                                    variant={isApiActive ? "default" : "ghost"}
+                                    className={cn(
+                                        "flex items-center gap-2 bg-white",
+                                        isApiActive && "text-red-600 hover:text-red-700 bg-white border-b-2 border-red-500 rounded-none hover:bg-white"
+                                    )}
+                                >
+                                    API
+                                    <ChevronDown className="w-4 h-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48">
+                                {apiItems.map((item) => {
+                                    const Icon = item.icon
+                                    return (
+                                        <DropdownMenuItem key={item.href} asChild>
+                                            <Link href={item.href} className="flex items-center gap-2 w-full">
+                                                <Icon className="w-4 h-4" />
+                                                {item.label}
+                                            </Link>
+                                        </DropdownMenuItem>
+                                    )
+                                })}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     </div>
 
                     {/* Mobile menu button */}
@@ -126,7 +167,8 @@ export function Navbar() {
                 {isMobileMenuOpen && (
                     <div className="lg:hidden border-t border-gray-200 bg-white/95 backdrop-blur-sm">
                         <div className="px-2 pt-2 pb-3 space-y-1">
-                            {navItems.map((item) => {
+                            {/* Other nav items */}
+                            {otherNavItems.map((item) => {
                                 return (
                                     <Link key={item.href} href={item.href} onClick={closeMobileMenu}>
                                         <Button
@@ -136,6 +178,30 @@ export function Navbar() {
                                                 item.isActive && "text-red-600 hover:text-red-700 bg-white border-l-4 border-red-500 rounded-none hover:bg-white"
                                             )}
                                         >
+                                            {item.label}
+                                        </Button>
+                                    </Link>
+                                )
+                            })}
+
+                            {/* API section header */}
+                            <div className="px-3 py-2 text-sm font-medium text-gray-500 border-t border-gray-200 mt-2 pt-4">
+                                API
+                            </div>
+
+                            {/* API items */}
+                            {apiItems.map((item) => {
+                                const Icon = item.icon
+                                return (
+                                    <Link key={item.href} href={item.href} onClick={closeMobileMenu}>
+                                        <Button
+                                            variant={item.isActive ? "default" : "ghost"}
+                                            className={cn(
+                                                "w-full justify-start gap-3 bg-white pl-6",
+                                                item.isActive && "text-red-600 hover:text-red-700 bg-white border-l-4 border-red-500 rounded-none hover:bg-white"
+                                            )}
+                                        >
+                                            <Icon className="w-4 h-4" />
                                             {item.label}
                                         </Button>
                                     </Link>

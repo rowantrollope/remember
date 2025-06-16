@@ -17,13 +17,13 @@ export function CallToAction() {
                         Simple API, powerful results.
                     </p>
                     <div className="flex flex-col gap-4 sm:flex-row mt-6">
-                        <Link href="/chat-demo" legacyBehavior>
+                        <Link href="/chat-demo">
                             <Button size="lg">
                                 Try the Demo
                                 <ChevronRight className="ml-2 h-4 w-4" />
                             </Button>
                         </Link>
-                        <Link href="/api-docs" legacyBehavior>
+                        <Link href="/api-docs">
                             <Button variant="outline" size="lg">
                                 <BookOpen className="mr-2 h-4 w-4" />
                                 View API Docs
@@ -31,7 +31,6 @@ export function CallToAction() {
                         </Link>
                         <Link
                             href="https://github.com/rowantrollope/remember"
-                            legacyBehavior
                         >
                             <Button variant="outline" size="lg">
                                 <Github className="mr-2 h-4 w-4" />

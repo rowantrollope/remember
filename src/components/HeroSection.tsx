@@ -24,7 +24,7 @@ export function HeroSection() {
                     
                 </p>
                 <div className="flex flex-col gap-4 sm:flex-row">
-                    <Link href="/chat-demo" legacyBehavior>
+                    <Link href="/chat-demo">
                         <Button size="lg">
                             Try Demo
                             <ChevronRight className="ml-2 h-4 w-4" />
@@ -32,7 +32,6 @@ export function HeroSection() {
                     </Link>
                     <Link
                         href="https://github.com/rowantrollope/remember"
-                        legacyBehavior
                     >
                         <Button variant="outline" size="lg">
                             <Github className="mr-2 h-4 w-4" />

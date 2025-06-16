@@ -25,7 +25,7 @@ export function PageLayout({
             <Navbar />
 
             {/* Main content area */}
-            <div className="flex-1 p-6 min-h-0">
+            <div className="flex-1 px-6 min-h-0">
                 <Card className={`h-full flex flex-col max-w-4xl mx-auto p-2 shadow-none border-none ${className}`}>
                     
                     {/* Error Display */}

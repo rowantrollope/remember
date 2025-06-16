@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 
 // Components
 import { PageLayout } from "@/components/PageLayout"
@@ -34,9 +34,17 @@ export default function ChatDemoPage() {
     const [chatHistory, setChatHistory] = useState<ChatMessage[]>([])
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const messagesEndRef = useRef<HTMLDivElement>(null)
 
     const { api: memoryAPI } = useConfiguredAPI()
     const { apiStatus } = useMemoryAPI()
+
+    // Auto-scroll to bottom when new messages are added
+    useEffect(() => {
+        if (messagesEndRef.current) {
+            messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
+        }
+    }, [chatHistory])
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -124,6 +132,8 @@ export default function ChatDemoPage() {
                                         </div>
                                     </div>
                                 )}
+                                {/* Scroll target */}
+                                <div ref={messagesEndRef} />
                             </div>
                         </div>
 

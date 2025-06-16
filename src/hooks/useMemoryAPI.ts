@@ -5,7 +5,6 @@ import type { Memory, Conversation, ApiStatus, ContextInfo } from "@/types"
 export function useMemoryAPI() {
     console.log('useMemoryAPI: Hook called')
     const [memories, setMemories] = useState<Memory[]>([])
-    const [conversations, setConversations] = useState<Conversation[]>([])
     const [searchResults, setSearchResults] = useState<Memory[]>([])
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -94,7 +93,7 @@ export function useMemoryAPI() {
                 const supportingMemories: Memory[] = response.supporting_memories?.map((mem, index) => {
                     const content = mem.content || mem.text || mem.memory || 'No content available'
                     const timestamp = mem.timestamp || mem.created_at || new Date().toISOString()
-                    const id = mem.id || `supporting-memory-${Date.now()}-${index}`
+                    const id = mem.id || `supporting-memory-${Date.now()}-${Math.random().toString(36).substr(2, 9)}-${index}`
 
                     return {
                         id,
@@ -116,7 +115,7 @@ export function useMemoryAPI() {
                 }) || []
 
                 const newConversation: Conversation = {
-                    id: Date.now().toString(),
+                    id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                     question,
                     answer: response.answer,
                     timestamp: new Date().toISOString(),
@@ -125,7 +124,7 @@ export function useMemoryAPI() {
                     supporting_memories: supportingMemories,
                 }
 
-                setConversations((prev) => [...prev, newConversation])
+                // Don't store in local state - let the calling component handle persistence
                 return { success: true, conversation: newConversation }
             } else {
                 setError('Failed to get answer from Memory Agent')
@@ -162,7 +161,7 @@ export function useMemoryAPI() {
                 const formattedMemories: Memory[] = response.memories.map((mem, index) => {
                     const content = mem.content || mem.text || mem.memory || 'No content available'
                     const timestamp = mem.timestamp || mem.created_at || new Date().toISOString()
-                    const id = mem.id || `memory-${Date.now()}-${index}`
+                    const id = mem.id || `memory-${Date.now()}-${Math.random().toString(36).substr(2, 9)}-${index}`
 
                     return {
                         id,
@@ -231,7 +230,7 @@ export function useMemoryAPI() {
                 // Clear all local state
                 setMemories([])
                 setSearchResults([])
-                setConversations([])
+                // Note: conversations are managed by usePersistentChat hook
                 return { success: true, deletedCount: response.deleted_count }
             } else {
                 setError('Failed to clear all memories')
@@ -284,7 +283,6 @@ export function useMemoryAPI() {
     return {
         // State
         memories,
-        conversations,
         searchResults,
         isLoading,
         error,
