@@ -1,3 +1,5 @@
+"use client"
+
 import { GroundingToggle } from "@/components/GroundingToggle"
 import { useRef, useEffect } from "react"
 

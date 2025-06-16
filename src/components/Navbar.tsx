@@ -13,12 +13,6 @@ export function Navbar() {
 
     const navItems = [
         {
-            href: "/",
-            label: "Home",
-            icon: MessageCircle,
-            isActive: pathname === "/"
-        },
-        {
             href: "/chat-demo",
             label: "Chat Demo",
             icon: MessageCircle,
@@ -38,7 +32,7 @@ export function Navbar() {
         },
         {
             href: "/search",
-            label: "Browse",
+            label: "Search",
             icon: Search,
             isActive: pathname === "/search"
         },

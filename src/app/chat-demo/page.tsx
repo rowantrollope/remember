@@ -144,7 +144,7 @@ export default function ChatDemoPage() {
                     <div className="flex-1 flex items-center justify-center -mt-40 bg-white">
                         <div className="w-full">
                             <div className="text-center mb-8">
-                                <h1 className="text-3xl font-bold text-gray-900 mb-2">Chat Demo</h1>
+                                <h1 className="text-3xl font-bold text-gray-900 mb-2">/api/chat</h1>
                                 <p className="text-gray-600">
                                     Have a conversation with your memories using the LangGraph workflow
                                 </p>

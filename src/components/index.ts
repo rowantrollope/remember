@@ -5,6 +5,14 @@ export { PageLayout } from './PageLayout'
 export { PageInputForm } from './PageInputForm'
 export { RotatingPrompts } from './RotatingPrompts'
 
+// Home page components
+export { HeroSection } from './HeroSection'
+export { MainContentSection } from './MainContentSection'
+export { FeatureCardSection } from './FeatureCardSection'
+export { CallToAction } from './CallToAction'
+export { InfoCards } from './InfoCards'
+export { CodeExamplesSection } from './CodeExamplesSection'
+
 // Tab components
 export { AskTab } from './tabs/AskTab'
 export { SaveTab } from './tabs/SaveTab'

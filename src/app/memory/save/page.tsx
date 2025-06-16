@@ -166,7 +166,7 @@ export default function MemorySavePage() {
                                 onSubmit={handleSubmit}
                                 groundingEnabled={groundingEnabled}
                                 onGroundingToggle={setGroundingEnabled}
-                                placeholder="What would you like to remember?"
+                                placeholder="Enter a memory to save..."
                             />
                         </div>
                     </>
@@ -189,7 +189,7 @@ export default function MemorySavePage() {
                                 onSubmit={handleSubmit}
                                 groundingEnabled={groundingEnabled}
                                 onGroundingToggle={setGroundingEnabled}
-                                placeholder="What would you like to remember?"
+                                placeholder="Enter a memory to save..."
                             />
                         </div>
                     </div>

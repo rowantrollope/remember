@@ -1,3 +1,5 @@
+"use client"
+
 import { useState, useEffect } from "react"
 import { Save } from "lucide-react"
 import { GroundingToggle } from "@/components/GroundingToggle"

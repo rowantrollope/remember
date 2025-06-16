@@ -83,7 +83,14 @@ export default function SearchPage() {
                 ) : (
                     // Layout when no search results - input centered vertically with prompt
                     <div className="flex-1 flex items-center justify-center -mt-40 bg-white">
-                        <div className="w-full">
+                            <div className="w-full">
+                                <div className="text-center mb-8">
+                                    <h1 className="text-3xl font-bold text-gray-900 mb-2">/api/memory/search</h1>
+                                    <p className="text-gray-600">
+                                        Vector search for relevant memories and return in JSON
+                                    </p>
+                                </div>
+
                             <RotatingPrompts prompts={searchPrompts} />
                             <PageInputForm
                                 input={input}
