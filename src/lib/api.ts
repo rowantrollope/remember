@@ -132,6 +132,54 @@ export interface ChatResponse {
     response: string
 }
 
+export interface ChatSessionConfig {
+    model?: string
+    temperature?: number
+    max_tokens?: number
+    use_memory?: boolean
+    save_memory?: boolean
+}
+
+export interface CreateSessionRequest {
+    system_prompt: string
+    session_id?: string
+    config?: ChatSessionConfig
+    use_memory?: boolean
+    save_memory?: boolean
+}
+
+export interface CreateSessionResponse {
+    success: boolean
+    session_id: string
+    created_at?: string
+    system_prompt?: string
+    use_memory?: boolean
+    message?: string
+}
+
+export interface SessionChatRequest {
+    session_id: string
+    message: string
+}
+
+export interface SessionChatResponse {
+    success: boolean
+    message: string
+    session_id: string
+    conversation_length?: number
+    timestamp?: string
+    memory_context?: {
+        memories_used: number
+        memories: Array<{
+            memory_id: string
+            text: string
+            timestamp: string
+            grounded_text: string
+            similarity_score: number
+        }>
+    }
+}
+
 export interface StatusResponse {
     status: 'ready' | 'not_initialized' | 'healthy'
     timestamp: string
@@ -260,6 +308,21 @@ class MemoryAgentAPI {
         return this.request<ChatResponse>('/api/chat', {
             method: 'POST',
             body: JSON.stringify({ message }),
+        })
+    }
+
+    // Session-based chat endpoints
+    async createChatSession(request: CreateSessionRequest): Promise<CreateSessionResponse> {
+        return this.request<CreateSessionResponse>('/api/chat/session', {
+            method: 'POST',
+            body: JSON.stringify(request),
+        })
+    }
+
+    async chatWithSession(request: SessionChatRequest): Promise<SessionChatResponse> {
+        return this.request<SessionChatResponse>(`/api/chat/session/${request.session_id}`, {
+            method: 'POST',
+            body: JSON.stringify({ message: request.message }),
         })
     }
 

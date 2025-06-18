@@ -3,7 +3,6 @@ import { useConfiguredAPI } from "./useConfiguredAPI"
 import type { Memory, Conversation, ApiStatus, ContextInfo } from "@/types"
 
 export function useMemoryAPI() {
-    console.log('useMemoryAPI: Hook called')
     const [memories, setMemories] = useState<Memory[]>([])
     const [searchResults, setSearchResults] = useState<Memory[]>([])
     const [isLoading, setIsLoading] = useState(false)
@@ -14,22 +13,21 @@ export function useMemoryAPI() {
 
     // Get the configured API client
     const { api: memoryAPI, isLoaded } = useConfiguredAPI()
-    console.log('useMemoryAPI: Got API instance, isLoaded:', isLoaded)
 
     // Check API status on mount and when API configuration changes
     useEffect(() => {
-        console.log('useMemoryAPI: useEffect running, isLoaded:', isLoaded, 'memoryAPI:', !!memoryAPI)
+        if (!isLoaded) {
+            return
+        }
+
         const initializeAPI = async () => {
             try {
-                console.log('Initializing API, isLoaded:', isLoaded, 'baseUrl:', memoryAPI.getBaseUrl())
                 setApiStatus('unknown') // Reset to unknown while checking
                 const status = await memoryAPI.getStatus()
-                console.log('API status response:', status)
                 // Map 'healthy' status from server to 'ready' for frontend
                 const mappedStatus = status.status === 'healthy' ? 'ready' : status.status
                 setApiStatus(mappedStatus)
                 setError(null) // Clear any previous errors
-                console.log('API status set to:', mappedStatus)
             } catch (error) {
                 console.error('API status check failed:', error)
                 setApiStatus('not_initialized')
@@ -37,7 +35,7 @@ export function useMemoryAPI() {
             }
         }
         initializeAPI()
-    }, [])
+    }, [isLoaded, memoryAPI])
 
     const saveMemory = async (content: string) => {
         setIsLoading(true)

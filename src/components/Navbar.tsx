@@ -7,7 +7,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Info, MessageCircle, Search, MapPin, Brain, Save, Menu, X, ChevronDown } from "lucide-react"
+import { Info, MessageCircle, Search, MapPin, Brain, Save, Menu, X, ChevronDown, TrendingUp, Plane } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
@@ -44,7 +44,7 @@ export function Navbar() {
         }
     ]
 
-    const otherNavItems = [
+    const demoItems = [
         {
             href: "/chat-demo",
             label: "Chat Demo",
@@ -53,10 +53,25 @@ export function Navbar() {
         },
         {
             href: "/agent-demo",
-            label: "Agent Demo",
+            label: "Code Review Agent",
             icon: Brain,
             isActive: pathname === "/agent-demo"
         },
+        {
+            href: "/investment-demo",
+            label: "Investment Agent",
+            icon: TrendingUp,
+            isActive: pathname === "/investment-demo"
+        },
+        {
+            href: "/travel-demo",
+            label: "Travel Agent",
+            icon: Plane,
+            isActive: pathname === "/travel-demo"
+        }
+    ]
+
+    const otherNavItems = [
         {
             href: "/memory-info",
             label: "Settings",
@@ -66,6 +81,7 @@ export function Navbar() {
     ]
 
     const isApiActive = apiItems.some(item => item.isActive)
+    const isDemoActive = demoItems.some(item => item.isActive)
 
     const toggleMobileMenu = () => {
         setIsMobileMenuOpen(!isMobileMenuOpen)
@@ -91,11 +107,11 @@ export function Navbar() {
                             />
                             <div className="flex flex-col min-w-0">
                                 <img
-                                    src="/requiem-logo.png"
+                                    src="/logo.png"
                                     alt="Logo"
                                     width={100}
                                     height={75}
-                                    className="object-contain sm:w-[100px] sm:h-[70px]"
+                                    className="object-contain sm:w-[60px] sm:h-[60px]"
                                 />
 
                             </div>
@@ -120,6 +136,35 @@ export function Navbar() {
                                 </Link>
                             )
                         })}
+
+                        {/* Demos Dropdown */}
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button
+                                    variant={isDemoActive ? "default" : "ghost"}
+                                    className={cn(
+                                        "flex items-center gap-2 bg-white",
+                                        isDemoActive && "text-red-600 hover:text-red-700 bg-white border-b-2 border-red-500 rounded-none hover:bg-white"
+                                    )}
+                                >
+                                    Demos
+                                    <ChevronDown className="w-4 h-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48">
+                                {demoItems.map((item) => {
+                                    const Icon = item.icon
+                                    return (
+                                        <DropdownMenuItem key={item.href} asChild>
+                                            <Link href={item.href} className="flex items-center gap-2 w-full">
+                                                <Icon className="w-4 h-4" />
+                                                {item.label}
+                                            </Link>
+                                        </DropdownMenuItem>
+                                    )
+                                })}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
 
                         {/* API Dropdown */}
                         <DropdownMenu>
@@ -184,6 +229,30 @@ export function Navbar() {
                                                 item.isActive && "text-red-600 hover:text-red-700 bg-white border-l-4 border-red-500 rounded-none hover:bg-white"
                                             )}
                                         >
+                                            {item.label}
+                                        </Button>
+                                    </Link>
+                                )
+                            })}
+
+                            {/* Demos section header */}
+                            <div className="px-3 py-2 text-sm font-medium text-gray-500 border-t border-gray-200 mt-2 pt-4">
+                                Demos
+                            </div>
+
+                            {/* Demo items */}
+                            {demoItems.map((item) => {
+                                const Icon = item.icon
+                                return (
+                                    <Link key={item.href} href={item.href} onClick={closeMobileMenu}>
+                                        <Button
+                                            variant={item.isActive ? "default" : "ghost"}
+                                            className={cn(
+                                                "w-full justify-start gap-3 bg-white pl-6",
+                                                item.isActive && "text-red-600 hover:text-red-700 bg-white border-l-4 border-red-500 rounded-none hover:bg-white"
+                                            )}
+                                        >
+                                            <Icon className="w-4 h-4" />
                                             {item.label}
                                         </Button>
                                     </Link>
