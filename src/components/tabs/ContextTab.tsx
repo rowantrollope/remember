@@ -38,16 +38,32 @@ export function ContextTab({ currentContext, onUpdateContext, onGetContext, isLo
         onGetContext()
     }, [onGetContext])
 
-    // Update form when context changes, but only on initial load
+    // Update form when context changes
     useEffect(() => {
-        if (currentContext && !hasInitialized) {
-            setLocation(currentContext.spatial?.location || "")
-            setActivity(currentContext.spatial?.activity || "")
-            setPeoplePresent(currentContext.social?.people_present?.join(", ") || "")
-            setWeather(currentContext.environmental?.weather || "")
-            setTemperature(currentContext.environmental?.temperature || "")
-            setMood(currentContext.environmental?.mood || "")
+        if (currentContext) {
+            console.log('ContextTab: Updating form with context:', currentContext)
+
+            // Handle both response formats (POST vs GET responses have different structures)
+            const spatial = currentContext.spatial || {}
+            const environmental = currentContext.environmental || currentContext.environment || {}
+            const social = currentContext.social || {}
+
+            setLocation(spatial.location || currentContext.location || "")
+            setActivity(spatial.activity || currentContext.activity || "")
+            setPeoplePresent(social.people_present?.join(", ") || currentContext.people_present?.join(", ") || "")
+            setWeather(environmental.weather || "")
+            setTemperature(environmental.temperature || "")
+            setMood(environmental.mood || "")
             setHasInitialized(true)
+        } else if (hasInitialized) {
+            // Clear form if context becomes null after being initialized
+            console.log('ContextTab: Clearing form - no context available')
+            setLocation("")
+            setActivity("")
+            setPeoplePresent("")
+            setWeather("")
+            setTemperature("")
+            setMood("")
         }
     }, [currentContext, hasInitialized])
 
@@ -66,9 +82,7 @@ export function ContextTab({ currentContext, onUpdateContext, onGetContext, isLo
 
         const success = await onUpdateContext(context)
         if (success) {
-            // Context will be updated via the hook
-            // Reset initialization flag so form can be updated with new context
-            setHasInitialized(false)
+            // Context will be updated via the hook and form will be updated automatically
         }
         setIsUpdating(false)
     }
@@ -83,7 +97,16 @@ export function ContextTab({ currentContext, onUpdateContext, onGetContext, isLo
             <ScrollArea className="flex-1">
                 <div className="space-y-6 p-2">
                     {/* Current Context Display */}
-                    {currentContext && (
+                    {isLoading ? (
+                        <Card className="border border-gray-200 bg-gray-50/50">
+                            <CardHeader className="pb-3">
+                                <CardTitle className="text-lg flex items-center gap-2">
+                                    <Loader2 className="w-5 h-5 text-gray-600 animate-spin" />
+                                    Loading Context...
+                                </CardTitle>
+                            </CardHeader>
+                        </Card>
+                    ) : currentContext ? (
                         <Card className="border border-blue-200 bg-blue-50/50">
                             <CardHeader className="pb-3">
                                 <CardTitle className="text-lg flex items-center gap-2">
@@ -176,6 +199,20 @@ export function ContextTab({ currentContext, onUpdateContext, onGetContext, isLo
                                         </div>
                                     </div>
                                 )}
+                            </CardContent>
+                        </Card>
+                    ) : (
+                        <Card className="border border-yellow-200 bg-yellow-50/50">
+                            <CardHeader className="pb-3">
+                                <CardTitle className="text-lg flex items-center gap-2">
+                                    <MapPin className="w-5 h-5 text-yellow-600" />
+                                    No Context Set
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-sm text-gray-600">
+                                    No context information is currently available. Use the form below to set your current context.
+                                </p>
                             </CardContent>
                         </Card>
                     )}

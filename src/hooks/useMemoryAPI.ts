@@ -309,13 +309,17 @@ export function useMemoryAPI() {
 
     const getContext = useCallback(async () => {
         try {
+            console.log('useMemoryAPI: Calling getContext...')
             const response = await memoryAPI.getContext()
+            console.log('useMemoryAPI: getContext response:', response)
             if (response.success) {
                 setCurrentContext(response.context)
                 return response.context
             }
+            console.log('useMemoryAPI: getContext failed - success was false')
             return null
         } catch (err) {
+            console.error('useMemoryAPI: getContext error:', err)
             setError(err instanceof Error ? err.message : 'Failed to get context')
             return null
         }
@@ -331,13 +335,17 @@ export function useMemoryAPI() {
         [key: string]: any
     }) => {
         try {
+            console.log('useMemoryAPI: Calling updateContext with:', context)
             const response = await memoryAPI.setContext(context)
+            console.log('useMemoryAPI: updateContext response:', response)
             if (response.success) {
                 setCurrentContext(response.context)
                 return true
             }
+            console.log('useMemoryAPI: updateContext failed - success was false')
             return false
         } catch (err) {
+            console.error('useMemoryAPI: updateContext error:', err)
             setError(err instanceof Error ? err.message : 'Failed to update context')
             return false
         }

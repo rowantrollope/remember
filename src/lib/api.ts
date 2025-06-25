@@ -362,7 +362,14 @@ class MemoryAgentAPI {
             throw new Error(`API request failed: ${response.status} ${response.statusText}`)
         }
 
-        return response.json()
+        const data = await response.json()
+
+        // Handle error responses that don't follow the expected format
+        if (data.error && !data.success) {
+            throw new Error(data.error)
+        }
+
+        return data
     }
 
     async remember(memory: string, applyGrounding: boolean = true): Promise<RememberResponse> {
