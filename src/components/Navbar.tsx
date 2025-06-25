@@ -36,12 +36,12 @@ export function Navbar() {
             icon: Network,
             isActive: pathname === "/recall"
         },
-        {
-            href: "/context",
-            label: "Set Context",
-            icon: MapPin,
-            isActive: pathname === "/context"
-        },
+        // {
+        //     href: "/context",
+        //     label: "Set Context",
+        //     icon: MapPin,
+        //     isActive: pathname === "/context"
+        // },
         {
             href: "/ask",
             label: "Ask Memory a Question",

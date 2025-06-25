@@ -330,19 +330,14 @@ export function useMemoryAPI() {
         activity?: string
         people_present?: string[]
         weather?: string
-        temperature?: string
-        mood?: string
         [key: string]: any
     }) => {
         try {
-            console.log('useMemoryAPI: Calling updateContext with:', context)
             const response = await memoryAPI.setContext(context)
-            console.log('useMemoryAPI: updateContext response:', response)
             if (response.success) {
                 setCurrentContext(response.context)
                 return true
             }
-            console.log('useMemoryAPI: updateContext failed - success was false')
             return false
         } catch (err) {
             console.error('useMemoryAPI: updateContext error:', err)

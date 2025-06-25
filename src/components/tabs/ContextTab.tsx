@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { MapPin, Users, Activity, Cloud, Thermometer, Smile, Save, Loader2 } from "lucide-react"
+import { MapPin, Users, Activity, Cloud, Save, Loader2, Plus, X } from "lucide-react"
 import type { ContextInfo } from "@/types"
 
 interface ContextTabProps {
@@ -15,8 +15,6 @@ interface ContextTabProps {
         activity?: string
         people_present?: string[]
         weather?: string
-        temperature?: string
-        mood?: string
         [key: string]: any
     }) => Promise<boolean>
     onGetContext: () => Promise<ContextInfo | null>
@@ -28,8 +26,7 @@ export function ContextTab({ currentContext, onUpdateContext, onGetContext, isLo
     const [activity, setActivity] = useState("")
     const [peoplePresent, setPeoplePresent] = useState("")
     const [weather, setWeather] = useState("")
-    const [temperature, setTemperature] = useState("")
-    const [mood, setMood] = useState("")
+    const [customFields, setCustomFields] = useState<Array<{key: string, value: string}>>([])
     const [isUpdating, setIsUpdating] = useState(false)
     const [hasInitialized, setHasInitialized] = useState(false)
 
@@ -41,29 +38,34 @@ export function ContextTab({ currentContext, onUpdateContext, onGetContext, isLo
     // Update form when context changes
     useEffect(() => {
         if (currentContext) {
-            console.log('ContextTab: Updating form with context:', currentContext)
-
-            // Handle both response formats (POST vs GET responses have different structures)
+            // Handle both API response formats:
+            // GET: { spatial: {location, activity}, social: {people_present}, environmental: {weather, ...custom} }
+            // POST: { location, activity, people_present, environment: {weather, ...custom} }
             const spatial = currentContext.spatial || {}
-            const environmental = currentContext.environmental || currentContext.environment || {}
             const social = currentContext.social || {}
+            const environmental = currentContext.environmental || currentContext.environment || {}
 
+            // Handle both flat and nested formats
             setLocation(spatial.location || currentContext.location || "")
             setActivity(spatial.activity || currentContext.activity || "")
             setPeoplePresent(social.people_present?.join(", ") || currentContext.people_present?.join(", ") || "")
             setWeather(environmental.weather || "")
-            setTemperature(environmental.temperature || "")
-            setMood(environmental.mood || "")
+
+            // Extract custom fields from environmental/environment section
+            const predefinedFields = new Set(['weather'])
+            const customFieldsFromContext = Object.entries(environmental)
+                .filter(([key, value]) => !predefinedFields.has(key) && value !== undefined && value !== null && value !== "")
+                .map(([key, value]) => ({ key, value: String(value) }))
+
+            setCustomFields(customFieldsFromContext)
             setHasInitialized(true)
         } else if (hasInitialized) {
             // Clear form if context becomes null after being initialized
-            console.log('ContextTab: Clearing form - no context available')
             setLocation("")
             setActivity("")
             setPeoplePresent("")
             setWeather("")
-            setTemperature("")
-            setMood("")
+            setCustomFields([])
         }
     }, [currentContext, hasInitialized])
 
@@ -71,20 +73,41 @@ export function ContextTab({ currentContext, onUpdateContext, onGetContext, isLo
         e.preventDefault()
         setIsUpdating(true)
 
-        const context = {
+        // Try both flat and structured approaches to see which one works
+        // First, let's try the flat approach that was working before
+        const flatContext: any = {
             location: location.trim() || undefined,
             activity: activity.trim() || undefined,
             people_present: peoplePresent.trim() ? peoplePresent.split(",").map(p => p.trim()).filter(Boolean) : undefined,
             weather: weather.trim() || undefined,
-            temperature: temperature.trim() || undefined,
-            mood: mood.trim() || undefined,
         }
 
-        const success = await onUpdateContext(context)
+        // Add custom fields to flat context
+        customFields.forEach(({ key, value }) => {
+            if (key.trim() && value.trim()) {
+                flatContext[key.trim()] = value.trim()
+            }
+        })
+
+        const success = await onUpdateContext(flatContext)
         if (success) {
             // Context will be updated via the hook and form will be updated automatically
         }
         setIsUpdating(false)
+    }
+
+    const addCustomField = () => {
+        setCustomFields([...customFields, { key: "", value: "" }])
+    }
+
+    const removeCustomField = (index: number) => {
+        setCustomFields(customFields.filter((_, i) => i !== index))
+    }
+
+    const updateCustomField = (index: number, field: 'key' | 'value', newValue: string) => {
+        const updated = [...customFields]
+        updated[index][field] = newValue
+        setCustomFields(updated)
     }
 
     const formatDateTime = (temporal: any) => {
@@ -134,68 +157,86 @@ export function ContextTab({ currentContext, onUpdateContext, onGetContext, isLo
                                     </div>
                                 )}
 
-                                {/* Spatial Info */}
-                                {currentContext.spatial && (
-                                    <div className="space-y-2">
-                                        <h4 className="font-medium text-sm text-gray-700 flex items-center gap-1">
-                                            <MapPin className="w-4 h-4" />
-                                            Location & Activity
-                                        </h4>
-                                        <div className="flex flex-wrap gap-2">
-                                            {currentContext.spatial.location && (
-                                                <Badge className="text-xs bg-green-100 text-green-800">
-                                                    {currentContext.spatial.location}
-                                                </Badge>
-                                            )}
-                                            {currentContext.spatial.activity && (
-                                                <Badge className="text-xs bg-purple-100 text-purple-800">
-                                                    {currentContext.spatial.activity}
-                                                </Badge>
-                                            )}
+                                {/* Spatial Info - handle both nested and flat formats */}
+                                {(() => {
+                                    const location = currentContext.spatial?.location || currentContext.location
+                                    const activity = currentContext.spatial?.activity || currentContext.activity
+                                    return (location || activity) && (
+                                        <div className="space-y-2">
+                                            <h4 className="font-medium text-sm text-gray-700 flex items-center gap-1">
+                                                <MapPin className="w-4 h-4" />
+                                                Location & Activity
+                                            </h4>
+                                            <div className="flex flex-wrap gap-2">
+                                                {location && (
+                                                    <Badge className="text-xs bg-green-100 text-green-800">
+                                                        {location}
+                                                    </Badge>
+                                                )}
+                                                {activity && (
+                                                    <Badge className="text-xs bg-purple-100 text-purple-800">
+                                                        {activity}
+                                                    </Badge>
+                                                )}
+                                            </div>
                                         </div>
-                                    </div>
-                                )}
+                                    )
+                                })()}
 
-                                {/* Social Info */}
-                                {currentContext.social?.people_present && currentContext.social.people_present.length > 0 && (
-                                    <div className="space-y-2">
-                                        <h4 className="font-medium text-sm text-gray-700 flex items-center gap-1">
-                                            <Users className="w-4 h-4" />
-                                            People Present
-                                        </h4>
-                                        <div className="flex flex-wrap gap-2">
-                                            {currentContext.social.people_present.map((person, index) => (
-                                                <Badge key={index} className="text-xs bg-blue-100 text-blue-800">
-                                                    {person}
-                                                </Badge>
-                                            ))}
+                                {/* Social Info - handle both nested and flat formats */}
+                                {(() => {
+                                    const peoplePresent = currentContext.social?.people_present || currentContext.people_present
+                                    return peoplePresent && peoplePresent.length > 0 && (
+                                        <div className="space-y-2">
+                                            <h4 className="font-medium text-sm text-gray-700 flex items-center gap-1">
+                                                <Users className="w-4 h-4" />
+                                                People Present
+                                            </h4>
+                                            <div className="flex flex-wrap gap-2">
+                                                {peoplePresent.map((person, index) => (
+                                                    <Badge key={index} className="text-xs bg-blue-100 text-blue-800">
+                                                        {person}
+                                                    </Badge>
+                                                ))}
+                                            </div>
                                         </div>
-                                    </div>
-                                )}
+                                    )
+                                })()}
 
-                                {/* Environmental Info */}
-                                {currentContext.environmental && (
+                                {/* Environmental Info - handle both environmental and environment */}
+                                {(currentContext.environmental || currentContext.environment) && (
                                     <div className="space-y-2">
                                         <h4 className="font-medium text-sm text-gray-700 flex items-center gap-1">
                                             <Cloud className="w-4 h-4" />
                                             Environment
                                         </h4>
                                         <div className="flex flex-wrap gap-2">
-                                            {currentContext.environmental.weather && (
-                                                <Badge className="text-xs bg-yellow-100 text-yellow-800">
-                                                    {currentContext.environmental.weather}
-                                                </Badge>
-                                            )}
-                                            {currentContext.environmental.temperature && (
-                                                <Badge className="text-xs bg-orange-100 text-orange-800">
-                                                    {currentContext.environmental.temperature}
-                                                </Badge>
-                                            )}
-                                            {currentContext.environmental.mood && (
-                                                <Badge className="text-xs bg-pink-100 text-pink-800">
-                                                    {currentContext.environmental.mood}
-                                                </Badge>
-                                            )}
+                                            {(() => {
+                                                const envData = currentContext.environmental || currentContext.environment || {}
+                                                return (
+                                                    <>
+                                                        {envData.weather && (
+                                                            <Badge className="text-xs bg-yellow-100 text-yellow-800">
+                                                                Weather: {envData.weather}
+                                                            </Badge>
+                                                        )}
+                                                        {/* Display all other fields as custom fields */}
+                                                        {Object.entries(envData)
+                                                            .filter(([key, value]) =>
+                                                                key !== 'weather' &&
+                                                                value !== undefined &&
+                                                                value !== null &&
+                                                                value !== ""
+                                                            )
+                                                            .map(([key, value]) => (
+                                                                <Badge key={key} className="text-xs bg-gray-100 text-gray-800">
+                                                                    {key}: {String(value)}
+                                                                </Badge>
+                                                            ))
+                                                        }
+                                                    </>
+                                                )
+                                            })()}
                                         </div>
                                     </div>
                                 )}
@@ -280,34 +321,77 @@ export function ContextTab({ currentContext, onUpdateContext, onGetContext, isLo
                                             disabled={isLoading || isUpdating}
                                         />
                                     </div>
+                                </div>
 
-                                    <div className="space-y-2">
-                                        <Label htmlFor="temperature" className="flex items-center gap-1">
-                                            <Thermometer className="w-4 h-4" />
-                                            Temperature
+                                {/* Custom Fields Section */}
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <Label className="text-sm font-medium text-gray-700">
+                                            Custom Fields
                                         </Label>
-                                        <Input
-                                            id="temperature"
-                                            value={temperature}
-                                            onChange={(e) => setTemperature(e.target.value)}
-                                            placeholder="e.g., 25°C, hot"
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={addCustomField}
                                             disabled={isLoading || isUpdating}
-                                        />
+                                            className="flex items-center gap-1"
+                                        >
+                                            <Plus className="w-4 h-4" />
+                                            Add Field
+                                        </Button>
                                     </div>
 
-                                    <div className="space-y-2">
-                                        <Label htmlFor="mood" className="flex items-center gap-1">
-                                            <Smile className="w-4 h-4" />
-                                            Mood
-                                        </Label>
-                                        <Input
-                                            id="mood"
-                                            value={mood}
-                                            onChange={(e) => setMood(e.target.value)}
-                                            placeholder="e.g., excited, relaxed"
-                                            disabled={isLoading || isUpdating}
-                                        />
-                                    </div>
+                                    {customFields.length > 0 && (
+                                        <div className="space-y-3">
+                                            {customFields.map((field, index) => (
+                                                <div key={index} className="flex gap-2 items-end">
+                                                    <div className="flex-1">
+                                                        <Label htmlFor={`custom-key-${index}`} className="text-xs text-gray-600">
+                                                            Key
+                                                        </Label>
+                                                        <Input
+                                                            id={`custom-key-${index}`}
+                                                            value={field.key}
+                                                            onChange={(e) => updateCustomField(index, 'key', e.target.value)}
+                                                            placeholder="e.g., project, priority"
+                                                            disabled={isLoading || isUpdating}
+                                                            className="text-sm"
+                                                        />
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <Label htmlFor={`custom-value-${index}`} className="text-xs text-gray-600">
+                                                            Value
+                                                        </Label>
+                                                        <Input
+                                                            id={`custom-value-${index}`}
+                                                            value={field.value}
+                                                            onChange={(e) => updateCustomField(index, 'value', e.target.value)}
+                                                            placeholder="e.g., website redesign, high"
+                                                            disabled={isLoading || isUpdating}
+                                                            className="text-sm"
+                                                        />
+                                                    </div>
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => removeCustomField(index)}
+                                                        disabled={isLoading || isUpdating}
+                                                        className="flex items-center gap-1 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                                    >
+                                                        <X className="w-4 h-4" />
+                                                    </Button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {customFields.length === 0 && (
+                                        <p className="text-sm text-gray-500 italic">
+                                            No custom fields added. Click "Add Field" to create custom key-value pairs.
+                                        </p>
+                                    )}
                                 </div>
 
                                 <Button

@@ -498,8 +498,6 @@ class MemoryAgentAPI {
         activity?: string
         people_present?: string[]
         weather?: string
-        temperature?: string
-        mood?: string
         [key: string]: any
     }): Promise<ContextResponse> {
         return this.request<ContextResponse>('/api/memory/context', {

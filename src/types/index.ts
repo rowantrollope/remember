@@ -71,6 +71,12 @@ export interface Conversation {
 }
 
 export interface ContextInfo {
+    // API returns flat structure for some fields
+    location?: string
+    activity?: string
+    people_present?: string[]
+
+    // Temporal info (if supported by API)
     temporal?: {
         date?: string
         time?: string
@@ -79,18 +85,24 @@ export interface ContextInfo {
         month?: string
         year?: number
     }
+
+    // Environmental info can be in either 'environmental' or 'environment' key
+    environmental?: {
+        weather?: string
+        [key: string]: any
+    }
+    environment?: {
+        weather?: string
+        [key: string]: any
+    }
+
+    // Legacy nested structure support
     spatial?: {
         location?: string
         activity?: string
     }
     social?: {
         people_present?: string[]
-    }
-    environmental?: {
-        weather?: string
-        temperature?: string
-        mood?: string
-        [key: string]: any
     }
 }
 
