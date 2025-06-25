@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -9,14 +9,19 @@ import {
     Dialog,
     DialogContent,
     DialogDescription,
-    DialogFooter,
     DialogHeader,
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog"
-import { Brain, Code, GitPullRequest, Lightbulb, Database, Zap } from "lucide-react"
+import { Brain, Code, GitPullRequest, Lightbulb, HelpCircle } from "lucide-react"
 import { PageLayout } from "@/components/PageLayout"
+import { ChatBox, ChatMessage } from "@/components/ChatBox"
 import { useMemoryAPI } from "@/hooks"
+import { useConfiguredAPI } from "@/hooks/useConfiguredAPI"
+import { useSettings } from "@/hooks/useSettings"
+
+// Code review agent system prompt
+const CODE_REVIEW_PROMPT = `You are an expert code review assistant helping developers improve their code quality. You provide detailed, constructive feedback on code snippets, focusing on best practices, potential issues, performance optimizations, and maintainability. You consider the developer's coding style preferences, past feedback patterns, and project context when making suggestions. Be thorough, helpful, and educational in your responses.`
 
 // Sample code snippets for the demo
 const codeSnippets = [
@@ -27,7 +32,7 @@ const codeSnippets = [
         code: `function UserProfile({ userId }: { userId: string }) {
     const [user, setUser] = useState(null)
     const [loading, setLoading] = useState(true)
-    
+
     useEffect(() => {
         fetch(\`/api/users/\${userId}\`)
             .then(res => res.json())
@@ -36,9 +41,9 @@ const codeSnippets = [
                 setLoading(false)
             })
     }, [userId])
-    
+
     if (loading) return <div>Loading...</div>
-    
+
     return (
         <div>
             <h1>{user.name}</h1>
@@ -74,125 +79,336 @@ ORDER BY order_count DESC`
     }
 ]
 
-// Generic responses (without memory)
-const genericResponses = [
-    "Consider adding error handling for the API call.",
-    "This code looks fine but could use some optimization.",
-    "Make sure to handle edge cases and null values.",
-    "Consider adding TypeScript types for better type safety.",
-    "The logic seems correct but could be more readable."
-]
-
-// Memory-enhanced responses (with context)
-const memoryResponses = {
-    1: {
-        response: "Based on your previous feedback about preferring custom hooks for data fetching, I'd suggest extracting this into a `useUser` hook. Also, you mentioned in past reviews that you like to handle loading states with skeleton components rather than simple text - consider using your `UserSkeleton` component here.",
-        memories: [
-            "User prefers custom hooks for data fetching logic",
-            "User likes skeleton loading states over simple text",
-            "User has a UserSkeleton component in their codebase"
-        ]
-    },
-    2: {
-        response: "I notice this follows the same pattern as the `get_user_products` function you reviewed last week, but you're not using the pagination helper you created. Also, based on your coding standards, you prefer using list comprehensions over manual loops. Consider: `return [{'id': o['_id'], 'total': o['total'], 'items': o['items']} for o in db.orders.find({'user_id': user_id})]`",
-        memories: [
-            "User created a pagination helper for database queries",
-            "User prefers list comprehensions over manual loops",
-            "User has consistent patterns for API response formatting"
-        ]
-    },
-    3: {
-        response: "This query looks good and follows your team's naming conventions. However, I remember you mentioned performance issues with similar LEFT JOINs on large user tables. Consider adding an index on `users.created_at` if you haven't already, and maybe limit the results since you typically paginate these reports.",
-        memories: [
-            "User's team has specific SQL naming conventions",
-            "User experienced performance issues with LEFT JOINs on user tables",
-            "User typically paginates report queries"
-        ]
-    }
-}
-
-// Demo memories that will be injected
-const demoMemories = [
-    "User prefers custom hooks for data fetching logic instead of inline useEffect calls",
-    "User likes skeleton loading states over simple text loading indicators",
-    "User has a UserSkeleton component in their codebase for consistent loading states",
-    "User created a pagination helper for database queries to avoid repetitive code",
-    "User prefers list comprehensions over manual loops in Python code",
-    "User has consistent patterns for API response formatting across endpoints",
-    "User's team has specific SQL naming conventions that should be followed",
-    "User experienced performance issues with LEFT JOINs on large user tables",
-    "User typically paginates report queries for better performance",
-    "User values code consistency and reusability in their reviews"
+// Sample questions that demonstrate memory value for code reviews
+const sampleQuestions = [
+    "Please review this React component for best practices and potential improvements.",
+    "What are the potential issues with this API endpoint implementation?",
+    "How can I optimize this database query for better performance?",
+    "Are there any security concerns with this code?",
+    "What TypeScript improvements would you suggest for this component?",
+    "How can I make this code more maintainable and readable?",
+    "What error handling should I add to this function?",
+    "Are there any accessibility issues with this React component?"
 ]
 
 export default function AgentDemo() {
     const [selectedSnippet, setSelectedSnippet] = useState(codeSnippets[0])
-    const [activeTab, setActiveTab] = useState("without-memory")
-    const [isReviewing, setIsReviewing] = useState(false)
-    const [currentResponse, setCurrentResponse] = useState("")
-    const [showMemories, setShowMemories] = useState(false)
-    const [hasSetupMemories, setHasSetupMemories] = useState(false)
-    const [showMemoryDialog, setShowMemoryDialog] = useState(false)
-    const [isAddingMemories, setIsAddingMemories] = useState(false)
-    const { apiStatus, error, clearError, saveMemory, askQuestion } = useMemoryAPI()
+    const [activeTab, setActiveTab] = useState("standard")
+    const [standardQuestion, setStandardQuestion] = useState("")
+    const [memoryQuestion, setMemoryQuestion] = useState("")
+    const [standardMessages, setStandardMessages] = useState<ChatMessage[]>([])
+    const [memoryMessages, setMemoryMessages] = useState<ChatMessage[]>([])
+    const [isStandardLoading, setIsStandardLoading] = useState(false)
+    const [isMemoryLoading, setIsMemoryLoading] = useState(false)
+    const [showHelpDialog, setShowHelpDialog] = useState(false)
+    const [standardSessionId, setStandardSessionId] = useState<string | null>(null)
+    const [memorySessionId, setMemorySessionId] = useState<string | null>(null)
+    const { apiStatus, error, clearError, askQuestion } = useMemoryAPI()
+    const { api } = useConfiguredAPI()
+    const { settings } = useSettings()
 
-    const handleShowMemoryDialog = () => {
-        setShowMemoryDialog(true)
-    }
-
-    const handleAddMemories = async () => {
-        if (hasSetupMemories) return
-
-        setIsAddingMemories(true)
+    // Create standard session (no memory)
+    const createStandardSession = useCallback(async () => {
+        if (standardSessionId) return standardSessionId
 
         try {
-            for (const memory of demoMemories) {
-                await saveMemory(memory)
+            const standardSessionResponse = await api.createChatSession({
+                system_prompt: CODE_REVIEW_PROMPT,
+                config: {
+                    use_memory: false,
+                    model: "gpt-3.5-turbo",
+                    temperature: 0.7,
+                    max_tokens: 1000
+                }
+            })
+
+            if (standardSessionResponse.success) {
+                setStandardSessionId(standardSessionResponse.session_id)
+                return standardSessionResponse.session_id
             }
-            setHasSetupMemories(true)
-            setShowMemoryDialog(false)
         } catch (error) {
-            console.error('Failed to add demo memories:', error)
-        } finally {
-            setIsAddingMemories(false)
+            console.error('Failed to create standard session:', error)
         }
-    }
+        return null
+    }, [api, standardSessionId])
 
-    const handleReview = async () => {
-        setIsReviewing(true)
-        setCurrentResponse("")
-        setShowMemories(false)
+    // Create memory session (with memory retrieval)
+    const createMemorySession = useCallback(async () => {
+        if (memorySessionId) return memorySessionId
 
-        if (activeTab === "without-memory") {
-            // Simulate AI thinking time
-            await new Promise(resolve => setTimeout(resolve, 1500))
-            // Show generic response
-            const randomResponse = genericResponses[Math.floor(Math.random() * genericResponses.length)]
-            setCurrentResponse(randomResponse)
-        } else {
-            // Set up demo memories if not already done
-            if (!hasSetupMemories) {
-                await handleAddMemories()
+        try {
+            const memorySessionResponse = await api.createChatSession({
+                system_prompt: CODE_REVIEW_PROMPT,
+                config: {
+                    use_memory: true,
+                    model: "gpt-3.5-turbo",
+                    temperature: 0.7,
+                    max_tokens: 1000,
+                    top_k: settings.questionTopK
+                }
+            })
+            if (memorySessionResponse.success) {
+                setMemorySessionId(memorySessionResponse.session_id)
+                return memorySessionResponse.session_id
+            }
+        } catch (error) {
+            console.error('Failed to create memory session:', error)
+        }
+        return null
+    }, [api, memorySessionId, settings.questionTopK])
+
+    // Create sessions on component mount
+    useEffect(() => {
+        createStandardSession()
+        createMemorySession()
+    }, [createStandardSession, createMemorySession])
+
+    // Generate standard code review response (no memory) using session-based API
+    const generateStandardResponse = async (question: string): Promise<string> => {
+        try {
+            // Ensure we have a standard session for fallback responses
+            if (!standardSessionId) {
+                await createStandardSession()
             }
 
-            // Use real memory API for enhanced response
-            const codeContext = `Code review for ${selectedSnippet.title} (${selectedSnippet.language}):\n\n${selectedSnippet.code}`
-            const question = `Please review this ${selectedSnippet.language} code and provide feedback based on my coding preferences and past feedback patterns: ${codeContext}`
+            if (standardSessionId) {
+                const response = await api.chatWithSession({
+                    session_id: standardSessionId,
+                    message: question,
+                    min_similarity: settings.minSimilarity
+                })
 
-            const result = await askQuestion(question, 5)
-            if (result && typeof result === 'object' && result.success) {
-                setCurrentResponse(result.conversation.answer)
+                if (response.success) {
+                    return response.message
+                } else {
+                    return "I'm sorry, I'm having trouble processing your request right now. Please try again."
+                }
             } else {
-                // Fallback to demo response if API fails
-                const memoryResponse = memoryResponses[selectedSnippet.id]
-                setCurrentResponse(memoryResponse.response)
+                return "I'm sorry, I'm having trouble processing your request right now. Please try again."
             }
+        } catch (error) {
+            console.error('Failed to get standard response:', error)
+            return "I apologize, but I'm experiencing technical difficulties. Please try again later."
         }
-
-        setIsReviewing(false)
     }
 
-    const currentMemories = activeTab === "with-memory" ? memoryResponses[selectedSnippet.id]?.memories || [] : []
+    const handleStandardSubmit = async (e: React.FormEvent) => {
+        e.preventDefault()
+        if (!standardQuestion.trim()) return
+
+        setIsStandardLoading(true)
+
+        try {
+            // Ensure session is created
+            if (!standardSessionId) {
+                await createStandardSession()
+            }
+
+            // Use session-based chat API (no memory)
+            if (standardSessionId) {
+                const response = await api.chatWithSession({
+                    session_id: standardSessionId,
+                    message: standardQuestion,
+                    min_similarity: settings.minSimilarity
+                })
+
+                if (response.success) {
+                    const newMessage: ChatMessage = {
+                        id: Date.now().toString(),
+                        question: standardQuestion,
+                        answer: response.message,
+                        timestamp: new Date(),
+                        hasMemory: false,
+                        session_memories: response.memory_context?.memories || [],
+                        excluded_memories: response.memory_context?.excluded_memories || [],
+                        filtering_info: response.memory_context?.filtering_info
+                    }
+                    setStandardMessages(prev => [...prev, newMessage])
+                } else {
+                    // Fallback to standard response
+                    const answer = await generateStandardResponse(standardQuestion)
+                    const newMessage: ChatMessage = {
+                        id: Date.now().toString(),
+                        question: standardQuestion,
+                        answer: answer,
+                        timestamp: new Date(),
+                        hasMemory: false
+                    }
+                    setStandardMessages(prev => [...prev, newMessage])
+                }
+            } else {
+                // Fallback to standard response if session creation failed
+                const answer = await generateStandardResponse(standardQuestion)
+                const newMessage: ChatMessage = {
+                    id: Date.now().toString(),
+                    question: standardQuestion,
+                    answer: answer,
+                    timestamp: new Date(),
+                    hasMemory: false
+                }
+                setStandardMessages(prev => [...prev, newMessage])
+            }
+
+            setStandardQuestion("")
+        } catch (error) {
+            console.error('Failed to get session response:', error)
+            // Fallback to standard response
+            const answer = await generateStandardResponse(standardQuestion)
+            const newMessage: ChatMessage = {
+                id: Date.now().toString(),
+                question: standardQuestion,
+                answer: answer,
+                timestamp: new Date(),
+                hasMemory: false
+            }
+            setStandardMessages(prev => [...prev, newMessage])
+            setStandardQuestion("")
+        } finally {
+            setIsStandardLoading(false)
+        }
+    }
+
+    const handleMemorySubmit = async (e: React.FormEvent) => {
+        e.preventDefault()
+        if (!memoryQuestion.trim()) return
+
+        setIsMemoryLoading(true)
+
+        try {
+            // Ensure session is created
+            if (!memorySessionId) {
+                await createMemorySession()
+            }
+
+            // Use session-based chat API (with memory)
+            if (memorySessionId) {
+                const response = await api.chatWithSession({
+                    session_id: memorySessionId,
+                    message: memoryQuestion,
+                    top_k: settings.questionTopK,
+                    min_similarity: settings.minSimilarity
+                })
+
+                if (response.success) {
+                    console.log('Memory session response:', response)
+                    console.log('Memory context:', response.memory_context)
+                    console.log('Memories:', response.memory_context?.memories)
+
+                    const newMessage: ChatMessage = {
+                        id: Date.now().toString(),
+                        question: memoryQuestion,
+                        answer: response.message,
+                        timestamp: new Date(),
+                        hasMemory: true,
+                        session_memories: response.memory_context?.memories || [],
+                        excluded_memories: response.memory_context?.excluded_memories || [],
+                        filtering_info: response.memory_context?.filtering_info
+                    }
+                    console.log('New message with memories:', newMessage)
+                    setMemoryMessages(prev => [...prev, newMessage])
+                } else {
+                    // Fallback to memory API approach
+                    const memoryResponse = await askQuestion(memoryQuestion, settings.questionTopK, settings.minSimilarity)
+                    let contextualAnswer = ""
+                    let confidence: 'high' | 'medium' | 'low' | undefined
+                    let reasoning: string | undefined
+                    let supporting_memories: unknown[] | undefined
+
+                    if (memoryResponse && typeof memoryResponse === 'object' && memoryResponse.success) {
+                        contextualAnswer = memoryResponse.conversation.answer
+                        confidence = memoryResponse.conversation.confidence
+                        reasoning = memoryResponse.conversation.reasoning
+                        supporting_memories = memoryResponse.conversation.supporting_memories
+                    } else {
+                        contextualAnswer = await generateStandardResponse(memoryQuestion)
+                    }
+
+                    const newMessage: ChatMessage = {
+                        id: Date.now().toString(),
+                        question: memoryQuestion,
+                        answer: contextualAnswer,
+                        timestamp: new Date(),
+                        hasMemory: true,
+                        confidence,
+                        reasoning,
+                        supporting_memories
+                    }
+                    setMemoryMessages(prev => [...prev, newMessage])
+                }
+            } else {
+                // Fallback to memory API approach if session creation failed
+                const memoryResponse = await askQuestion(memoryQuestion, settings.questionTopK, settings.minSimilarity)
+                let contextualAnswer = ""
+                let confidence: 'high' | 'medium' | 'low' | undefined
+                let reasoning: string | undefined
+                let supporting_memories: unknown[] | undefined
+
+                if (memoryResponse && typeof memoryResponse === 'object' && memoryResponse.success) {
+                    contextualAnswer = memoryResponse.conversation.answer
+                    confidence = memoryResponse.conversation.confidence
+                    reasoning = memoryResponse.conversation.reasoning
+                    supporting_memories = memoryResponse.conversation.supporting_memories
+                } else {
+                    contextualAnswer = await generateStandardResponse(memoryQuestion)
+                }
+
+                const newMessage: ChatMessage = {
+                    id: Date.now().toString(),
+                    question: memoryQuestion,
+                    answer: contextualAnswer,
+                    timestamp: new Date(),
+                    hasMemory: true,
+                    confidence,
+                    reasoning,
+                    supporting_memories
+                }
+                setMemoryMessages(prev => [...prev, newMessage])
+            }
+
+            setMemoryQuestion("")
+        } catch (error) {
+            console.error('Failed to get memory-enhanced response:', error)
+            // Fallback to standard response
+            const fallbackAnswer = await generateStandardResponse(memoryQuestion)
+            const newMessage: ChatMessage = {
+                id: Date.now().toString(),
+                question: memoryQuestion,
+                answer: fallbackAnswer,
+                timestamp: new Date(),
+                hasMemory: false
+            }
+            setMemoryMessages(prev => [...prev, newMessage])
+            setMemoryQuestion("")
+        } finally {
+            setIsMemoryLoading(false)
+        }
+    }
+
+    const handleSampleQuestion = (question: string) => {
+        setStandardQuestion(question)
+        setMemoryQuestion(question)
+    }
+
+    const handleCodeSnippetSelect = (snippet: typeof codeSnippets[0]) => {
+        setSelectedSnippet(snippet)
+        const codeContext = `Please review this ${snippet.language} code and provide feedback:\n\n${snippet.title}:\n${snippet.code}`
+        setStandardQuestion(codeContext)
+        setMemoryQuestion(codeContext)
+    }
+
+    const clearStandardChat = async () => {
+        setStandardMessages([])
+        setStandardSessionId(null)
+        // Create a new session for fresh conversation
+        await createStandardSession()
+    }
+
+    const clearMemoryChat = async () => {
+        setMemoryMessages([])
+        setMemorySessionId(null)
+        // Create a new session for fresh conversation
+        await createMemorySession()
+    }
 
     return (
         <PageLayout
@@ -200,133 +416,51 @@ export default function AgentDemo() {
             apiStatus={apiStatus}
             onClearError={clearError}
         >
-            <div className="max-w-6xl mx-auto p-6 space-y-6">
+            <div className="max-w-7xl mx-auto p-6 space-y-6">
                 {/* Header */}
                 <div className="text-center space-y-4">
                     <div className="flex items-center justify-center gap-3">
                         <GitPullRequest className="w-8 h-8 text-blue-600" />
                         <h1 className="text-3xl font-bold text-gray-900">Code Review Assistant Demo</h1>
+                        <Dialog open={showHelpDialog} onOpenChange={setShowHelpDialog}>
+                            <DialogTrigger asChild>
+                                <Button variant="outline" size="sm">
+                                    <HelpCircle className="w-4 h-4 mr-2" />
+                                    Sample Questions
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-2xl">
+                                <DialogHeader>
+                                    <DialogTitle>Sample Questions to Try</DialogTitle>
+                                    <DialogDescription>
+                                        Click any question to populate both code review agent tabs with the same query
+                                    </DialogDescription>
+                                </DialogHeader>
+                                <div className="grid gap-2 max-h-96 overflow-y-auto">
+                                    {sampleQuestions.map((question, index) => (
+                                        <Button
+                                            key={index}
+                                            variant="ghost"
+                                            className="justify-start text-left h-auto p-3 whitespace-normal"
+                                            onClick={() => {
+                                                handleSampleQuestion(question)
+                                                setShowHelpDialog(false)
+                                            }}
+                                        >
+                                            {question}
+                                        </Button>
+                                    ))}
+                                </div>
+                            </DialogContent>
+                        </Dialog>
                     </div>
-                    <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-                        See how memory transforms an AI agent from giving generic feedback to providing 
-                        personalized, contextual code reviews that learn from your preferences and past interactions.
+                    <p className="text-lg text-gray-600 max-w-4xl mx-auto">
+                        Compare how memory transforms code reviews. Switch between tabs to see how the standard agent provides generic feedback,
+                        while the memory-enhanced agent learns your coding preferences and provides increasingly personalized reviews.
                     </p>
                 </div>
 
-                {/* Demo Tabs */}
-                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                    <TabsList className="grid w-full grid-cols-2 mb-6">
-                        <TabsTrigger value="without-memory" className="flex items-center gap-2">
-                            <Code className="w-4 h-4" />
-                            Without Memory
-                        </TabsTrigger>
-                        <TabsTrigger value="with-memory" className="flex items-center gap-2">
-                            <Database className="w-4 h-4" />
-                            With Memory
-                        </TabsTrigger>
-                    </TabsList>
 
-                    <TabsContent value="without-memory" className="space-y-6">
-                        <Card className="border-orange-200 bg-orange-50">
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2 text-orange-800">
-                                    <Zap className="w-5 h-5" />
-                                    Stateless Agent (No Memory)
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="text-orange-700">
-                                <p>This agent gives generic, one-size-fits-all responses. It doesn't remember your coding style, 
-                                past feedback, or project context. Every review starts from scratch.</p>
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-
-                    <TabsContent value="with-memory" className="space-y-6">
-                        <Card className="border-green-200 bg-green-50">
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2 text-green-800">
-                                    <Database className="w-5 h-5" />
-                                    Memory-Enhanced Agent
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <p className="text-green-700">
-                                    This agent remembers your coding preferences, past feedback, team conventions, and project context.
-                                    It provides personalized recommendations that improve over time.
-                                </p>
-                                {!hasSetupMemories && (
-                                    <Dialog open={showMemoryDialog} onOpenChange={setShowMemoryDialog}>
-                                        <DialogTrigger asChild>
-                                            <Button
-                                                onClick={handleShowMemoryDialog}
-                                                variant="outline"
-                                                size="sm"
-                                                className="border-green-300 text-green-700 hover:bg-green-100"
-                                            >
-                                                <Database className="w-4 h-4 mr-2" />
-                                                Setup Demo Memories
-                                            </Button>
-                                        </DialogTrigger>
-                                        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-                                            <DialogHeader>
-                                                <DialogTitle className="flex items-center gap-2">
-                                                    <Database className="w-5 h-5" />
-                                                    Demo Memories Preview
-                                                </DialogTitle>
-                                                <DialogDescription>
-                                                    These memories will be added to demonstrate how the agent learns your coding preferences and patterns.
-                                                </DialogDescription>
-                                            </DialogHeader>
-                                            <div className="space-y-3 py-4">
-                                                {demoMemories.map((memory, index) => (
-                                                    <div key={index} className="bg-gray-50 p-3 rounded-lg">
-                                                        <div className="flex items-start gap-2">
-                                                            <span className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-medium flex-shrink-0 mt-0.5">
-                                                                {index + 1}
-                                                            </span>
-                                                            <p className="text-sm text-gray-700">{memory}</p>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                            <DialogFooter>
-                                                <Button
-                                                    variant="outline"
-                                                    onClick={() => setShowMemoryDialog(false)}
-                                                >
-                                                    Cancel
-                                                </Button>
-                                                <Button
-                                                    onClick={handleAddMemories}
-                                                    disabled={isAddingMemories}
-                                                    className="bg-green-600 hover:bg-green-700"
-                                                >
-                                                    {isAddingMemories ? (
-                                                        <>
-                                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                                                            Adding Memories...
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <Database className="w-4 h-4 mr-2" />
-                                                            Add Memories
-                                                        </>
-                                                    )}
-                                                </Button>
-                                            </DialogFooter>
-                                        </DialogContent>
-                                    </Dialog>
-                                )}
-                                {hasSetupMemories && (
-                                    <div className="flex items-center gap-2 text-green-700">
-                                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                                        <span className="text-sm">Demo memories loaded</span>
-                                    </div>
-                                )}
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-                </Tabs>
 
                 {/* Code Selection */}
                 <Card>
@@ -339,7 +473,7 @@ export default function AgentDemo() {
                                 <Button
                                     key={snippet.id}
                                     variant={selectedSnippet.id === snippet.id ? "default" : "outline"}
-                                    onClick={() => setSelectedSnippet(snippet)}
+                                    onClick={() => handleCodeSnippetSelect(snippet)}
                                     className="h-auto p-4 text-left"
                                 >
                                     <div>
@@ -368,76 +502,96 @@ export default function AgentDemo() {
                     </CardContent>
                 </Card>
 
-                {/* Review Button */}
-                <div className="text-center">
-                    <Button 
-                        onClick={handleReview} 
-                        disabled={isReviewing}
-                        size="lg"
-                        className="px-8"
-                    >
-                        {isReviewing ? (
-                            <>
-                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                                Reviewing Code...
-                            </>
-                        ) : (
-                            <>
-                                <GitPullRequest className="w-4 h-4 mr-2" />
-                                Get Code Review
-                            </>
-                        )}
-                    </Button>
-                </div>
+                {/* Tabbed Chat Interface */}
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                    <TabsList className="grid w-full grid-cols-2 mb-6">
+                        <TabsTrigger value="standard" className="flex items-center gap-2">
+                            <Code className="w-4 h-4" />
+                            Standard Code Review Agent
+                        </TabsTrigger>
+                        <TabsTrigger value="memory" className="flex items-center gap-2">
+                            <Brain className="w-4 h-4" />
+                            Memory-Enhanced Code Review Agent
+                        </TabsTrigger>
+                    </TabsList>
 
-                {/* Review Response */}
-                {currentResponse && (
-                    <Card className={activeTab === "with-memory" ? "border-green-200" : "border-orange-200"}>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Lightbulb className="w-5 h-5" />
-                                AI Review Feedback
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <p className="text-gray-700">{currentResponse}</p>
-                            
-                            {activeTab === "with-memory" && currentMemories.length > 0 && (
-                                <div className="space-y-2">
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => setShowMemories(!showMemories)}
-                                    >
-                                        <Database className="w-4 h-4 mr-2" />
-                                        {showMemories ? "Hide" : "Show"} Supporting Memories ({currentMemories.length})
-                                    </Button>
-                                    
-                                    {showMemories && (
-                                        <div className="bg-green-50 p-4 rounded-lg space-y-2">
-                                            <h4 className="font-medium text-green-800">Memories Used:</h4>
-                                            <ul className="space-y-1">
-                                                {currentMemories.map((memory, index) => (
-                                                    <li key={index} className="text-sm text-green-700 flex items-start gap-2">
-                                                        <span className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 flex-shrink-0"></span>
-                                                        {memory}
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-                )}
+                    <TabsContent value="standard" className="space-y-6">
+                        <ChatBox
+                            title="Standard Code Review Agent"
+                            subtitle="Provides general code feedback but doesn't remember your preferences"
+                            messages={standardMessages}
+                            input={standardQuestion}
+                            onInputChange={setStandardQuestion}
+                            onSubmit={handleStandardSubmit}
+                            onClearChat={clearStandardChat}
+                            isLoading={isStandardLoading}
+                            placeholder="Ask for code review..."
+                            headerIcon={<Code className="w-5 h-5" />}
+                            borderColor="border-orange-200"
+                            headerBgColor="bg-orange-50 text-orange-800"
+                            messageBgColor="bg-orange-100 text-orange-800"
+                            buttonColor="bg-orange-600 hover:bg-orange-700"
+                            loadingText="Reviewing code..."
+                            showMemoryIndicators={false}
+                        />
+                    </TabsContent>
+
+                    <TabsContent value="memory" className="space-y-6">
+                        <ChatBox
+                            title="Memory-Enhanced Code Review Agent"
+                            subtitle="Learns your coding preferences and provides personalized feedback"
+                            messages={memoryMessages}
+                            input={memoryQuestion}
+                            onInputChange={setMemoryQuestion}
+                            onSubmit={handleMemorySubmit}
+                            onClearChat={clearMemoryChat}
+                            isLoading={isMemoryLoading}
+                            placeholder="Ask for code review..."
+                            headerIcon={
+                                <>
+                                    <Brain className="w-5 h-5" />
+                                    <Code className="w-5 h-5" />
+                                </>
+                            }
+                            borderColor="border-green-200"
+                            headerBgColor="bg-green-50 text-green-800"
+                            messageBgColor="bg-green-100 text-green-800"
+                            buttonColor="bg-green-600 hover:bg-green-700"
+                            loadingText="Checking my memory and reviewing code..."
+                            showMemoryIndicators={true}
+                        />
+                    </TabsContent>
+                </Tabs>
+
+                {/* Instructions */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                    <h3 className="text-lg font-semibold text-blue-900 mb-3">How to Use This Demo</h3>
+                    <div className="grid md:grid-cols-2 gap-4 text-sm text-blue-800">
+                        <div>
+                            <h4 className="font-medium mb-2">1. Select Code to Review</h4>
+                            <p>Choose from the sample code snippets above to automatically populate both agent tabs with a review request.</p>
+                        </div>
+                        <div>
+                            <h4 className="font-medium mb-2">2. Switch Between Tabs</h4>
+                            <p>Use the tabs to switch between the Standard and Memory-Enhanced code review agents.</p>
+                        </div>
+                        <div>
+                            <h4 className="font-medium mb-2">3. Share Your Preferences</h4>
+                            <p>Tell the memory-enhanced agent about your coding style, team conventions, or specific concerns.</p>
+                        </div>
+                        <div>
+                            <h4 className="font-medium mb-2">4. Compare Responses</h4>
+                            <p>Notice how the memory-enhanced agent provides more personalized and contextual feedback over time.</p>
+                        </div>
+                    </div>
+                </div>
 
                 {/* Explanation Section */}
                 <Card className="mt-8">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <Lightbulb className="w-5 h-5" />
-                            Why Memory Matters for AI Agents
+                            Why Memory Matters for Code Review Agents
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
@@ -445,28 +599,28 @@ export default function AgentDemo() {
                             <div>
                                 <h4 className="font-semibold text-orange-800 mb-2">Without Memory</h4>
                                 <ul className="space-y-1 text-sm text-gray-600">
-                                    <li>• Generic, one-size-fits-all responses</li>
-                                    <li>• No learning from past interactions</li>
+                                    <li>• Generic, one-size-fits-all feedback</li>
+                                    <li>• No learning from past code reviews</li>
                                     <li>• Repetitive suggestions</li>
-                                    <li>• No awareness of user preferences</li>
-                                    <li>• Limited context understanding</li>
+                                    <li>• No awareness of coding style preferences</li>
+                                    <li>• Limited understanding of team conventions</li>
                                 </ul>
                             </div>
                             <div>
                                 <h4 className="font-semibold text-green-800 mb-2">With Memory</h4>
                                 <ul className="space-y-1 text-sm text-gray-600">
-                                    <li>• Personalized recommendations</li>
-                                    <li>• Learns from feedback patterns</li>
-                                    <li>• Remembers coding style preferences</li>
-                                    <li>• Aware of project context and conventions</li>
-                                    <li>• Improves over time with more interactions</li>
+                                    <li>• Personalized code review feedback</li>
+                                    <li>• Learns from your coding patterns</li>
+                                    <li>• Remembers your style preferences</li>
+                                    <li>• Aware of project context and standards</li>
+                                    <li>• Improves recommendations over time</li>
                                 </ul>
                             </div>
                         </div>
                         <div className="bg-blue-50 p-4 rounded-lg">
                             <p className="text-blue-800 text-sm">
-                                <strong>Real-world Impact:</strong> Memory-enhanced agents can reduce code review time by 40-60%
-                                by providing more relevant, actionable feedback that aligns with team standards and individual preferences.
+                                <strong>Real-world Impact:</strong> Memory-enhanced code review agents can reduce review time by 40-60%
+                                by providing more relevant, actionable feedback that aligns with team standards and individual coding preferences.
                             </p>
                         </div>
                     </CardContent>

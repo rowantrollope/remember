@@ -35,14 +35,19 @@ export default function ChatDemoPage() {
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const messagesEndRef = useRef<HTMLDivElement>(null)
+    const scrollContainerRef = useRef<HTMLDivElement>(null)
 
     const { api: memoryAPI } = useConfiguredAPI()
     const { apiStatus } = useMemoryAPI()
 
     // Auto-scroll to bottom when new messages are added
     useEffect(() => {
-        if (messagesEndRef.current) {
-            messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
+        if (messagesEndRef.current && scrollContainerRef.current) {
+            // Scroll the container to the bottom smoothly
+            scrollContainerRef.current.scrollTo({
+                top: scrollContainerRef.current.scrollHeight,
+                behavior: 'smooth'
+            })
         }
     }, [chatHistory])
 
@@ -100,7 +105,7 @@ export default function ChatDemoPage() {
                 {hasMessages ? (
                     // Layout when there are messages - input at bottom
                     <>
-                        <div className="flex-1 min-h-0 overflow-y-auto p-4 bg-white">
+                        <div ref={scrollContainerRef} className="flex-1 min-h-0 overflow-y-auto p-4 bg-white">
                             <div className="space-y-4">
                                 {chatHistory.map((message) => (
                                     <div
@@ -154,7 +159,7 @@ export default function ChatDemoPage() {
                     <div className="flex-1 flex items-center justify-center -mt-40 bg-white">
                         <div className="w-full">
                             <div className="text-center mb-8">
-                                <h1 className="text-3xl font-bold text-gray-900 mb-2">/api/chat</h1>
+                                <h1 className="text-3xl font-bold text-gray-900 mb-2">/api/agent/chat</h1>
                                 <p className="text-gray-600">
                                     Have a conversation with your memories using the LangGraph workflow
                                 </p>

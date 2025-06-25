@@ -54,6 +54,8 @@ export function AskTab({ conversations }: AskTabProps) {
                                                     <div className="pt-1">
                                                         <SupportingMemoriesDialog
                                                             memories={conv.supporting_memories}
+                                                            excludedMemories={conv.excluded_memories}
+                                                            filteringInfo={conv.filtering_info}
                                                             className="text-xs"
                                                         />
                                                     </div>

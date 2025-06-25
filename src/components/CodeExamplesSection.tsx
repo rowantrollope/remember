@@ -30,7 +30,7 @@ export function CodeExamplesSection() {
         },
         {
             title: "Ask a Question",
-            code: `curl -X POST http://localhost:5001/api/memory/answer \\
+            code: `curl -X POST http://localhost:5001/api/klines/answer \\
   -H "Content-Type: application/json" \\
   -d '{
     "question": "Where did I eat Italian food recently?",
@@ -48,7 +48,7 @@ export function CodeExamplesSection() {
         },
         {
             title: "Set Context",
-            code: `curl -X POST http://localhost:5001/api/context \\
+            code: `curl -X POST http://localhost:5001/api/memory/context \\
   -H "Content-Type: application/json" \\
   -d '{
     "location": "San Francisco, CA",

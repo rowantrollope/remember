@@ -8,12 +8,16 @@ export interface ApiMemory {
     memory?: string  // Alternative field name
     original_text?: string
     grounded_text?: string
-    timestamp?: string
+    timestamp?: string | number
     created_at?: string  // Alternative field name
     formatted_time?: string
-    score?: number  // Similarity score
-    relevance_score?: number
+    score?: number  // Vector similarity score (0-1)
+    relevance_score?: number  // Enhanced relevance score with recency bias and access count
     grounding_applied?: boolean
+    // New fields from updated memory format
+    tags?: string[]
+    last_accessed_at?: string
+    access_count?: number
     grounding_info?: {
         dependencies_found?: {
             spatial?: string[]
@@ -55,6 +59,7 @@ export interface ApiMemory {
         location?: string
         tags?: string[]
         confidence?: number
+        [key: string]: any
     }
 }
 
@@ -114,16 +119,29 @@ export interface RecallResponse {
     success: boolean
     memories: ApiMemory[]
     count: number
+    excluded_memories?: ApiMemory[]
+    filtering_info?: {
+        min_similarity_threshold?: number
+        total_candidates?: number
+        excluded_count?: number
+        included_count?: number
+    }
 }
 
 export interface AskResponse {
     success: boolean
-    type: string
+    question: string
     answer: string
-    confidence: 'high' | 'medium' | 'low'
+    confidence: string
     reasoning: string
     supporting_memories: ApiMemory[]
-    question?: string
+    excluded_memories?: ApiMemory[]
+    filtering_info?: {
+        min_similarity_threshold?: number
+        total_candidates?: number
+        excluded_count?: number
+        included_count?: number
+    }
 }
 
 export interface ChatResponse {
@@ -133,19 +151,17 @@ export interface ChatResponse {
 }
 
 export interface ChatSessionConfig {
+    use_memory?: boolean
     model?: string
     temperature?: number
     max_tokens?: number
-    use_memory?: boolean
-    save_memory?: boolean
+    top_k?: number
 }
 
 export interface CreateSessionRequest {
     system_prompt: string
     session_id?: string
     config?: ChatSessionConfig
-    use_memory?: boolean
-    save_memory?: boolean
 }
 
 export interface CreateSessionResponse {
@@ -160,6 +176,8 @@ export interface CreateSessionResponse {
 export interface SessionChatRequest {
     session_id: string
     message: string
+    top_k?: number
+    min_similarity?: number
 }
 
 export interface SessionChatResponse {
@@ -177,6 +195,19 @@ export interface SessionChatResponse {
             grounded_text: string
             similarity_score: number
         }>
+        excluded_memories?: Array<{
+            memory_id: string
+            text: string
+            timestamp: string
+            grounded_text: string
+            similarity_score: number
+        }>
+        filtering_info?: {
+            min_similarity_threshold?: number
+            total_candidates?: number
+            excluded_count?: number
+            included_count?: number
+        }
     }
 }
 
@@ -244,6 +275,58 @@ export interface MemoryInfoResponse {
     timestamp: string
 }
 
+export interface RecallMentalStateResponse {
+    success: boolean
+    query: string
+    mental_state: string
+    memories: ApiMemory[]
+    memory_count: number
+    excluded_memories?: ApiMemory[]
+    filtering_info?: {
+        min_similarity_threshold?: number
+        total_candidates?: number
+        excluded_count?: number
+        included_count?: number
+    }
+}
+
+export interface GetSessionResponse {
+    success: boolean
+    session_id: string
+    system_prompt: string
+    created_at: string
+    use_memory: boolean
+    conversation_length: number
+}
+
+export interface DeleteSessionResponse {
+    success: boolean
+    message: string
+    session_id: string
+}
+
+export interface GetSessionsResponse {
+    success: boolean
+    sessions: Array<{
+        session_id: string
+        created_at: string
+        system_prompt: string
+        use_memory: boolean
+        conversation_length: number
+    }>
+}
+
+export interface ExtractMemoriesResponse {
+    success: boolean
+    raw_input: string
+    extracted_memories: Array<{
+        text: string
+        memory_id: string
+        grounding_applied: boolean
+    }>
+    context_prompt?: string
+}
+
 class MemoryAgentAPI {
     private baseUrl: string
 
@@ -289,23 +372,59 @@ class MemoryAgentAPI {
         })
     }
 
-    async recall(query: string, topK: number = 5): Promise<RecallResponse> {
+    async recall(query: string, topK: number = 5, minSimilarity?: number): Promise<RecallResponse> {
+        const body: any = { query, top_k: topK }
+        if (minSimilarity !== undefined) {
+            body.min_similarity = minSimilarity
+        }
         return this.request<RecallResponse>('/api/memory/search', {
             method: 'POST',
-            body: JSON.stringify({ query, top_k: topK }),
+            body: JSON.stringify(body),
         })
     }
 
-    async ask(question: string, topK: number = 5): Promise<AskResponse> {
-        return this.request<AskResponse>('/api/memory/answer', {
+    async ask(question: string, topK: number = 5, minSimilarity?: number): Promise<AskResponse> {
+        const body: any = { question, top_k: topK }
+        if (minSimilarity !== undefined) {
+            body.min_similarity = minSimilarity
+        }
+        return this.request<AskResponse>('/api/klines/ask', {
             method: 'POST',
-            body: JSON.stringify({ question, top_k: topK }),
+            body: JSON.stringify(body),
+        })
+    }
+
+    // New K-LINE API endpoint for constructing mental state from memories
+    async recallMentalState(query: string, topK: number = 5, minSimilarity?: number): Promise<RecallMentalStateResponse> {
+        const body: any = { query, top_k: topK }
+        if (minSimilarity !== undefined) {
+            body.min_similarity = minSimilarity
+        }
+        return this.request<RecallMentalStateResponse>('/api/klines/recall', {
+            method: 'POST',
+            body: JSON.stringify(body),
+        })
+    }
+
+    // K-LINE API endpoint for memory extraction
+    async extractMemories(
+        rawInput: string,
+        contextPrompt?: string,
+        applyGrounding: boolean = true
+    ): Promise<ExtractMemoriesResponse> {
+        return this.request<ExtractMemoriesResponse>('/api/klines/extract', {
+            method: 'POST',
+            body: JSON.stringify({
+                raw_input: rawInput,
+                context_prompt: contextPrompt,
+                apply_grounding: applyGrounding
+            }),
         })
     }
 
     // New chat endpoint for conversational interface
     async chat(message: string): Promise<ChatResponse> {
-        return this.request<ChatResponse>('/api/chat', {
+        return this.request<ChatResponse>('/api/agent/chat', {
             method: 'POST',
             body: JSON.stringify({ message }),
         })
@@ -313,17 +432,40 @@ class MemoryAgentAPI {
 
     // Session-based chat endpoints
     async createChatSession(request: CreateSessionRequest): Promise<CreateSessionResponse> {
-        return this.request<CreateSessionResponse>('/api/chat/session', {
+        return this.request<CreateSessionResponse>('/api/agent/session', {
             method: 'POST',
             body: JSON.stringify(request),
         })
     }
 
     async chatWithSession(request: SessionChatRequest): Promise<SessionChatResponse> {
-        return this.request<SessionChatResponse>(`/api/chat/session/${request.session_id}`, {
+        const body: any = { message: request.message }
+        if (request.top_k !== undefined) {
+            body.top_k = request.top_k
+        }
+        if (request.min_similarity !== undefined) {
+            body.min_similarity = request.min_similarity
+        }
+
+        return this.request<SessionChatResponse>(`/api/agent/session/${request.session_id}`, {
             method: 'POST',
-            body: JSON.stringify({ message: request.message }),
+            body: JSON.stringify(body),
         })
+    }
+
+    // Additional session management endpoints
+    async getChatSession(sessionId: string): Promise<GetSessionResponse> {
+        return this.request<GetSessionResponse>(`/api/agent/session/${sessionId}`)
+    }
+
+    async deleteChatSession(sessionId: string): Promise<DeleteSessionResponse> {
+        return this.request<DeleteSessionResponse>(`/api/agent/session/${sessionId}`, {
+            method: 'DELETE',
+        })
+    }
+
+    async getChatSessions(): Promise<GetSessionsResponse> {
+        return this.request<GetSessionsResponse>('/api/agent/sessions')
     }
 
     async getStatus(): Promise<StatusResponse> {

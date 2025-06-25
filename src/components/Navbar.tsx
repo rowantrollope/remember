@@ -7,7 +7,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Info, MessageCircle, Search, MapPin, Brain, Save, Menu, X, ChevronDown, TrendingUp, Plane } from "lucide-react"
+import { Info, MessageCircle, Search, MapPin, Brain, Save, Menu, X, ChevronDown, TrendingUp, Plane, Network } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
@@ -20,28 +20,34 @@ export function Navbar() {
     const apiItems = [
         {
             href: "/memory/save",
-            label: "Save",
+            label: "Create new memory (neme)",
             icon: Save,
             isActive: pathname === "/memory/save"
         },
         {
-            href: "/ask",
-            label: "Ask",
-            icon: Brain,
-            isActive: pathname === "/ask"
-        },
-        {
             href: "/search",
-            label: "Search",
+            label: "Search memory (neme)",
             icon: Search,
             isActive: pathname === "/search"
         },
         {
+            href: "/recall",
+            label: "Recall mental state (k-line)",
+            icon: Network,
+            isActive: pathname === "/recall"
+        },
+        {
             href: "/context",
-            label: "Context",
+            label: "Set Context (neme context)",
             icon: MapPin,
             isActive: pathname === "/context"
-        }
+        },
+        {
+            href: "/ask",
+            label: "Ask Memory a Question",
+            icon: Brain,
+            isActive: pathname === "/ask"
+        },
     ]
 
     const demoItems = [
@@ -72,6 +78,12 @@ export function Navbar() {
     ]
 
     const otherNavItems = [
+        {
+            href: "/api-docs",
+            label: "Docs",
+            icon: Info,
+            isActive: pathname === "/api-docs"
+        },
         {
             href: "/memory-info",
             label: "Settings",
@@ -105,13 +117,13 @@ export function Navbar() {
                                 height={60}
                                 className="object-contain sm:w-[80px] sm:h-[80px]"
                             />
-                            <div className="flex flex-col min-w-0">
+                            <div className="flex flex-col min-w-0 text-2xl">
                                 <img
                                     src="/logo.png"
                                     alt="Logo"
                                     width={100}
                                     height={75}
-                                    className="object-contain sm:w-[60px] sm:h-[60px]"
+                                    className="object-contain sm:w-[80px] sm:h-[80px]"
                                 />
 
                             </div>
@@ -120,22 +132,6 @@ export function Navbar() {
 
                     {/* Desktop Navigation */}
                     <div className="hidden sm:flex items-center space-x-0">
-                        {/* Other nav items */}
-                        {otherNavItems.map((item) => {
-                            return (
-                                <Link key={item.href} href={item.href}>
-                                    <Button
-                                        variant={item.isActive ? "default" : "ghost"}
-                                        className={cn(
-                                            "flex items-center gap-2 bg-white",
-                                            item.isActive && "text-red-600 hover:text-red-700 bg-white border-b-2 border-red-500 rounded-none hover:bg-white"
-                                        )}
-                                    >
-                                        {item.label}
-                                    </Button>
-                                </Link>
-                            )
-                        })}
 
                         {/* Demos Dropdown */}
                         <DropdownMenu>
@@ -194,6 +190,24 @@ export function Navbar() {
                                 })}
                             </DropdownMenuContent>
                         </DropdownMenu>
+
+                        {/* Other nav items */}
+                        {otherNavItems.map((item) => {
+                            return (
+                                <Link key={item.href} href={item.href}>
+                                    <Button
+                                        variant={item.isActive ? "default" : "ghost"}
+                                        className={cn(
+                                            "flex items-center gap-2 bg-white",
+                                            item.isActive && "text-red-600 hover:text-red-700 bg-white border-b-2 border-red-500 rounded-none hover:bg-white"
+                                        )}
+                                    >
+                                        {item.label}
+                                    </Button>
+                                </Link>
+                            )
+                        })}
+
                     </div>
 
                     {/* Mobile menu button */}

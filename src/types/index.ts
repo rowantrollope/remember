@@ -61,6 +61,13 @@ export interface Conversation {
     confidence?: 'high' | 'medium' | 'low'
     reasoning?: string
     supporting_memories?: Memory[]
+    excluded_memories?: Memory[]
+    filtering_info?: {
+        min_similarity_threshold?: number
+        total_candidates?: number
+        excluded_count?: number
+        included_count?: number
+    }
 }
 
 export interface ContextInfo {

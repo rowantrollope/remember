@@ -5,6 +5,13 @@ import type { Memory, Conversation, ApiStatus, ContextInfo } from "@/types"
 export function useMemoryAPI() {
     const [memories, setMemories] = useState<Memory[]>([])
     const [searchResults, setSearchResults] = useState<Memory[]>([])
+    const [excludedMemories, setExcludedMemories] = useState<Memory[]>([])
+    const [filteringInfo, setFilteringInfo] = useState<{
+        min_similarity_threshold?: number
+        total_candidates?: number
+        excluded_count?: number
+        included_count?: number
+    } | null>(null)
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [apiStatus, setApiStatus] = useState<ApiStatus>('unknown')
@@ -79,12 +86,12 @@ export function useMemoryAPI() {
         }
     }
 
-    const askQuestion = async (question: string, topK: number = 5) => {
+    const askQuestion = async (question: string, topK: number = 5, minSimilarity?: number) => {
         setIsLoading(true)
         setError(null)
 
         try {
-            const response = await memoryAPI.ask(question, topK)
+            const response = await memoryAPI.ask(question, topK, minSimilarity)
 
             if (response.success) {
                 // Convert supporting memories to the Memory format
@@ -92,6 +99,31 @@ export function useMemoryAPI() {
                     const content = mem.content || mem.text || mem.memory || 'No content available'
                     const timestamp = mem.timestamp || mem.created_at || new Date().toISOString()
                     const id = mem.id || `supporting-memory-${Date.now()}-${Math.random().toString(36).substr(2, 9)}-${index}`
+
+                    return {
+                        id,
+                        content,
+                        text: mem.text,
+                        original_text: mem.original_text,
+                        grounded_text: mem.grounded_text,
+                        timestamp,
+                        formatted_time: mem.formatted_time,
+                        grounding_applied: mem.grounding_applied,
+                        grounding_info: mem.grounding_info,
+                        context_snapshot: mem.context_snapshot,
+                        metadata: {
+                            ...mem.metadata,
+                            score: mem.score,
+                            relevance_score: mem.relevance_score
+                        }
+                    }
+                }) || []
+
+                // Convert excluded memories to the Memory format
+                const excludedMemories: Memory[] = response.excluded_memories?.map((mem, index) => {
+                    const content = mem.content || mem.text || mem.memory || 'No content available'
+                    const timestamp = mem.timestamp || mem.created_at || new Date().toISOString()
+                    const id = mem.id || `excluded-memory-${Date.now()}-${Math.random().toString(36).substr(2, 9)}-${index}`
 
                     return {
                         id,
@@ -120,6 +152,8 @@ export function useMemoryAPI() {
                     confidence: response.confidence,
                     reasoning: response.reasoning,
                     supporting_memories: supportingMemories,
+                    excluded_memories: excludedMemories,
+                    filtering_info: response.filtering_info,
                 }
 
                 // Don't store in local state - let the calling component handle persistence
@@ -136,12 +170,12 @@ export function useMemoryAPI() {
         }
     }
 
-    const searchMemories = async (query: string, topK: number = 5) => {
+    const searchMemories = async (query: string, topK: number = 5, minSimilarity?: number) => {
         setIsLoading(true)
         setError(null)
 
         try {
-            const response = await memoryAPI.recall(query, topK)
+            const response = await memoryAPI.recall(query, topK, minSimilarity)
 
             // Debug logging to see what the search returns
             console.log('Search memories API response:', response)
@@ -189,6 +223,37 @@ export function useMemoryAPI() {
                 })))
 
                 setSearchResults(formattedMemories)
+
+                // Handle excluded memories
+                if (response.excluded_memories) {
+                    const formattedExcludedMemories = response.excluded_memories.map(mem => ({
+                        id: mem.id || '',
+                        content: mem.content || mem.text || mem.memory || '',
+                        text: mem.text || mem.content || mem.memory || '',
+                        original_text: mem.original_text,
+                        grounded_text: mem.grounded_text,
+                        timestamp: typeof mem.timestamp === 'number'
+                            ? new Date(mem.timestamp * 1000).toISOString()
+                            : mem.timestamp || mem.created_at || new Date().toISOString(),
+                        formatted_time: mem.formatted_time,
+                        grounding_applied: mem.grounding_applied,
+                        grounding_info: mem.grounding_info,
+                        context_snapshot: mem.context_snapshot,
+                        metadata: {
+                            ...mem.metadata,
+                            score: mem.score || mem.relevance_score,
+                            relevance_score: mem.relevance_score,
+                            tags: mem.tags || mem.metadata?.tags
+                        }
+                    }))
+                    setExcludedMemories(formattedExcludedMemories)
+                } else {
+                    setExcludedMemories([])
+                }
+
+                // Store filtering info
+                setFilteringInfo(response.filtering_info || null)
+
                 return true
             } else {
                 setError('Failed to search memories')
@@ -228,6 +293,8 @@ export function useMemoryAPI() {
                 // Clear all local state
                 setMemories([])
                 setSearchResults([])
+                setExcludedMemories([])
+                setFilteringInfo(null)
                 // Note: conversations are managed by usePersistentChat hook
                 return { success: true, deletedCount: response.deleted_count }
             } else {
@@ -282,6 +349,8 @@ export function useMemoryAPI() {
         // State
         memories,
         searchResults,
+        excludedMemories,
+        filteringInfo,
         isLoading,
         error,
         apiStatus,

@@ -117,10 +117,16 @@ export default function MemorySavePage() {
 
     // Auto-scroll to bottom when new messages are added
     useEffect(() => {
-        if (messagesEndRef.current) {
-            messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
+        if (messagesEndRef.current && scrollContainerRef.current) {
+            // Scroll the container to the bottom smoothly
+            scrollContainerRef.current.scrollTo({
+                top: scrollContainerRef.current.scrollHeight,
+                behavior: 'smooth'
+            })
         }
     }, [memorySaveResponses])
+
+    const scrollContainerRef = useRef<HTMLDivElement>(null)
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -170,7 +176,7 @@ export default function MemorySavePage() {
                             </div>
                         </div>
 
-                        <div className="flex-1 min-h-0 overflow-y-auto p-4 bg-white">
+                        <div ref={scrollContainerRef} className="flex-1 min-h-0 overflow-y-auto p-4 bg-white">
                             <div className="space-y-4">
                                 {memorySaveResponses.map((saveResponse, index) => (
                                     <div key={index} className="space-y-3">
@@ -359,7 +365,7 @@ export default function MemorySavePage() {
                         <div className="w-full">
                             <div className="text-center mb-8">
                                 <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                                    Save Memory:
+                                    Save a new Memory (Neme):
                                 </h1>
                                 <p className="text-gray-600">
                                     Store important moments and information with contextual grounding

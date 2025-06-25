@@ -27,6 +27,8 @@ export default function SearchPage() {
 
     const {
         searchResults,
+        excludedMemories,
+        filteringInfo,
         isLoading,
         error,
         apiStatus,
@@ -42,7 +44,7 @@ export default function SearchPage() {
         e.preventDefault()
         if (!input.trim()) return
 
-        const success = await searchMemories(input, settings.questionTopK)
+        const success = await searchMemories(input, settings.questionTopK, settings.minSimilarity)
         if (success) {
             setInput("")
         }
@@ -76,6 +78,8 @@ export default function SearchPage() {
                         <div className="flex-1 min-h-0 overflow-y-auto p-4 bg-white">
                             <RecallTab
                                 searchResults={searchResults}
+                                excludedMemories={excludedMemories}
+                                filteringInfo={filteringInfo}
                                 onMemoryDeleted={deleteMemory}
                             />
                         </div>
@@ -96,9 +100,9 @@ export default function SearchPage() {
                     <div className="flex-1 flex items-center justify-center -mt-40 bg-white">
                             <div className="w-full">
                                 <div className="text-center mb-8">
-                                    <h1 className="text-3xl font-bold text-gray-900 mb-2">Search Memories</h1>
+                                    <h1 className="text-3xl font-bold text-gray-900 mb-2">Search Memories (Nemes)</h1>
                                 <p className="text-gray-600">
-                                        Vector search for relevant memories and return in JSON
+                                        Vector search for relevant nemes and return in JSON
                                     </p>
                                 </div>
 

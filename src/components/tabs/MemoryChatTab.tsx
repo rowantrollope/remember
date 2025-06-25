@@ -129,8 +129,10 @@ export function MemoryChatTab({
                                     )}
                                     
                                     {message.supporting_memories && message.supporting_memories.length > 0 && (
-                                        <SupportingMemoriesDialog 
-                                            memories={message.supporting_memories} 
+                                        <SupportingMemoriesDialog
+                                            memories={message.supporting_memories}
+                                            excludedMemories={message.excluded_memories}
+                                            filteringInfo={message.filtering_info}
                                             className="text-xs"
                                         />
                                     )}

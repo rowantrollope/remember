@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
-
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
     Dialog,
     DialogContent,
@@ -18,6 +18,7 @@ import { TrendingUp, Brain, Database, HelpCircle, FileText, BarChart3 } from "lu
 import { PageLayout } from "@/components/PageLayout"
 import { ChatBox, ChatMessage } from "@/components/ChatBox"
 import { useMemoryAPI } from "@/hooks"
+import { useSettings } from "@/hooks/useSettings"
 
 // Sample Microsoft 10Q filing content for analysis
 const microsoft10Q = `MICROSOFT CORPORATION
@@ -106,16 +107,18 @@ const sampleQuestions = [
 
 
 export default function InvestmentDemo() {
-    const [leftQuestion, setLeftQuestion] = useState("")
-    const [rightQuestion, setRightQuestion] = useState("")
-    const [leftMessages, setLeftMessages] = useState<ChatMessage[]>([])
-    const [rightMessages, setRightMessages] = useState<ChatMessage[]>([])
-    const [isLeftLoading, setIsLeftLoading] = useState(false)
-    const [isRightLoading, setIsRightLoading] = useState(false)
+    const [activeTab, setActiveTab] = useState("standard")
+    const [standardQuestion, setStandardQuestion] = useState("")
+    const [memoryQuestion, setMemoryQuestion] = useState("")
+    const [standardMessages, setStandardMessages] = useState<ChatMessage[]>([])
+    const [memoryMessages, setMemoryMessages] = useState<ChatMessage[]>([])
+    const [isStandardLoading, setIsStandardLoading] = useState(false)
+    const [isMemoryLoading, setIsMemoryLoading] = useState(false)
     const [hasSetupMemories, setHasSetupMemories] = useState(false)
     const [showHelpDialog, setShowHelpDialog] = useState(false)
     const [documentContent, setDocumentContent] = useState(microsoft10Q)
     const { apiStatus, error, clearError, saveMemory, askQuestion } = useMemoryAPI()
+    const { settings } = useSettings()
 
 
 
@@ -140,7 +143,7 @@ export default function InvestmentDemo() {
         try {
             // Use the memory API but don't save the conversation to memory
             // This gives access to the document but no conversation history
-            const result = await askQuestion(`Based on the Microsoft 10Q filing, please answer: ${question}`, 5)
+            const result = await askQuestion(`Based on the Microsoft 10Q filing, please answer: ${question}`, settings.questionTopK, settings.minSimilarity)
 
             if (result && typeof result === 'object' && result.success) {
                 return result.conversation.answer
@@ -160,33 +163,33 @@ export default function InvestmentDemo() {
         return responses[Math.floor(Math.random() * responses.length)]
     }
 
-    const handleLeftSubmit = async (e: React.FormEvent) => {
+    const handleStandardSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        if (!leftQuestion.trim()) return
+        if (!standardQuestion.trim()) return
 
-        setIsLeftLoading(true)
+        setIsStandardLoading(true)
 
         // Get document-based response but without conversation memory
-        const answer = await generateDocumentBasedResponse(leftQuestion)
+        const answer = await generateDocumentBasedResponse(standardQuestion)
 
         const newMessage: ChatMessage = {
             id: Date.now().toString(),
-            question: leftQuestion,
+            question: standardQuestion,
             answer: answer,
             timestamp: new Date(),
             hasMemory: false
         }
 
-        setLeftMessages(prev => [...prev, newMessage])
-        setLeftQuestion("")
-        setIsLeftLoading(false)
+        setStandardMessages(prev => [...prev, newMessage])
+        setStandardQuestion("")
+        setIsStandardLoading(false)
     }
 
-    const handleRightSubmit = async (e: React.FormEvent) => {
+    const handleMemorySubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        if (!rightQuestion.trim()) return
+        if (!memoryQuestion.trim()) return
 
-        setIsRightLoading(true)
+        setIsMemoryLoading(true)
 
         // Setup memories if not already done
         if (!hasSetupMemories) {
@@ -195,9 +198,9 @@ export default function InvestmentDemo() {
 
         try {
             // Use memory-enhanced analysis that builds conversation context
-            const contextualQuestion = `As a financial analyst with access to Microsoft's 10Q filing and previous conversation history, please analyze and answer: ${rightQuestion}`
+            const contextualQuestion = `As a financial analyst with access to Microsoft's 10Q filing and previous conversation history, please analyze and answer: ${memoryQuestion}`
 
-            const result = await askQuestion(contextualQuestion, 5)
+            const result = await askQuestion(contextualQuestion, settings.questionTopK, settings.minSimilarity)
 
             let answer = "I'd be happy to help with your financial analysis question based on the Microsoft 10Q filing."
 
@@ -205,37 +208,37 @@ export default function InvestmentDemo() {
                 answer = result.conversation.answer
 
                 // Save this conversation to memory for future context
-                await saveMemory(`User asked: "${rightQuestion}" and I responded: "${answer}"`)
+                await saveMemory(`User asked: "${memoryQuestion}" and I responded: "${answer}"`)
             }
 
             const newMessage: ChatMessage = {
                 id: Date.now().toString(),
-                question: rightQuestion,
+                question: memoryQuestion,
                 answer: answer,
                 timestamp: new Date(),
                 hasMemory: true
             }
 
-            setRightMessages(prev => [...prev, newMessage])
-            setRightQuestion("")
+            setMemoryMessages(prev => [...prev, newMessage])
+            setMemoryQuestion("")
         } catch (error) {
             console.error('Failed to get memory-enhanced response:', error)
         } finally {
-            setIsRightLoading(false)
+            setIsMemoryLoading(false)
         }
     }
 
     const handleSampleQuestion = (question: string) => {
-        setLeftQuestion(question)
-        setRightQuestion(question)
+        setStandardQuestion(question)
+        setMemoryQuestion(question)
     }
 
-    const clearLeftChat = () => {
-        setLeftMessages([])
+    const clearStandardChat = () => {
+        setStandardMessages([])
     }
 
-    const clearRightChat = () => {
-        setRightMessages([])
+    const clearMemoryChat = () => {
+        setMemoryMessages([])
     }
 
     return (
@@ -286,8 +289,8 @@ export default function InvestmentDemo() {
                     </div>
                     <p className="text-lg text-gray-600 max-w-4xl mx-auto">
                         Compare how a financial analyst performs with and without conversation memory when analyzing company documents.
-                        Both sides can analyze the Microsoft 10Q filing, but the right side also remembers previous questions
-                        and builds context over time, enabling more sophisticated follow-up analysis.
+                        Switch between tabs to see how both can analyze the Microsoft 10Q filing, but the memory-enhanced version
+                        remembers previous questions and builds context over time, enabling more sophisticated follow-up analysis.
                     </p>
                 </div>
 
@@ -346,53 +349,66 @@ export default function InvestmentDemo() {
                     </div>
                 )}
 
-                {/* Side by Side Chat Interface */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* Left Side - Without Memory */}
-                    <ChatBox
-                        title="Document Analyst (No Conversation Memory)"
-                        subtitle="Analyzes the 10Q document but treats each question independently"
-                        messages={leftMessages}
-                        input={leftQuestion}
-                        onInputChange={setLeftQuestion}
-                        onSubmit={handleLeftSubmit}
-                        onClearChat={clearLeftChat}
-                        isLoading={isLeftLoading}
-                        placeholder="Ask about Microsoft's financials..."
-                        headerIcon={<BarChart3 className="w-5 h-5" />}
-                        borderColor="border-orange-200"
-                        headerBgColor="bg-orange-50 text-orange-800"
-                        messageBgColor="bg-gray-100 text-gray-800"
-                        buttonColor="bg-orange-600 hover:bg-orange-700"
-                        loadingText="Thinking..."
-                        showMemoryIndicators={false}
-                    />
+                {/* Tabbed Chat Interface */}
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                    <TabsList className="grid w-full grid-cols-2 mb-6">
+                        <TabsTrigger value="standard" className="flex items-center gap-2">
+                            <BarChart3 className="w-4 h-4" />
+                            Document Analyst (No Conversation Memory)
+                        </TabsTrigger>
+                        <TabsTrigger value="memory" className="flex items-center gap-2">
+                            <Brain className="w-4 h-4" />
+                            Memory-Enhanced Analyst
+                        </TabsTrigger>
+                    </TabsList>
 
-                    {/* Right Side - With Memory */}
-                    <ChatBox
-                        title="Memory-Enhanced Analyst"
-                        subtitle="Analyzes the 10Q document AND remembers conversation history for context"
-                        messages={rightMessages}
-                        input={rightQuestion}
-                        onInputChange={setRightQuestion}
-                        onSubmit={handleRightSubmit}
-                        onClearChat={clearRightChat}
-                        isLoading={isRightLoading}
-                        placeholder="Ask about Microsoft's financials..."
-                        headerIcon={<Brain className="w-5 h-5" />}
-                        borderColor="border-green-200"
-                        headerBgColor="bg-green-50 text-green-800"
-                        messageBgColor="bg-green-100 text-green-800"
-                        buttonColor="bg-green-600 hover:bg-green-700"
-                        loadingText="Analyzing with document + conversation history..."
-                        showMemoryIndicators={false}
-                        badge={hasSetupMemories && (
-                            <Badge variant="secondary" className="bg-green-100 text-green-700">
-                                Document + History Loaded
-                            </Badge>
-                        )}
-                    />
-                </div>
+                    <TabsContent value="standard" className="space-y-6">
+                        <ChatBox
+                            title="Document Analyst (No Conversation Memory)"
+                            subtitle="Analyzes the 10Q document but treats each question independently"
+                            messages={standardMessages}
+                            input={standardQuestion}
+                            onInputChange={setStandardQuestion}
+                            onSubmit={handleStandardSubmit}
+                            onClearChat={clearStandardChat}
+                            isLoading={isStandardLoading}
+                            placeholder="Ask about Microsoft's financials..."
+                            headerIcon={<BarChart3 className="w-5 h-5" />}
+                            borderColor="border-orange-200"
+                            headerBgColor="bg-orange-50 text-orange-800"
+                            messageBgColor="bg-gray-100 text-gray-800"
+                            buttonColor="bg-orange-600 hover:bg-orange-700"
+                            loadingText="Thinking..."
+                            showMemoryIndicators={false}
+                        />
+                    </TabsContent>
+
+                    <TabsContent value="memory" className="space-y-6">
+                        <ChatBox
+                            title="Memory-Enhanced Analyst"
+                            subtitle="Analyzes the 10Q document AND remembers conversation history for context"
+                            messages={memoryMessages}
+                            input={memoryQuestion}
+                            onInputChange={setMemoryQuestion}
+                            onSubmit={handleMemorySubmit}
+                            onClearChat={clearMemoryChat}
+                            isLoading={isMemoryLoading}
+                            placeholder="Ask about Microsoft's financials..."
+                            headerIcon={<Brain className="w-5 h-5" />}
+                            borderColor="border-green-200"
+                            headerBgColor="bg-green-50 text-green-800"
+                            messageBgColor="bg-green-100 text-green-800"
+                            buttonColor="bg-green-600 hover:bg-green-700"
+                            loadingText="Analyzing with document + conversation history..."
+                            showMemoryIndicators={false}
+                            badge={hasSetupMemories && (
+                                <Badge variant="secondary" className="bg-green-100 text-green-700">
+                                    Document + History Loaded
+                                </Badge>
+                            )}
+                        />
+                    </TabsContent>
+                </Tabs>
 
                 {/* Explanation Section */}
                 <Card className="mt-8">

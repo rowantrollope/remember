@@ -22,6 +22,7 @@ export default function MemoryInfoPage() {
     const [isClearingMemories, setIsClearingMemories] = useState(false)
     const [clearSuccess, setClearSuccess] = useState<string | null>(null)
     const [tempTopK, setTempTopK] = useState<string>('5')
+    const [tempMinSimilarity, setTempMinSimilarity] = useState<string>('0.9')
     const [tempServerUrl, setTempServerUrl] = useState<string>('http://localhost')
     const [tempServerPort, setTempServerPort] = useState<string>('5001')
 
@@ -35,9 +36,10 @@ export default function MemoryInfoPage() {
     // Sync temp values with settings when settings change
     useEffect(() => {
         setTempTopK(settings.questionTopK.toString())
+        setTempMinSimilarity(settings.minSimilarity.toString())
         setTempServerUrl(settings.serverUrl)
         setTempServerPort(settings.serverPort.toString())
-    }, [settings.questionTopK, settings.serverUrl, settings.serverPort])
+    }, [settings.questionTopK, settings.minSimilarity, settings.serverUrl, settings.serverPort])
 
     // Check API status and fetch memory info on component mount
     useEffect(() => {
@@ -240,7 +242,8 @@ export default function MemoryInfoPage() {
                                         <Button
                                             onClick={() => {
                                                 resetSettings()
-                                                setTempTopK('5')
+                                                setTempTopK('10')
+                                                setTempMinSimilarity('0.9')
                                                 setTempServerUrl('http://localhost')
                                                 setTempServerPort('5001')
                                             }}
@@ -253,6 +256,48 @@ export default function MemoryInfoPage() {
                                     </div>
                                     <p className="text-xs text-gray-600">
                                         Current setting: <span className="font-mono font-medium">{settings.questionTopK}</span> memories
+                                    </p>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="min-similarity" className="text-sm font-medium">
+                                        Minimum similarity threshold for memory retrieval
+                                    </Label>
+                                    <p className="text-xs text-gray-500">
+                                        Controls how similar memories must be to your question to be considered relevant.
+                                        Higher values (closer to 1.0) require more precise matches, lower values include more diverse memories.
+                                    </p>
+                                    <div className="flex items-center gap-3">
+                                        <Input
+                                            id="min-similarity"
+                                            type="number"
+                                            min="0.0"
+                                            max="1.0"
+                                            step="0.1"
+                                            value={tempMinSimilarity}
+                                            onChange={(e) => setTempMinSimilarity(e.target.value)}
+                                            className="w-24"
+                                        />
+                                        <Button
+                                            onClick={() => {
+                                                const value = parseFloat(tempMinSimilarity)
+                                                if (value >= 0.0 && value <= 1.0) {
+                                                    updateSetting('minSimilarity', value)
+                                                }
+                                            }}
+                                            size="sm"
+                                            disabled={
+                                                tempMinSimilarity === settings.minSimilarity.toString() ||
+                                                parseFloat(tempMinSimilarity) < 0.0 ||
+                                                parseFloat(tempMinSimilarity) > 1.0 ||
+                                                isNaN(parseFloat(tempMinSimilarity))
+                                            }
+                                        >
+                                            Save
+                                        </Button>
+                                    </div>
+                                    <p className="text-xs text-gray-600">
+                                        Current setting: <span className="font-mono font-medium">{settings.minSimilarity}</span> similarity threshold
                                     </p>
                                 </div>
 

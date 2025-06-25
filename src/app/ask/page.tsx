@@ -6,6 +6,7 @@ import { useState, useRef, useEffect } from "react"
 import { PageLayout } from "@/components/PageLayout"
 import { PageInputForm } from "@/components/PageInputForm"
 import { RotatingPrompts } from "@/components/RotatingPrompts"
+import { Badge } from "@/components/ui/badge"
 
 // Hooks and types
 import { useMemoryAPI } from "@/hooks"
@@ -24,7 +25,25 @@ const chatPrompts = [
 
 export default function AskPage() {
     const [input, setInput] = useState("")
+    const [copiedId, setCopiedId] = useState<string | null>(null)
     const messagesEndRef = useRef<HTMLDivElement>(null)
+
+    // Helper function to get the last component of an ID after the final dash
+    const getShortId = (id: string) => {
+        const parts = id.split('-')
+        return parts[parts.length - 1]
+    }
+
+    // Function to copy ID to clipboard with visual feedback
+    const copyIdToClipboard = async (fullId: string) => {
+        try {
+            await navigator.clipboard.writeText(fullId)
+            setCopiedId(fullId)
+            setTimeout(() => setCopiedId(null), 2000) // Clear feedback after 2 seconds
+        } catch (err) {
+            console.error('Failed to copy ID to clipboard:', err)
+        }
+    }
 
     // Use persistent chat hook for conversations
     const {
@@ -49,16 +68,22 @@ export default function AskPage() {
 
     // Auto-scroll to bottom when new conversations are added
     useEffect(() => {
-        if (messagesEndRef.current) {
-            messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
+        if (messagesEndRef.current && scrollContainerRef.current) {
+            // Scroll the container to the bottom smoothly
+            scrollContainerRef.current.scrollTo({
+                top: scrollContainerRef.current.scrollHeight,
+                behavior: 'smooth'
+            })
         }
     }, [conversations])
+
+    const scrollContainerRef = useRef<HTMLDivElement>(null)
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!input.trim()) return
 
-        const result = await askQuestion(input, settings.questionTopK)
+        const result = await askQuestion(input, settings.questionTopK, settings.minSimilarity)
         if (typeof result === 'object' && result.success) {
             // Add the new conversation to persistent storage
             addConversation(result.conversation)
@@ -84,13 +109,13 @@ export default function AskPage() {
                     /> */}
                     <div className="grow"></div>
                     <div className="font-mono text-muted-foreground">
-                        (POST) /api/memory/answer
+                        (POST) /api/klines/ask
                     </div>
                 </div>
                 {hasMessages ? (
                     // Layout when there are messages - input at bottom
                     <>
-                        <div className="flex-1 min-h-0 overflow-y-auto p-4 bg-white">
+                        <div ref={scrollContainerRef} className="flex-1 min-h-0 overflow-y-auto p-4 bg-white">
                             <div className="space-y-6">
                                 {conversations.map((conversation) => (
                                     <div key={conversation.id} className="space-y-3">
@@ -140,11 +165,73 @@ export default function AskPage() {
                                                         <div className="mt-2 space-y-2">
                                                             {conversation.supporting_memories.map((memory, index) => (
                                                                 <div key={memory.id || `${conversation.id}-memory-${index}`} className="bg-white border rounded p-2 text-sm">
+                                                                    {/* Memory ID Badge */}
+                                                                    {memory.id && (
+                                                                        <div className="mb-2">
+                                                                            <Badge
+                                                                                variant="outline"
+                                                                                className={`font-mono text-xs cursor-pointer transition-colors ${
+                                                                                    copiedId === memory.id
+                                                                                        ? 'bg-green-50 text-green-700 border-green-200'
+                                                                                        : 'hover:bg-gray-50'
+                                                                                }`}
+                                                                                onClick={() => copyIdToClipboard(memory.id!)}
+                                                                                title={`Click to copy full ID: ${memory.id}`}
+                                                                            >
+                                                                                {copiedId === memory.id ? '✓ Copied!' : `Neme ID: ${getShortId(memory.id)}`}
+                                                                            </Badge>
+                                                                        </div>
+                                                                    )}
                                                                     <div className="text-gray-700">{memory.content || memory.text}</div>
                                                                     <div className="text-xs text-gray-500 mt-1 flex justify-between">
                                                                         <span>{memory.formatted_time || new Date(memory.timestamp).toLocaleString()}</span>
                                                                         {memory.metadata?.relevance_score && (
                                                                             <span>{memory.metadata.relevance_score}% relevant</span>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </details>
+                                                )}
+
+                                                {/* Excluded Memories */}
+                                                {conversation.excluded_memories && conversation.excluded_memories.length > 0 && (
+                                                    <details className="mt-2">
+                                                        <summary className="text-sm text-orange-600 cursor-pointer hover:text-orange-800">
+                                                            See {conversation.excluded_memories.length} excluded memories
+                                                        </summary>
+                                                        <div className="mt-2 space-y-2">
+                                                            <div className="text-xs text-orange-700 bg-orange-50 p-2 rounded">
+                                                                These memories were retrieved but excluded due to similarity threshold filtering.
+                                                                {conversation.filtering_info?.min_similarity_threshold && (
+                                                                    <span> Threshold: {(conversation.filtering_info.min_similarity_threshold * 100).toFixed(1)}%</span>
+                                                                )}
+                                                            </div>
+                                                            {conversation.excluded_memories.map((memory, index) => (
+                                                                <div key={memory.id || `${conversation.id}-excluded-memory-${index}`} className="bg-orange-50 border border-orange-200 rounded p-2 text-sm">
+                                                                    {/* Memory ID Badge */}
+                                                                    {memory.id && (
+                                                                        <div className="mb-2">
+                                                                            <Badge
+                                                                                variant="outline"
+                                                                                className={`font-mono text-xs cursor-pointer transition-colors border-orange-300 text-orange-700 ${
+                                                                                    copiedId === memory.id
+                                                                                        ? 'bg-orange-100 text-orange-800 border-orange-400'
+                                                                                        : 'hover:bg-orange-100'
+                                                                                }`}
+                                                                                onClick={() => copyIdToClipboard(memory.id!)}
+                                                                                title={`Click to copy full ID: ${memory.id}`}
+                                                                            >
+                                                                                {copiedId === memory.id ? '✓ Copied!' : `Neme ID: ${getShortId(memory.id)}`}
+                                                                            </Badge>
+                                                                        </div>
+                                                                    )}
+                                                                    <div className="text-gray-700">{memory.content || memory.text}</div>
+                                                                    <div className="text-xs text-gray-500 mt-1 flex justify-between">
+                                                                        <span>{memory.formatted_time || new Date(memory.timestamp).toLocaleString()}</span>
+                                                                        {memory.metadata?.relevance_score && (
+                                                                            <span className="text-orange-600">{memory.metadata.relevance_score}% relevant</span>
                                                                         )}
                                                                     </div>
                                                                 </div>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
     Dialog,
     DialogContent,
@@ -10,26 +11,17 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog"
-import { Plane, Brain, HelpCircle, Compass, Map } from "lucide-react"
+import { Plane, Brain, HelpCircle, Compass, Map, GitBranch } from "lucide-react"
 import { PageLayout } from "@/components/PageLayout"
 import { ChatBox, ChatMessage } from "@/components/ChatBox"
 import { useMemoryAPI } from "@/hooks"
 import { useConfiguredAPI } from "@/hooks/useConfiguredAPI"
+import { useSettings } from "@/hooks/useSettings"
 
 // Travel agent system prompt
 const TRAVEL_AGENT_PROMPT = `You are an expert travel agent helping users plan amazing trips. You provide personalized recommendations for destinations, accommodations, activities, restaurants, and travel logistics. You consider factors like budget, travel style, interests, dietary restrictions, and past travel experiences when making suggestions. Be helpful, enthusiastic, and detailed in your responses.`
 
-// Sample travel memories to demonstrate memory functionality
-const travelMemories = [
-    "User prefers boutique hotels over chain hotels for a more authentic experience",
-    "User loves trying local street food and authentic cuisine when traveling",
-    "User has a moderate budget of around $2000-4000 for week-long trips",
-    "User enjoys cultural experiences like museums, historical sites, and local festivals",
-    "User prefers destinations with good public transportation to avoid renting cars",
-    "User is interested in sustainable and eco-friendly travel options",
-    "User likes to travel during shoulder seasons to avoid crowds and save money",
-    "User has dietary restrictions - vegetarian and avoids spicy food"
-]
+
 
 // Sample questions that demonstrate memory value for travel planning
 const sampleQuestions = [
@@ -46,101 +38,95 @@ const sampleQuestions = [
 
 
 export default function TravelDemo() {
-    const [leftQuestion, setLeftQuestion] = useState("")
-    const [rightQuestion, setRightQuestion] = useState("")
-    const [leftMessages, setLeftMessages] = useState<ChatMessage[]>([])
-    const [rightMessages, setRightMessages] = useState<ChatMessage[]>([])
-    const [isLeftLoading, setIsLeftLoading] = useState(false)
-    const [isRightLoading, setIsRightLoading] = useState(false)
+    const [activeTab, setActiveTab] = useState("standard")
+    const [standardQuestion, setStandardQuestion] = useState("")
+    const [memoryQuestion, setMemoryQuestion] = useState("")
+    const [langgraphQuestion, setLanggraphQuestion] = useState("")
+    const [standardMessages, setStandardMessages] = useState<ChatMessage[]>([])
+    const [memoryMessages, setMemoryMessages] = useState<ChatMessage[]>([])
+    const [langgraphMessages, setLanggraphMessages] = useState<ChatMessage[]>([])
+    const [isStandardLoading, setIsStandardLoading] = useState(false)
+    const [isMemoryLoading, setIsMemoryLoading] = useState(false)
+    const [isLanggraphLoading, setIsLanggraphLoading] = useState(false)
     const [showHelpDialog, setShowHelpDialog] = useState(false)
-    const [hasSetupMemories, setHasSetupMemories] = useState(false)
-    const [leftSessionId, setLeftSessionId] = useState<string | null>(null)
-    const [rightSessionId, setRightSessionId] = useState<string | null>(null)
-    const { apiStatus, error, clearError, saveMemory, askQuestion } = useMemoryAPI()
+
+    const [standardSessionId, setStandardSessionId] = useState<string | null>(null)
+    const [memorySessionId, setMemorySessionId] = useState<string | null>(null)
+    const { apiStatus, error, clearError, askQuestion } = useMemoryAPI()
     const { api } = useConfiguredAPI()
+    const { settings } = useSettings()
 
-    const setupTravelMemories = async () => {
-        if (hasSetupMemories) return
 
-        try {
-            // Save travel preference memories for enhanced recommendations
-            for (const memory of travelMemories) {
-                await saveMemory(memory)
-            }
-            setHasSetupMemories(true)
-        } catch (error) {
-            console.error('Failed to setup travel memories:', error)
-        }
-    }
 
-    // Create left session (no memory)
-    const createLeftSession = useCallback(async () => {
-        if (leftSessionId) return leftSessionId
+    // Create standard session (no memory)
+    const createStandardSession = useCallback(async () => {
+        if (standardSessionId) return standardSessionId
 
         try {
-            const leftSessionResponse = await api.createChatSession({
+            const standardSessionResponse = await api.createChatSession({
                 system_prompt: TRAVEL_AGENT_PROMPT,
                 config: {
-                    model: "gpt-3.5-turbo",
-                    temperature: 0.7,
-                    max_tokens: 4000,
                     use_memory: false,
-                    save_memory: false
-                }
-            })
-            if (leftSessionResponse.success) {
-                setLeftSessionId(leftSessionResponse.session_id)
-                return leftSessionResponse.session_id
-            }
-        } catch (error) {
-            console.error('Failed to create left session:', error)
-        }
-        return null
-    }, [api, leftSessionId])
-
-    // Create right session (with memory retrieval but no automatic saving)
-    const createRightSession = useCallback(async () => {
-        if (rightSessionId) return rightSessionId
-
-        try {
-            const rightSessionResponse = await api.createChatSession({
-                system_prompt: TRAVEL_AGENT_PROMPT,
-                config: {
                     model: "gpt-3.5-turbo",
                     temperature: 0.7,
-                    max_tokens: 4000,
-                    use_memory: true,
-                    save_memory: false // Don't automatically save memories
+                    max_tokens: 1000
                 }
             })
-            if (rightSessionResponse.success) {
-                setRightSessionId(rightSessionResponse.session_id)
-                return rightSessionResponse.session_id
+
+            if (standardSessionResponse.success) {
+                setStandardSessionId(standardSessionResponse.session_id)
+                return standardSessionResponse.session_id
             }
         } catch (error) {
-            console.error('Failed to create right session:', error)
+            console.error('Failed to create standard session:', error)
         }
         return null
-    }, [api, rightSessionId])
+    }, [api, standardSessionId])
+
+    // Create memory session (with memory retrieval)
+    const createMemorySession = useCallback(async () => {
+        if (memorySessionId) return memorySessionId
+
+        try {
+            const memorySessionResponse = await api.createChatSession({
+                system_prompt: TRAVEL_AGENT_PROMPT,
+                config: {
+                    use_memory: true,
+                    model: "gpt-3.5-turbo",
+                    temperature: 0.7,
+                    max_tokens: 1000,
+                    top_k: settings.questionTopK
+                }
+            })
+            if (memorySessionResponse.success) {
+                setMemorySessionId(memorySessionResponse.session_id)
+                return memorySessionResponse.session_id
+            }
+        } catch (error) {
+            console.error('Failed to create memory session:', error)
+        }
+        return null
+    }, [api, memorySessionId, settings.questionTopK])
 
     // Create sessions on component mount
     useEffect(() => {
-        createLeftSession()
-        createRightSession()
-    }, [createLeftSession, createRightSession])
+        createStandardSession()
+        createMemorySession()
+    }, [createStandardSession, createMemorySession])
 
     // Generate standard travel agent response (no memory) using session-based API
     const generateStandardResponse = async (question: string): Promise<string> => {
         try {
-            // Ensure we have a left session for fallback responses
-            if (!leftSessionId) {
-                await createLeftSession()
+            // Ensure we have a standard session for fallback responses
+            if (!standardSessionId) {
+                await createStandardSession()
             }
 
-            if (leftSessionId) {
+            if (standardSessionId) {
                 const response = await api.chatWithSession({
-                    session_id: leftSessionId,
-                    message: question
+                    session_id: standardSessionId,
+                    message: question,
+                    min_similarity: settings.minSimilarity
                 })
 
                 if (response.success) {
@@ -157,121 +143,123 @@ export default function TravelDemo() {
         }
     }
 
-    const handleLeftSubmit = async (e: React.FormEvent) => {
+    const handleStandardSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        if (!leftQuestion.trim()) return
+        if (!standardQuestion.trim()) return
 
-        setIsLeftLoading(true)
+        setIsStandardLoading(true)
 
         try {
             // Ensure session is created
-            if (!leftSessionId) {
-                await createLeftSession()
+            if (!standardSessionId) {
+                await createStandardSession()
             }
 
             // Use session-based chat API (no memory)
-            if (leftSessionId) {
+            if (standardSessionId) {
                 const response = await api.chatWithSession({
-                    session_id: leftSessionId,
-                    message: leftQuestion
+                    session_id: standardSessionId,
+                    message: standardQuestion,
+                    min_similarity: settings.minSimilarity
                 })
 
                 if (response.success) {
                     const newMessage: ChatMessage = {
                         id: Date.now().toString(),
-                        question: leftQuestion,
+                        question: standardQuestion,
                         answer: response.message,
                         timestamp: new Date(),
                         hasMemory: false,
-                        session_memories: response.memory_context?.memories || []
+                        session_memories: response.memory_context?.memories || [],
+                        excluded_memories: response.memory_context?.excluded_memories || [],
+                        filtering_info: response.memory_context?.filtering_info
                     }
-                    setLeftMessages(prev => [...prev, newMessage])
+                    setStandardMessages(prev => [...prev, newMessage])
                 } else {
                     // Fallback to standard response
-                    const answer = await generateStandardResponse(leftQuestion)
+                    const answer = await generateStandardResponse(standardQuestion)
                     const newMessage: ChatMessage = {
                         id: Date.now().toString(),
-                        question: leftQuestion,
+                        question: standardQuestion,
                         answer: answer,
                         timestamp: new Date(),
                         hasMemory: false
                     }
-                    setLeftMessages(prev => [...prev, newMessage])
+                    setStandardMessages(prev => [...prev, newMessage])
                 }
             } else {
                 // Fallback to standard response if session creation failed
-                const answer = await generateStandardResponse(leftQuestion)
+                const answer = await generateStandardResponse(standardQuestion)
                 const newMessage: ChatMessage = {
                     id: Date.now().toString(),
-                    question: leftQuestion,
+                    question: standardQuestion,
                     answer: answer,
                     timestamp: new Date(),
                     hasMemory: false
                 }
-                setLeftMessages(prev => [...prev, newMessage])
+                setStandardMessages(prev => [...prev, newMessage])
             }
 
-            setLeftQuestion("")
+            setStandardQuestion("")
         } catch (error) {
             console.error('Failed to get session response:', error)
             // Fallback to standard response
-            const answer = await generateStandardResponse(leftQuestion)
+            const answer = await generateStandardResponse(standardQuestion)
             const newMessage: ChatMessage = {
                 id: Date.now().toString(),
-                question: leftQuestion,
+                question: standardQuestion,
                 answer: answer,
                 timestamp: new Date(),
                 hasMemory: false
             }
-            setLeftMessages(prev => [...prev, newMessage])
-            setLeftQuestion("")
+            setStandardMessages(prev => [...prev, newMessage])
+            setStandardQuestion("")
         } finally {
-            setIsLeftLoading(false)
+            setIsStandardLoading(false)
         }
     }
 
-    const handleRightSubmit = async (e: React.FormEvent) => {
+    const handleMemorySubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        if (!rightQuestion.trim()) return
+        if (!memoryQuestion.trim()) return
 
-        setIsRightLoading(true)
+        setIsMemoryLoading(true)
 
         try {
-            // Setup memories if not already done
-            // if (!hasSetupMemories) {
-            //     await setupTravelMemories()
-            // }
-
             // Ensure session is created
-            if (!rightSessionId) {
-                await createRightSession()
+            if (!memorySessionId) {
+                await createMemorySession()
             }
 
             // Use session-based chat API (with memory)
-            if (rightSessionId) {
+            if (memorySessionId) {
                 const response = await api.chatWithSession({
-                    session_id: rightSessionId,
-                    message: rightQuestion
+                    session_id: memorySessionId,
+                    message: memoryQuestion,
+                    top_k: settings.questionTopK,
+                    min_similarity: settings.minSimilarity
                 })
 
                 if (response.success) {
-                    console.log('Right session response:', response)
+                    console.log('Memory session response:', response)
                     console.log('Memory context:', response.memory_context)
                     console.log('Memories:', response.memory_context?.memories)
 
                     const newMessage: ChatMessage = {
                         id: Date.now().toString(),
-                        question: rightQuestion,
+                        question: memoryQuestion,
                         answer: response.message,
                         timestamp: new Date(),
                         hasMemory: true,
-                        session_memories: response.memory_context?.memories || []
+                        session_memories: response.memory_context?.memories || [],
+                        excluded_memories: response.memory_context?.excluded_memories || [],
+                        filtering_info: response.memory_context?.filtering_info
                     }
                     console.log('New message with memories:', newMessage)
-                    setRightMessages(prev => [...prev, newMessage])
+                    setMemoryMessages(prev => [...prev, newMessage])
                 } else {
                     // Fallback to memory API approach
-                    const memoryResponse = await askQuestion(rightQuestion)
+                    const memoryResponse = await askQuestion(memoryQuestion, settings.questionTopK)
                     let contextualAnswer = ""
                     let confidence: 'high' | 'medium' | 'low' | undefined
                     let reasoning: string | undefined
@@ -283,12 +271,12 @@ export default function TravelDemo() {
                         reasoning = memoryResponse.conversation.reasoning
                         supporting_memories = memoryResponse.conversation.supporting_memories
                     } else {
-                        contextualAnswer = await generateStandardResponse(rightQuestion)
+                        contextualAnswer = await generateStandardResponse(memoryQuestion)
                     }
 
                     const newMessage: ChatMessage = {
                         id: Date.now().toString(),
-                        question: rightQuestion,
+                        question: memoryQuestion,
                         answer: contextualAnswer,
                         timestamp: new Date(),
                         hasMemory: true,
@@ -296,11 +284,11 @@ export default function TravelDemo() {
                         reasoning,
                         supporting_memories
                     }
-                    setRightMessages(prev => [...prev, newMessage])
+                    setMemoryMessages(prev => [...prev, newMessage])
                 }
             } else {
                 // Fallback to memory API approach if session creation failed
-                const memoryResponse = await askQuestion(rightQuestion)
+                const memoryResponse = await askQuestion(memoryQuestion, settings.questionTopK)
                 let contextualAnswer = ""
                 let confidence: 'high' | 'medium' | 'low' | undefined
                 let reasoning: string | undefined
@@ -312,12 +300,12 @@ export default function TravelDemo() {
                     reasoning = memoryResponse.conversation.reasoning
                     supporting_memories = memoryResponse.conversation.supporting_memories
                 } else {
-                    contextualAnswer = await generateStandardResponse(rightQuestion)
+                    contextualAnswer = await generateStandardResponse(memoryQuestion)
                 }
 
                 const newMessage: ChatMessage = {
                     id: Date.now().toString(),
-                    question: rightQuestion,
+                    question: memoryQuestion,
                     answer: contextualAnswer,
                     timestamp: new Date(),
                     hasMemory: true,
@@ -325,45 +313,106 @@ export default function TravelDemo() {
                     reasoning,
                     supporting_memories
                 }
-                setRightMessages(prev => [...prev, newMessage])
+                setMemoryMessages(prev => [...prev, newMessage])
             }
 
-            setRightQuestion("")
+            setMemoryQuestion("")
         } catch (error) {
             console.error('Failed to get memory-enhanced response:', error)
             // Fallback to standard response
-            const fallbackAnswer = await generateStandardResponse(rightQuestion)
+            const fallbackAnswer = await generateStandardResponse(memoryQuestion)
             const newMessage: ChatMessage = {
                 id: Date.now().toString(),
-                question: rightQuestion,
+                question: memoryQuestion,
                 answer: fallbackAnswer,
                 timestamp: new Date(),
                 hasMemory: false
             }
-            setRightMessages(prev => [...prev, newMessage])
-            setRightQuestion("")
+            setMemoryMessages(prev => [...prev, newMessage])
+            setMemoryQuestion("")
         } finally {
-            setIsRightLoading(false)
+            setIsMemoryLoading(false)
+        }
+    }
+
+    const handleLanggraphSubmit = async (e: React.FormEvent) => {
+        e.preventDefault()
+        if (!langgraphQuestion.trim()) return
+
+        setIsLanggraphLoading(true)
+
+        try {
+            const response = await fetch('http://localhost:5001/api/agent/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    message: langgraphQuestion,
+                    system_prompt: "You are a helpful travel assistant"
+                })
+            })
+
+            if (response.ok) {
+                const data = await response.json()
+                const newMessage: ChatMessage = {
+                    id: Date.now().toString(),
+                    question: langgraphQuestion,
+                    answer: data.response || data.message || "I received your message but couldn't generate a response.",
+                    timestamp: new Date(),
+                    hasMemory: false
+                }
+                setLanggraphMessages(prev => [...prev, newMessage])
+            } else {
+                const newMessage: ChatMessage = {
+                    id: Date.now().toString(),
+                    question: langgraphQuestion,
+                    answer: "I'm sorry, I'm having trouble processing your request right now. Please try again.",
+                    timestamp: new Date(),
+                    hasMemory: false
+                }
+                setLanggraphMessages(prev => [...prev, newMessage])
+            }
+
+            setLanggraphQuestion("")
+        } catch (error) {
+            console.error('Failed to get Langgraph response:', error)
+            const newMessage: ChatMessage = {
+                id: Date.now().toString(),
+                question: langgraphQuestion,
+                answer: "I apologize, but I'm experiencing technical difficulties. Please try again later.",
+                timestamp: new Date(),
+                hasMemory: false
+            }
+            setLanggraphMessages(prev => [...prev, newMessage])
+            setLanggraphQuestion("")
+        } finally {
+            setIsLanggraphLoading(false)
         }
     }
 
     const handleSampleQuestion = (question: string) => {
-        setLeftQuestion(question)
-        setRightQuestion(question)
+        setStandardQuestion(question)
+        setMemoryQuestion(question)
+        setLanggraphQuestion(question)
     }
 
-    const clearLeftChat = async () => {
-        setLeftMessages([])
-        setLeftSessionId(null)
+    const clearStandardChat = async () => {
+        setStandardMessages([])
+        setStandardSessionId(null)
         // Create a new session for fresh conversation
-        await createLeftSession()
+        await createStandardSession()
     }
 
-    const clearRightChat = async () => {
-        setRightMessages([])
-        setRightSessionId(null)
+    const clearMemoryChat = async () => {
+        setMemoryMessages([])
+        setMemorySessionId(null)
         // Create a new session for fresh conversation
-        await createRightSession()
+        await createMemorySession()
+    }
+
+    const clearLanggraphChat = () => {
+        setLanggraphMessages([])
     }
 
     return (
@@ -389,7 +438,7 @@ export default function TravelDemo() {
                                 <DialogHeader>
                                     <DialogTitle>Sample Questions to Try</DialogTitle>
                                     <DialogDescription>
-                                        Click any question to test both travel agents with the same query
+                                        Click any question to populate both travel agent tabs with the same query
                                     </DialogDescription>
                                 </DialogHeader>
                                 <div className="grid gap-2 max-h-96 overflow-y-auto">
@@ -411,94 +460,118 @@ export default function TravelDemo() {
                         </Dialog>
                     </div>
                     <p className="text-lg text-gray-600 max-w-4xl mx-auto">
-                        Compare how memory transforms travel planning. The standard agent treats each question independently,
-                        while the memory-enhanced agent learns your preferences and provides increasingly personalized recommendations.
+                        Compare different travel agent implementations. Switch between tabs to see how the standard agent treats each question independently,
+                        the memory-enhanced agent learns your preferences, and the Langgraph agent provides advanced conversational capabilities.
                     </p>
                 </div>
 
-                {/* Setup Memory Button */}
-                {!hasSetupMemories && (
-                    <div className="text-center">
-                        <Button
-                            onClick={setupTravelMemories}
-                            className="bg-green-600 hover:bg-green-700"
-                        >
-                            <Brain className="w-4 h-4 mr-2" />
-                            Load Travel Preferences into Memory
-                        </Button>
-                        <p className="text-sm text-gray-600 mt-2">
-                            This will load sample travel preferences into memory for personalized recommendations
-                        </p>
-                    </div>
-                )}
 
-                {/* Side by Side Chat Interface */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Left Side - Without Memory */}
-                    <ChatBox
-                        title="Standard Travel Agent"
-                        subtitle="Provides general travel advice but doesn't remember your preferences"
-                        messages={leftMessages}
-                        input={leftQuestion}
-                        onInputChange={setLeftQuestion}
-                        onSubmit={handleLeftSubmit}
-                        onClearChat={clearLeftChat}
-                        isLoading={isLeftLoading}
-                        placeholder="Ask about travel plans..."
-                        headerIcon={<Compass className="w-5 h-5" />}
-                        borderColor="border-orange-200"
-                        headerBgColor="bg-orange-50 text-orange-800"
-                        messageBgColor="bg-orange-100 text-orange-800"
-                        buttonColor="bg-orange-600 hover:bg-orange-700"
-                        loadingText="Thinking..."
-                        showMemoryIndicators={false}
-                    />
 
-                    {/* Right Side - With Memory */}
-                    <ChatBox
-                        title="Memory-Enhanced Travel Agent"
-                        subtitle="Learns your preferences and provides personalized recommendations"
-                        messages={rightMessages}
-                        input={rightQuestion}
-                        onInputChange={setRightQuestion}
-                        onSubmit={handleRightSubmit}
-                        onClearChat={clearRightChat}
-                        isLoading={isRightLoading}
-                        placeholder="Ask about travel plans..."
-                        headerIcon={
-                            <>
-                                <Brain className="w-5 h-5" />
-                                <Map className="w-5 h-5" />
-                            </>
-                        }
-                        borderColor="border-green-200"
-                        headerBgColor="bg-green-50 text-green-800"
-                        messageBgColor="bg-green-100 text-green-800"
-                        buttonColor="bg-green-600 hover:bg-green-700"
-                        loadingText="Checking my memory and thinking..."
-                        showMemoryIndicators={true}
-                    />
-                </div>
+                {/* Tabbed Chat Interface */}
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                    <TabsList className="grid w-full grid-cols-3 mb-6">
+                        <TabsTrigger value="standard" className="flex items-center gap-2">
+                            <Compass className="w-4 h-4" />
+                            Travel Agent (No Memory)
+                        </TabsTrigger>
+                        <TabsTrigger value="memory" className="flex items-center gap-2">
+                            <Brain className="w-4 h-4" />
+                            Travel Agent + Remem
+                        </TabsTrigger>
+                        <TabsTrigger value="langgraph" className="flex items-center gap-2">
+                            <GitBranch className="w-4 h-4" />
+                            Travel Agent, Langgraph + Remem
+                        </TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="standard" className="space-y-6">
+                        <ChatBox
+                            title="Standard Travel Agent"
+                            subtitle="Provides general travel advice but doesn't remember your preferences"
+                            messages={standardMessages}
+                            input={standardQuestion}
+                            onInputChange={setStandardQuestion}
+                            onSubmit={handleStandardSubmit}
+                            onClearChat={clearStandardChat}
+                            isLoading={isStandardLoading}
+                            placeholder="Ask about travel plans..."
+                            headerIcon={<Compass className="w-5 h-5" />}
+                            borderColor="border-orange-200"
+                            headerBgColor="bg-orange-50 text-orange-800"
+                            messageBgColor="bg-orange-100 text-orange-800"
+                            buttonColor="bg-orange-600 hover:bg-orange-700"
+                            loadingText="Thinking..."
+                            showMemoryIndicators={false}
+                        />
+                    </TabsContent>
+
+                    <TabsContent value="memory" className="space-y-6">
+                        <ChatBox
+                            title="Travel Agent, with Remem for Memory"
+                            subtitle="Learns your preferences and provides personalized recommendations"
+                            messages={memoryMessages}
+                            input={memoryQuestion}
+                            onInputChange={setMemoryQuestion}
+                            onSubmit={handleMemorySubmit}
+                            onClearChat={clearMemoryChat}
+                            isLoading={isMemoryLoading}
+                            placeholder="Ask about travel plans..."
+                            headerIcon={
+                                <>
+                                    <Brain className="w-5 h-5" />
+                                    <Map className="w-5 h-5" />
+                                </>
+                            }
+                            borderColor="border-green-200"
+                            headerBgColor="bg-green-50 text-green-800"
+                            messageBgColor="bg-green-100 text-green-800"
+                            buttonColor="bg-green-600 hover:bg-green-700"
+                            loadingText="Thinking..."
+                            showMemoryIndicators={true}
+                        />
+                    </TabsContent>
+
+                    <TabsContent value="langgraph" className="space-y-6">
+                        <ChatBox
+                            title="Travel Agent, Langgraph + Remem"
+                            subtitle="Powered by Langgraph API + Remem for advanced travel assistance"
+                            messages={langgraphMessages}
+                            input={langgraphQuestion}
+                            onInputChange={setLanggraphQuestion}
+                            onSubmit={handleLanggraphSubmit}
+                            onClearChat={clearLanggraphChat}
+                            isLoading={isLanggraphLoading}
+                            placeholder="Ask about travel plans..."
+                            headerIcon={<GitBranch className="w-5 h-5" />}
+                            borderColor="border-purple-200"
+                            headerBgColor="bg-purple-50 text-purple-800"
+                            messageBgColor="bg-purple-100 text-purple-800"
+                            buttonColor="bg-purple-600 hover:bg-purple-700"
+                            loadingText="Processing with Langgraph..."
+                            showMemoryIndicators={false}
+                        />
+                    </TabsContent>
+                </Tabs>
 
                 {/* Instructions */}
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
                     <h3 className="text-lg font-semibold text-blue-900 mb-3">How to Use This Demo</h3>
                     <div className="grid md:grid-cols-2 gap-4 text-sm text-blue-800">
                         <div>
-                            <h4 className="font-medium mb-2">1. Start with Basic Questions</h4>
-                            <p>Ask both agents the same travel questions to see initial responses.</p>
+                            <h4 className="font-medium mb-2">1. Switch Between Tabs</h4>
+                            <p>Use the tabs above to switch between the Standard, Memory-Enhanced, and Langgraph travel agents.</p>
                         </div>
                         <div>
-                            <h4 className="font-medium mb-2">2. Share Your Preferences</h4>
+                            <h4 className="font-medium mb-2">2. Ask Similar Questions</h4>
+                            <p>Try asking the same questions in all tabs to compare the different response styles and capabilities.</p>
+                        </div>
+                        <div>
+                            <h4 className="font-medium mb-2">3. Share Your Preferences</h4>
                             <p>Tell the memory-enhanced agent about your travel style, budget, or interests.</p>
                         </div>
                         <div>
-                            <h4 className="font-medium mb-2">3. Ask Follow-up Questions</h4>
-                            <p>Notice how the memory-enhanced agent remembers your preferences in subsequent responses.</p>
-                        </div>
-                        <div>
-                            <h4 className="font-medium mb-2">4. Compare Responses</h4>
-                            <p>See how memory makes recommendations more personalized and contextual over time.</p>
+                            <h4 className="font-medium mb-2">4. Notice the Difference</h4>
+                            <p>See how the memory-enhanced agent provides more personalized and contextual recommendations.</p>
                         </div>
                     </div>
                 </div>

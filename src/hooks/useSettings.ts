@@ -2,12 +2,14 @@ import { useState, useEffect, useCallback } from 'react'
 
 export interface UserSettings {
     questionTopK: number // Number of memories to use when answering questions
+    minSimilarity: number // Minimum similarity threshold for memory retrieval (0.0 to 1.0)
     serverUrl: string // Base URL for the REMEM server
     serverPort: number // Port for the REMEM server
 }
 
 const DEFAULT_SETTINGS: UserSettings = {
-    questionTopK: 5, // Default value matching the API default
+    questionTopK: 10, // Default value matching the API default
+    minSimilarity: 0.9, // Default minimum similarity threshold
     serverUrl: 'http://localhost', // Default server URL
     serverPort: 5001 // Default server port
 }
@@ -39,6 +41,11 @@ export function useSettings() {
                                      savedSettings.questionTopK <= 50
                                      ? savedSettings.questionTopK
                                      : DEFAULT_SETTINGS.questionTopK,
+                        minSimilarity: typeof savedSettings.minSimilarity === 'number' &&
+                                      savedSettings.minSimilarity >= 0.0 &&
+                                      savedSettings.minSimilarity <= 1.0
+                                      ? savedSettings.minSimilarity
+                                      : DEFAULT_SETTINGS.minSimilarity,
                         serverUrl: typeof savedSettings.serverUrl === 'string' &&
                                   savedSettings.serverUrl.trim().length > 0 &&
                                   (savedSettings.serverUrl.startsWith('http://') || savedSettings.serverUrl.startsWith('https://'))

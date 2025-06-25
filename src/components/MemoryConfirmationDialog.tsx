@@ -23,7 +23,9 @@ import {
     Thermometer,
     Heart,
     Eye,
-    EyeOff
+    EyeOff,
+    Copy,
+    Check
 } from "lucide-react"
 import type { RememberResponse } from "@/lib/api"
 
@@ -41,11 +43,31 @@ export function MemoryConfirmationDialog({
     originalText 
 }: MemoryConfirmationDialogProps) {
     const [showDetails, setShowDetails] = useState(false)
+    const [copiedId, setCopiedId] = useState(false)
 
     if (!response) return null
 
     const hasGrounding = response.grounding_applied && response.grounding_info
     const hasContext = response.context_snapshot
+
+    const formatNemeId = (memoryId: string) => {
+        // Extract the last component after the final dash
+        const parts = memoryId.split('-')
+        return parts[parts.length - 1]
+    }
+
+    const copyToClipboard = async (memoryId: string) => {
+        try {
+            await navigator.clipboard.writeText(memoryId)
+            setCopiedId(true)
+            // Clear the copied state after 2 seconds
+            setTimeout(() => {
+                setCopiedId(false)
+            }, 2000)
+        } catch (err) {
+            console.error('Failed to copy to clipboard:', err)
+        }
+    }
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
@@ -69,9 +91,23 @@ export function MemoryConfirmationDialog({
                             </CardHeader>
                             <CardContent className="space-y-3">
                                 <div>
-                                    <h4 className="text-xs font-medium text-gray-700 mb-1">Memory ID</h4>
-                                    <p className="text-sm font-mono bg-gray-100 p-2 rounded">
-                                        {response.memory_id}
+                                    <h4 className="text-xs font-medium text-gray-700 mb-1">Neme ID</h4>
+                                    <div className="flex items-center gap-2 text-sm font-mono bg-gray-100 p-2 rounded">
+                                        <span className="flex-1">{formatNemeId(response.memory_id)}</span>
+                                        <button
+                                            onClick={() => copyToClipboard(response.memory_id)}
+                                            className="flex items-center gap-1 text-gray-500 hover:text-gray-700 transition-colors cursor-pointer"
+                                            title="Click to copy full ID"
+                                        >
+                                            {copiedId ? (
+                                                <Check className="w-4 h-4 text-green-600" />
+                                            ) : (
+                                                <Copy className="w-4 h-4" />
+                                            )}
+                                        </button>
+                                    </div>
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        Full ID: {response.memory_id}
                                     </p>
                                 </div>
                                 

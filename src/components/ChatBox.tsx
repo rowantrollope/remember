@@ -28,6 +28,13 @@ export interface ChatMessage {
     confidence?: 'high' | 'medium' | 'low'
     reasoning?: string
     supporting_memories?: unknown[]
+    excluded_memories?: unknown[]
+    filtering_info?: {
+        min_similarity_threshold?: number
+        total_candidates?: number
+        excluded_count?: number
+        included_count?: number
+    }
     session_memories?: SessionMemory[]
 }
 
@@ -73,11 +80,20 @@ export function ChatBox({
     className = ""
 }: ChatBoxProps) {
     const messagesEndRef = useRef<HTMLDivElement>(null)
+    const scrollAreaRef = useRef<HTMLDivElement>(null)
 
     // Auto-scroll to bottom when new messages are added
     useEffect(() => {
-        if (messagesEndRef.current) {
-            messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
+        if (messagesEndRef.current && scrollAreaRef.current) {
+            // Find the scrollable viewport within the ScrollArea
+            const viewport = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement
+            if (viewport) {
+                // Scroll the viewport to the bottom smoothly
+                viewport.scrollTo({
+                    top: viewport.scrollHeight,
+                    behavior: 'smooth'
+                })
+            }
         }
     }, [messages])
 
@@ -110,7 +126,7 @@ export function ChatBox({
             <div className="flex-1 flex flex-col p-0 overflow-hidden">
                 {/* Messages */}
                 <div className="flex-1 min-h-0">
-                    <ScrollArea className="h-full">
+                    <ScrollArea ref={scrollAreaRef} className="h-full">
                         <div className="p-4 space-y-4">
                             {messages.map((message) => (
                                 <div key={message.id} className="space-y-2">
@@ -128,6 +144,8 @@ export function ChatBox({
                                                 {message.hasMemory && message.session_memories && message.session_memories.length > 0 ? (
                                                     <SessionMemoriesDialog
                                                         memories={message.session_memories}
+                                                        excludedMemories={message.excluded_memories as SessionMemory[]}
+                                                        filteringInfo={message.filtering_info}
                                                         className="text-xs"
                                                     />
                                                 ) : message.hasMemory ? (
@@ -142,6 +160,8 @@ export function ChatBox({
                                                 {message.supporting_memories && message.supporting_memories.length > 0 && (
                                                     <SupportingMemoriesDialog
                                                         memories={message.supporting_memories as Memory[]}
+                                                        excludedMemories={message.excluded_memories as Memory[]}
+                                                        filteringInfo={message.filtering_info}
                                                         className="text-xs"
                                                     />
                                                 )}
