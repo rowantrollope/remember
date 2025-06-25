@@ -169,7 +169,7 @@ export default function RecallPage() {
                                                     <Card>
                                                         <CardHeader>
                                                             <CardTitle className="text-lg">
-                                                                📚 Supporting Memories (Nemes) ({result.memories.length})
+                                                                📚 Supporting Memories ({result.memories.length})
                                                             </CardTitle>
                                                         </CardHeader>
                                                         <CardContent>

@@ -3,7 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Code, Database, MessageSquare, Brain, Zap } from "lucide-react"
+import { Database, MessageSquare, Brain, Zap } from "lucide-react"
 import { Navbar } from "@/components/Navbar"
 
 export default function ApiDocsPage() {

@@ -6,21 +6,9 @@ import { useState } from "react"
 import { PageLayout } from "@/components/PageLayout"
 import { PageInputForm } from "@/components/PageInputForm"
 import { RecallTab } from "@/components/tabs/RecallTab"
-import { RotatingPrompts } from "@/components/RotatingPrompts"
-
 // Hooks
 import { useMemoryAPI } from "@/hooks"
 import { useSettings } from "@/hooks/useSettings"
-
-// Search-focused prompts for empty state - moved outside component to prevent re-creation
-const searchPrompts = [
-    "What memories are you looking for?",
-    "Search for a specific moment or feeling",
-    "Find memories from a particular time or place",
-    "Discover forgotten moments from your past",
-    "Look for memories about a person or event",
-    "Search by mood, location, or activity"
-]
 
 export default function SearchPage() {
     const [input, setInput] = useState("")
@@ -62,10 +50,6 @@ export default function SearchPage() {
             {/* Search Content */}
             <div className="relative h-full flex flex-col">
                 <div className="absolute w-full bg-white/75 backdrop-blur-sm -top-0 flex-shrink-0 flex justify-between items-center">
-                    {/* <ClearHistoryDialog
-                        onConfirm={handleClearHistory}
-                        messageCount={memorySaveResponses.length}
-                    /> */}
                     <div className="grow"></div>
                     <div className="font-mono text-muted-foreground">
                         (POST) /api/memory/search
@@ -79,7 +63,7 @@ export default function SearchPage() {
                             <RecallTab
                                 searchResults={searchResults}
                                 excludedMemories={excludedMemories}
-                                filteringInfo={filteringInfo}
+                                filteringInfo={filteringInfo || undefined}
                                 onMemoryDeleted={deleteMemory}
                             />
                         </div>
@@ -100,7 +84,7 @@ export default function SearchPage() {
                     <div className="flex-1 flex items-center justify-center -mt-40 bg-white">
                             <div className="w-full">
                                 <div className="text-center mb-8">
-                                    <h1 className="text-3xl font-bold text-gray-900 mb-2">Search Memories (Nemes)</h1>
+                                    <h1 className="text-3xl font-bold text-gray-900 mb-2">Search Memories</h1>
                                 <p className="text-gray-600">
                                         Vector search for relevant nemes and return in JSON
                                     </p>

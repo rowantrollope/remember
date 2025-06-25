@@ -103,10 +103,6 @@ export default function AskPage() {
             {/* Ask API Content */}
             <div className="relative h-full flex flex-col">
                 <div className="absolute w-full bg-white/75 backdrop-blur-md flex-shrink-0 flex justify-between items-center">
-                    {/* <ClearHistoryDialog
-                        onConfirm={handleClearHistory}
-                        messageCount={memorySaveResponses.length}
-                    /> */}
                     <div className="grow"></div>
                     <div className="font-mono text-muted-foreground">
                         (POST) /api/klines/ask

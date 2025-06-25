@@ -95,5 +95,3 @@ export interface ContextInfo {
 }
 
 export type ApiStatus = 'ready' | 'not_initialized' | 'unknown'
-
-export type TabType = 'ask' | 'save' | 'recall' | 'context' | 'chat'

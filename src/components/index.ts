@@ -1,6 +1,5 @@
 // Main components
 export { Navbar } from './Navbar'
-export { InputForm } from './InputForm'
 export { PageLayout } from './PageLayout'
 export { PageInputForm } from './PageInputForm'
 export { RotatingPrompts } from './RotatingPrompts'
@@ -13,11 +12,8 @@ export { CallToAction } from './CallToAction'
 export { InfoCards } from './InfoCards'
 export { CodeExamplesSection } from './CodeExamplesSection'
 
-// Tab components
-export { AskTab } from './tabs/AskTab'
-export { SaveTab } from './tabs/SaveTab'
+// Tab components (remaining)
 export { RecallTab } from './tabs/RecallTab'
-export { MemoryChatTab } from './tabs/MemoryChatTab'
 
 // Alert components
 export { ErrorAlert } from './alerts/ErrorAlert'

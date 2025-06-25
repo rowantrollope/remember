@@ -74,7 +74,7 @@ export function FeatureCardSection() {
             title: "Save API",
             description: "Store memories with automatic contextual grounding. Transform simple text into rich, searchable knowledge.",
             icon: Save,
-            href: "/memory/save",
+            href: "/save",
             color: "bg-purple-500"
         },
         {

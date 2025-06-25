@@ -19,14 +19,14 @@ export function Navbar() {
 
     const apiItems = [
         {
-            href: "/memory/save",
-            label: "Create new memory (neme)",
+            href: "/save",
+            label: "Create new memory",
             icon: Save,
-            isActive: pathname === "/memory/save"
+            isActive: pathname === "/save"
         },
         {
             href: "/search",
-            label: "Search memory (neme)",
+            label: "Search memory",
             icon: Search,
             isActive: pathname === "/search"
         },
@@ -38,7 +38,7 @@ export function Navbar() {
         },
         {
             href: "/context",
-            label: "Set Context (neme context)",
+            label: "Set Context",
             icon: MapPin,
             isActive: pathname === "/context"
         },
