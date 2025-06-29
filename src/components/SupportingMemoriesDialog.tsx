@@ -240,7 +240,7 @@ export function SupportingMemoriesDialog({
                                             {/* Timestamp */}
                                             <div className="flex items-center gap-2 text-xs text-gray-500">
                                                 <Clock className="w-3 h-3" />
-                                                <span>{memory.formatted_time || formatTimestamp(memory.timestamp)}</span>
+                                                <span>{formatTimestamp(memory.created_at)}</span>
                                             </div>
 
                                             {/* Tags */}
@@ -469,7 +469,7 @@ export function SupportingMemoriesDialog({
                                                     {/* Timestamp */}
                                                     <div className="flex items-center gap-2 text-xs text-gray-500">
                                                         <Clock className="w-3 h-3" />
-                                                        <span>{memory.formatted_time || formatTimestamp(memory.timestamp)}</span>
+                                                        <span>{formatTimestamp(memory.created_at)}</span>
                                                     </div>
 
                                                     {/* Show Details Button */}

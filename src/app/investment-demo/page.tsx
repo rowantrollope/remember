@@ -215,7 +215,7 @@ export default function InvestmentDemo() {
                 id: Date.now().toString(),
                 question: memoryQuestion,
                 answer: answer,
-                timestamp: new Date(),
+                created_at: new Date(),
                 hasMemory: true
             }
 

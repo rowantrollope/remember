@@ -8,15 +8,13 @@ export interface ApiMemory {
     memory?: string  // Alternative field name
     original_text?: string
     grounded_text?: string
-    timestamp?: string | number
-    created_at?: string  // Alternative field name
-    formatted_time?: string
+    created_at?: string  // ISO 8601 UTC timestamp
+    last_accessed_at?: string  // ISO 8601 UTC timestamp
     score?: number  // Vector similarity score (0-1)
     relevance_score?: number  // Enhanced relevance score with recency bias and access count
     grounding_applied?: boolean
-    // New fields from updated memory format
+    // Additional fields from updated memory format
     tags?: string[]
-    last_accessed_at?: string
     access_count?: number
     grounding_info?: {
         dependencies_found?: {
@@ -132,9 +130,23 @@ export interface AskResponse {
     success: boolean
     question: string
     answer: string
-    confidence: string
+    confidence: 'high' | 'medium' | 'low'
     reasoning: string
-    supporting_memories: ApiMemory[]
+    supporting_memories: Array<{
+        id: string
+        text: string
+        relevance_score: number
+        timestamp: string
+        tags: string[]
+        relevance_reasoning: string
+    }>
+    kline: {
+        coherence_score: number
+        mental_state: string
+    }
+    total_memories_searched: number
+    relevant_memories_used: number
+    type: 'answer' | 'help'
     excluded_memories?: ApiMemory[]
     filtering_info?: {
         min_similarity_threshold?: number
@@ -185,20 +197,20 @@ export interface SessionChatResponse {
     message: string
     session_id: string
     conversation_length?: number
-    timestamp?: string
+    created_at?: string
     memory_context?: {
         memories_used: number
         memories: Array<{
             memory_id: string
             text: string
-            timestamp: string
+            created_at: string
             grounded_text: string
             similarity_score: number
         }>
         excluded_memories?: Array<{
             memory_id: string
             text: string
-            timestamp: string
+            created_at: string
             grounded_text: string
             similarity_score: number
         }>
@@ -213,7 +225,7 @@ export interface SessionChatResponse {
 
 export interface StatusResponse {
     status: 'ready' | 'not_initialized' | 'healthy'
-    timestamp: string
+    created_at: string
 }
 
 export interface DeleteResponse {
@@ -272,7 +284,7 @@ export interface MemoryInfoResponse {
         'max-level': number
         'attributes-count': number
     }
-    timestamp: string
+    created_at: string
 }
 
 export interface RecallMentalStateResponse {

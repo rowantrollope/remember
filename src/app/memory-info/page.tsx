@@ -22,7 +22,7 @@ export default function MemoryInfoPage() {
     const [isClearingMemories, setIsClearingMemories] = useState(false)
     const [clearSuccess, setClearSuccess] = useState<string | null>(null)
     const [tempTopK, setTempTopK] = useState<string>('5')
-    const [tempMinSimilarity, setTempMinSimilarity] = useState<string>('0.9')
+    const [tempMinSimilarity, setTempMinSimilarity] = useState<string>('0.7')
     const [tempServerUrl, setTempServerUrl] = useState<string>('http://localhost')
     const [tempServerPort, setTempServerPort] = useState<string>('5001')
 

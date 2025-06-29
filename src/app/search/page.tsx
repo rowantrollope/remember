@@ -12,6 +12,7 @@ import { useSettings } from "@/hooks/useSettings"
 
 export default function SearchPage() {
     const [input, setInput] = useState("")
+    const [currentSearchQuery, setCurrentSearchQuery] = useState<string | null>(null)
 
     const {
         searchResults,
@@ -32,14 +33,29 @@ export default function SearchPage() {
         e.preventDefault()
         if (!input.trim()) return
 
-        const success = await searchMemories(input, settings.questionTopK, settings.minSimilarity)
-        if (success) {
-            setInput("")
+        // Set the current search query immediately to show "thinking" state
+        setCurrentSearchQuery(input)
+        const currentInput = input
+        setInput("")
+
+        try {
+            const success = await searchMemories(currentInput, settings.questionTopK, settings.minSimilarity)
+            if (success) {
+                // Keep the search query to show results
+                // setCurrentSearchQuery will remain set to show the query that was searched
+            } else {
+                // Clear the search query on error
+                setCurrentSearchQuery(null)
+            }
+        } catch {
+            // Clear the search query on error
+            setCurrentSearchQuery(null)
         }
     }
 
-    // Check if there are any search results
+    // Check if there are any search results or if we're currently searching
     const hasSearchResults = searchResults.length > 0
+    const isSearching = currentSearchQuery !== null
 
     return (
         <PageLayout
@@ -56,16 +72,31 @@ export default function SearchPage() {
                     </div>
                 </div>
 
-                {hasSearchResults ? (
-                    // Layout when there are search results - input at bottom
+                {isSearching ? (
+                    // Layout when searching or have search results - input at bottom
                     <>
                         <div className="flex-1 min-h-0 overflow-y-auto p-4 bg-white">
-                            <RecallTab
-                                searchResults={searchResults}
-                                excludedMemories={excludedMemories}
-                                filteringInfo={filteringInfo || undefined}
-                                onMemoryDeleted={deleteMemory}
-                            />
+                            {/* Show current search query */}
+                            <div className="mb-4 p-3 bg-blue-50 rounded-lg border-l-4 border-blue-400">
+                                <div className="text-sm text-blue-700 font-medium">
+                                    Searching for: "{currentSearchQuery}"
+                                </div>
+                                {isLoading && (
+                                    <div className="text-sm text-blue-600 mt-1">
+                                        thinking...
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Show search results if available */}
+                            {hasSearchResults && (
+                                <RecallTab
+                                    searchResults={searchResults}
+                                    excludedMemories={excludedMemories}
+                                    filteringInfo={filteringInfo || undefined}
+                                    onMemoryDeleted={deleteMemory}
+                                />
+                            )}
                         </div>
 
                         {/* Input Form at bottom */}

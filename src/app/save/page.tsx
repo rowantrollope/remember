@@ -103,6 +103,7 @@ export default function SavePage() {
     const {
         memorySaveResponses,
         addMemorySaveResponse,
+        updateMemorySaveResponses,
         clearChatHistory,
     } = usePersistentChat()
 
@@ -133,17 +134,51 @@ export default function SavePage() {
         e.preventDefault()
         if (!input.trim()) return
 
-        const result = await saveMemory(input)
-        if (result.success && result.response) {
-            const saveResponse: MemorySaveResponse = {
+        // Create a temporary memory save response with "thinking" state
+        const tempSaveResponse: MemorySaveResponse = {
+            success: true,
+            response: {
                 success: true,
-                response: result.response,
-                originalText: input,
-                timestamp: new Date().toISOString()
+                memory_id: `temp-${Date.now()}`,
+                message: "thinking...",
+            },
+            originalText: input,
+            timestamp: new Date().toISOString()
+        }
+
+        // Add the temporary response immediately
+        addMemorySaveResponse(tempSaveResponse)
+        const currentInput = input
+        setInput("")
+
+        try {
+            const result = await saveMemory(currentInput)
+            if (result.success && result.response) {
+                const realSaveResponse: MemorySaveResponse = {
+                    success: true,
+                    response: result.response,
+                    originalText: currentInput,
+                    timestamp: new Date().toISOString()
+                }
+
+                // Replace the temporary response with the real one
+                const updatedResponses = memorySaveResponses.map(resp =>
+                    resp.response?.memory_id === tempSaveResponse.response?.memory_id ? realSaveResponse : resp
+                )
+                updateMemorySaveResponses(updatedResponses)
+            } else {
+                // Remove the temporary response on error
+                const filteredResponses = memorySaveResponses.filter(resp =>
+                    resp.response?.memory_id !== tempSaveResponse.response?.memory_id
+                )
+                updateMemorySaveResponses(filteredResponses)
             }
-            // Add to persistent storage
-            addMemorySaveResponse(saveResponse)
-            setInput("")
+        } catch {
+            // Remove the temporary response on error
+            const filteredResponses = memorySaveResponses.filter(resp =>
+                resp.response?.memory_id !== tempSaveResponse.response?.memory_id
+            )
+            updateMemorySaveResponses(filteredResponses)
         }
     }
 

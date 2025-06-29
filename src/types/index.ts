@@ -4,8 +4,8 @@ export interface Memory {
     text?: string
     original_text?: string
     grounded_text?: string
-    timestamp: string
-    formatted_time?: string
+    created_at: string
+    last_accessed_at?: string
     grounding_applied?: boolean
     grounding_info?: {
         dependencies_found?: {
@@ -57,7 +57,7 @@ export interface Conversation {
     id: string
     question: string
     answer: string
-    timestamp: string
+    created_at: string
     confidence?: 'high' | 'medium' | 'low'
     reasoning?: string
     supporting_memories?: Memory[]
@@ -68,6 +68,14 @@ export interface Conversation {
         excluded_count?: number
         included_count?: number
     }
+    // K-line specific fields
+    kline?: {
+        coherence_score: number
+        mental_state: string
+    }
+    total_memories_searched?: number
+    relevant_memories_used?: number
+    type?: 'answer' | 'help'
 }
 
 export interface ContextInfo {

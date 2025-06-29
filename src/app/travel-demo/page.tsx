@@ -168,7 +168,7 @@ export default function TravelDemo() {
                         id: Date.now().toString(),
                         question: standardQuestion,
                         answer: response.message,
-                        timestamp: new Date(),
+                        created_at: new Date(),
                         hasMemory: false,
                         session_memories: response.memory_context?.memories || [],
                         excluded_memories: response.memory_context?.excluded_memories || [],
@@ -182,7 +182,7 @@ export default function TravelDemo() {
                         id: Date.now().toString(),
                         question: standardQuestion,
                         answer: answer,
-                        timestamp: new Date(),
+                        created_at: new Date(),
                         hasMemory: false
                     }
                     setStandardMessages(prev => [...prev, newMessage])
@@ -194,7 +194,7 @@ export default function TravelDemo() {
                     id: Date.now().toString(),
                     question: standardQuestion,
                     answer: answer,
-                    timestamp: new Date(),
+                    created_at: new Date(),
                     hasMemory: false
                 }
                 setStandardMessages(prev => [...prev, newMessage])
@@ -209,7 +209,7 @@ export default function TravelDemo() {
                 id: Date.now().toString(),
                 question: standardQuestion,
                 answer: answer,
-                timestamp: new Date(),
+                created_at: new Date(),
                 hasMemory: false
             }
             setStandardMessages(prev => [...prev, newMessage])
@@ -249,7 +249,7 @@ export default function TravelDemo() {
                         id: Date.now().toString(),
                         question: memoryQuestion,
                         answer: response.message,
-                        timestamp: new Date(),
+                        created_at: new Date(),
                         hasMemory: true,
                         session_memories: response.memory_context?.memories || [],
                         excluded_memories: response.memory_context?.excluded_memories || [],
@@ -278,7 +278,7 @@ export default function TravelDemo() {
                         id: Date.now().toString(),
                         question: memoryQuestion,
                         answer: contextualAnswer,
-                        timestamp: new Date(),
+                        created_at: new Date(),
                         hasMemory: true,
                         confidence,
                         reasoning,
@@ -307,7 +307,7 @@ export default function TravelDemo() {
                     id: Date.now().toString(),
                     question: memoryQuestion,
                     answer: contextualAnswer,
-                    timestamp: new Date(),
+                    created_at: new Date(),
                     hasMemory: true,
                     confidence,
                     reasoning,
@@ -325,7 +325,7 @@ export default function TravelDemo() {
                 id: Date.now().toString(),
                 question: memoryQuestion,
                 answer: fallbackAnswer,
-                timestamp: new Date(),
+                created_at: new Date(),
                 hasMemory: false
             }
             setMemoryMessages(prev => [...prev, newMessage])
@@ -359,7 +359,7 @@ export default function TravelDemo() {
                     id: Date.now().toString(),
                     question: langgraphQuestion,
                     answer: data.response || data.message || "I received your message but couldn't generate a response.",
-                    timestamp: new Date(),
+                    created_at: new Date(),
                     hasMemory: false
                 }
                 setLanggraphMessages(prev => [...prev, newMessage])
@@ -368,7 +368,7 @@ export default function TravelDemo() {
                     id: Date.now().toString(),
                     question: langgraphQuestion,
                     answer: "I'm sorry, I'm having trouble processing your request right now. Please try again.",
-                    timestamp: new Date(),
+                    created_at: new Date(),
                     hasMemory: false
                 }
                 setLanggraphMessages(prev => [...prev, newMessage])
@@ -381,7 +381,7 @@ export default function TravelDemo() {
                 id: Date.now().toString(),
                 question: langgraphQuestion,
                 answer: "I apologize, but I'm experiencing technical difficulties. Please try again later.",
-                timestamp: new Date(),
+                created_at: new Date(),
                 hasMemory: false
             }
             setLanggraphMessages(prev => [...prev, newMessage])

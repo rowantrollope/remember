@@ -62,7 +62,7 @@ export function useMemoryAPI() {
                     text: response.grounded_text || content,
                     original_text: response.original_text,
                     grounded_text: response.grounded_text,
-                    timestamp: new Date().toISOString(),
+                    created_at: new Date().toISOString(),
                     grounding_applied: response.grounding_applied,
                     grounding_info: response.grounding_info,
                     context_snapshot: response.context_snapshot,
@@ -96,25 +96,26 @@ export function useMemoryAPI() {
             if (response.success) {
                 // Convert supporting memories to the Memory format
                 const supportingMemories: Memory[] = response.supporting_memories?.map((mem, index) => {
-                    const content = mem.content || mem.text || mem.memory || 'No content available'
-                    const timestamp = mem.timestamp || mem.created_at || new Date().toISOString()
+                    const content = mem.text || 'No content available'
+                    const created_at = mem.timestamp || new Date().toISOString()
                     const id = mem.id || `supporting-memory-${Date.now()}-${Math.random().toString(36).substr(2, 9)}-${index}`
 
                     return {
                         id,
                         content,
                         text: mem.text,
-                        original_text: mem.original_text,
-                        grounded_text: mem.grounded_text,
-                        timestamp,
-                        formatted_time: mem.formatted_time,
-                        grounding_applied: mem.grounding_applied,
-                        grounding_info: mem.grounding_info,
-                        context_snapshot: mem.context_snapshot,
+                        original_text: mem.text,
+                        grounded_text: mem.text,
+                        created_at,
+                        last_accessed_at: created_at,
+                        grounding_applied: false,
+                        grounding_info: {},
+                        context_snapshot: {},
                         metadata: {
-                            ...mem.metadata,
-                            score: mem.score,
-                            relevance_score: mem.relevance_score
+                            score: mem.relevance_score / 100, // Convert from 0-100 to 0-1
+                            relevance_score: mem.relevance_score,
+                            tags: mem.tags,
+                            relevance_reasoning: mem.relevance_reasoning
                         }
                     }
                 }) || []
@@ -122,7 +123,7 @@ export function useMemoryAPI() {
                 // Convert excluded memories to the Memory format
                 const excludedMemories: Memory[] = response.excluded_memories?.map((mem, index) => {
                     const content = mem.content || mem.text || mem.memory || 'No content available'
-                    const timestamp = mem.timestamp || mem.created_at || new Date().toISOString()
+                    const created_at = mem.created_at || new Date().toISOString()
                     const id = mem.id || `excluded-memory-${Date.now()}-${Math.random().toString(36).substr(2, 9)}-${index}`
 
                     return {
@@ -131,8 +132,8 @@ export function useMemoryAPI() {
                         text: mem.text,
                         original_text: mem.original_text,
                         grounded_text: mem.grounded_text,
-                        timestamp,
-                        formatted_time: mem.formatted_time,
+                        created_at,
+                        last_accessed_at: mem.last_accessed_at,
                         grounding_applied: mem.grounding_applied,
                         grounding_info: mem.grounding_info,
                         context_snapshot: mem.context_snapshot,
@@ -148,12 +149,17 @@ export function useMemoryAPI() {
                     id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                     question,
                     answer: response.answer,
-                    timestamp: new Date().toISOString(),
+                    created_at: new Date().toISOString(),
                     confidence: response.confidence,
                     reasoning: response.reasoning,
                     supporting_memories: supportingMemories,
                     excluded_memories: excludedMemories,
                     filtering_info: response.filtering_info,
+                    // K-line specific fields
+                    kline: response.kline,
+                    total_memories_searched: response.total_memories_searched,
+                    relevant_memories_used: response.relevant_memories_used,
+                    type: response.type,
                 }
 
                 // Don't store in local state - let the calling component handle persistence
@@ -192,7 +198,7 @@ export function useMemoryAPI() {
             if (response.success) {
                 const formattedMemories: Memory[] = response.memories.map((mem, index) => {
                     const content = mem.content || mem.text || mem.memory || 'No content available'
-                    const timestamp = mem.timestamp || mem.created_at || new Date().toISOString()
+                    const created_at = mem.created_at || new Date().toISOString()
                     const id = mem.id || `memory-${Date.now()}-${Math.random().toString(36).substr(2, 9)}-${index}`
 
                     return {
@@ -201,8 +207,8 @@ export function useMemoryAPI() {
                         text: mem.text,
                         original_text: mem.original_text,
                         grounded_text: mem.grounded_text,
-                        timestamp,
-                        formatted_time: mem.formatted_time,
+                        created_at,
+                        last_accessed_at: mem.last_accessed_at,
                         grounding_applied: mem.grounding_applied,
                         grounding_info: mem.grounding_info,
                         context_snapshot: mem.context_snapshot,
@@ -232,10 +238,8 @@ export function useMemoryAPI() {
                         text: mem.text || mem.content || mem.memory || '',
                         original_text: mem.original_text,
                         grounded_text: mem.grounded_text,
-                        timestamp: typeof mem.timestamp === 'number'
-                            ? new Date(mem.timestamp * 1000).toISOString()
-                            : mem.timestamp || mem.created_at || new Date().toISOString(),
-                        formatted_time: mem.formatted_time,
+                        created_at: mem.created_at || new Date().toISOString(),
+                        last_accessed_at: mem.last_accessed_at,
                         grounding_applied: mem.grounding_applied,
                         grounding_info: mem.grounding_info,
                         context_snapshot: mem.context_snapshot,

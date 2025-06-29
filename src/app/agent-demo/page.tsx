@@ -298,7 +298,7 @@ export default function AgentDemo() {
                         id: Date.now().toString(),
                         question: memoryQuestion,
                         answer: response.message,
-                        timestamp: new Date(),
+                        created_at: new Date(),
                         hasMemory: true,
                         session_memories: response.memory_context?.memories || [],
                         excluded_memories: response.memory_context?.excluded_memories || [],
@@ -356,7 +356,7 @@ export default function AgentDemo() {
                     id: Date.now().toString(),
                     question: memoryQuestion,
                     answer: contextualAnswer,
-                    timestamp: new Date(),
+                    created_at: new Date(),
                     hasMemory: true,
                     confidence,
                     reasoning,
@@ -374,7 +374,7 @@ export default function AgentDemo() {
                 id: Date.now().toString(),
                 question: memoryQuestion,
                 answer: fallbackAnswer,
-                timestamp: new Date(),
+                created_at: new Date(),
                 hasMemory: false
             }
             setMemoryMessages(prev => [...prev, newMessage])

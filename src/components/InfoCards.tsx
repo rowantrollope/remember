@@ -90,7 +90,7 @@ export function InfoCards() {
                     <CardContent>
                         <p className="text-sm text-muted-foreground">
                             Comprehensive three-layer API architecture with dedicated endpoints for atomic memory operations,
-                            mental state construction, and full agent orchestration—all accessible through clean RESTful interfaces.
+                            mental state re-construction, and full agent orchestration—all accessible through clean RESTful interfaces.
                         </p>
                     </CardContent>
                 </Card>

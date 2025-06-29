@@ -9,7 +9,7 @@ export interface UserSettings {
 
 const DEFAULT_SETTINGS: UserSettings = {
     questionTopK: 10, // Default value matching the API default
-    minSimilarity: 0.9, // Default minimum similarity threshold
+    minSimilarity: 0.7, // Default minimum similarity threshold
     serverUrl: 'http://localhost', // Default server URL
     serverPort: 5001 // Default server port
 }

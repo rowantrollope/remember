@@ -155,10 +155,10 @@ export function SessionMemoriesDialog({
                             </div>
 
                             <div className="flex items-center gap-4 text-xs text-gray-500">
-                                {memory.timestamp && (
+                                {memory.created_at && (
                                     <div className="flex items-center gap-1">
                                         <Clock className="w-3 h-3" />
-                                        {formatTimestamp(memory.timestamp)}
+                                        {formatTimestamp(memory.created_at)}
                                     </div>
                                 )}
                                 {memory.memory_id && (
@@ -227,10 +227,10 @@ export function SessionMemoriesDialog({
                                     </div>
 
                                     <div className="flex items-center gap-4 text-xs text-gray-500">
-                                        {memory.timestamp && (
+                                        {memory.created_at && (
                                             <div className="flex items-center gap-1">
                                                 <Clock className="w-3 h-3" />
-                                                {formatTimestamp(memory.timestamp)}
+                                                {formatTimestamp(memory.created_at)}
                                             </div>
                                         )}
                                         {memory.memory_id && (

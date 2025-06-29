@@ -136,7 +136,7 @@ export default function ApiDocsPage() {
                     <div className="flex items-center gap-2 mb-2">
                       <Badge variant="default">POST</Badge>
                       <code className="text-sm">/api/klines/ask</code>
-                      <span className="text-sm text-muted-foreground">Ask a question with reasoning</span>
+                      <span className="text-sm text-muted-foreground">Ask a question with K-line cognitive reasoning</span>
                     </div>
                     <div className="bg-gray-50 rounded p-3 text-sm">
                       <strong>Request:</strong>
@@ -147,10 +147,18 @@ export default function ApiDocsPage() {
                       <strong className="block mt-2">Response:</strong>
                       <pre className="mt-1 text-xs">{`{
   "success": true,
+  "question": "What restaurants do I like?",
   "answer": "Based on your memories...",
   "confidence": "high",
   "reasoning": "...",
-  "supporting_memories": [...]
+  "supporting_memories": [...],
+  "kline": {
+    "coherence_score": 0.85,
+    "mental_state": "..."
+  },
+  "total_memories_searched": 10,
+  "relevant_memories_used": 3,
+  "type": "answer"
 }`}</pre>
                     </div>
                   </div>

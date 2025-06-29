@@ -21,7 +21,7 @@ interface RecallResult {
     mental_state: string
     memories: ApiMemory[]
     memory_count: number
-    timestamp: string
+    created_at: string
 }
 
 const recallPrompts = [
@@ -78,27 +78,48 @@ export default function RecallPage() {
         e.preventDefault()
         if (!input.trim()) return
 
+        // Create a temporary result with "thinking" state
+        const tempResult: RecallResult = {
+            id: `temp-recall-${Date.now()}`,
+            query: input,
+            mental_state: "thinking...",
+            memories: [],
+            memory_count: 0,
+            created_at: new Date().toISOString()
+        }
+
+        // Add the temporary result immediately
+        setResults(prev => [...prev, tempResult])
+        const currentInput = input
+        setInput("")
         setIsLoading(true)
         setError(null)
 
         try {
-            const response: RecallMentalStateResponse = await api.recallMentalState(input, settings.questionTopK, settings.minSimilarity)
-            
+            const response: RecallMentalStateResponse = await api.recallMentalState(currentInput, settings.questionTopK, settings.minSimilarity)
+
             if (response.success) {
-                const newResult: RecallResult = {
+                const realResult: RecallResult = {
                     id: `recall-${Date.now()}`,
                     query: response.query,
                     mental_state: response.mental_state,
                     memories: response.memories,
                     memory_count: response.memory_count,
-                    timestamp: new Date().toISOString()
+                    created_at: new Date().toISOString()
                 }
-                setResults(prev => [...prev, newResult])
-                setInput("")
+
+                // Replace the temporary result with the real one
+                setResults(prev => prev.map(result =>
+                    result.id === tempResult.id ? realResult : result
+                ))
             } else {
+                // Remove the temporary result on error
+                setResults(prev => prev.filter(result => result.id !== tempResult.id))
                 setError('Failed to construct mental state')
             }
         } catch (err) {
+            // Remove the temporary result on error
+            setResults(prev => prev.filter(result => result.id !== tempResult.id))
             setError(err instanceof Error ? err.message : 'Failed to recall mental state')
         } finally {
             setIsLoading(false)
@@ -255,11 +276,17 @@ export default function RecallPage() {
                                                                                 <div>
                                                                                     <div className="font-medium text-gray-700 mb-1">Created:</div>
                                                                                     <div className="text-gray-600">
-                                                                                        {memory.formatted_time ||
-                                                                                         (memory.created_at ? new Date(memory.created_at).toLocaleString() :
-                                                                                          memory.timestamp ? new Date(typeof memory.timestamp === 'number' ? memory.timestamp * 1000 : memory.timestamp).toLocaleString() : 'Unknown')}
+                                                                                        {memory.created_at ? new Date(memory.created_at).toLocaleString() : 'Unknown'}
                                                                                     </div>
                                                                                 </div>
+                                                                                {memory.last_accessed_at && (
+                                                                                    <div>
+                                                                                        <div className="font-medium text-gray-700 mb-1">Last Accessed:</div>
+                                                                                        <div className="text-gray-600">
+                                                                                            {new Date(memory.last_accessed_at).toLocaleString()}
+                                                                                        </div>
+                                                                                    </div>
+                                                                                )}
                                                                                 <div>
                                                                                     <div className="font-medium text-gray-700 mb-1">Grounding:</div>
                                                                                     <div className="text-gray-600">
@@ -343,7 +370,7 @@ export default function RecallPage() {
                                                 )}
 
                                                 <div className="text-xs text-gray-500">
-                                                    {new Date(result.timestamp).toLocaleTimeString()}
+                                                    {new Date(result.created_at).toLocaleTimeString()}
                                                 </div>
                                             </div>
                                         </div>
@@ -372,7 +399,7 @@ export default function RecallPage() {
                         <div className="w-full">
                             <div className="text-center mb-8">
                                 <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                                    K-Line Mental State Construction
+                                    K-Line Mental State Re-construction
                                 </h1>
                                 <p className="text-gray-600">
                                     Build coherent mental states by recalling and organizing relevant memories

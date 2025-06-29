@@ -94,7 +94,7 @@ export function RecallTab({
                                 <div className="flex items-center justify-between text-xs text-gray-500">
                                     <div className="flex items-center gap-2">
                                         <Clock className="w-3 h-3" />
-                                        {formatTimestamp(memory.timestamp)}
+                                        {formatTimestamp(memory.created_at)}
                                     </div>
                                     <div className="flex items-center gap-2">
                                         {memory.metadata?.score && (
@@ -168,7 +168,7 @@ export function RecallTab({
                                     <div className="flex items-center justify-between text-xs text-gray-500">
                                         <div className="flex items-center gap-2">
                                             <Clock className="w-3 h-3" />
-                                            {formatTimestamp(memory.timestamp)}
+                                            {formatTimestamp(memory.created_at)}
                                         </div>
                                         <div className="flex items-center gap-2">
                                             {memory.metadata?.score && (
