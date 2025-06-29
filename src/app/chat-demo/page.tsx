@@ -1,11 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 
 // Components
 import { PageLayout } from "@/components/PageLayout"
-import { UnifiedChat, type UnifiedChatMessage } from "@/components/UnifiedChat"
-import { useResponseTimer } from "@/components/ResponseTimer"
+import { PageInputForm } from "@/components/PageInputForm"
+import { RotatingPrompts } from "@/components/RotatingPrompts"
 
 // Hooks
 import { useConfiguredAPI } from "@/hooks/useConfiguredAPI"
@@ -34,35 +34,26 @@ export default function ChatDemoPage() {
     const [chatHistory, setChatHistory] = useState<ChatMessage[]>([])
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
-    const timer = useResponseTimer()
+    const messagesEndRef = useRef<HTMLDivElement>(null)
+    const scrollContainerRef = useRef<HTMLDivElement>(null)
 
     const { api: memoryAPI } = useConfiguredAPI()
     const { apiStatus } = useMemoryAPI()
 
-    // Convert chat messages to unified format
-    const messages: UnifiedChatMessage[] = []
-    for (let i = 0; i < chatHistory.length; i += 2) {
-        const userMsg = chatHistory[i]
-        const assistantMsg = chatHistory[i + 1]
-
-        if (userMsg && userMsg.type === 'user') {
-            messages.push({
-                id: userMsg.id,
-                question: userMsg.content,
-                answer: assistantMsg ? assistantMsg.content : "thinking...",
-                created_at: userMsg.created_at,
-                isLoading: !assistantMsg,
-                startTime: !assistantMsg ? timer.startTime : undefined,
-                endTime: assistantMsg ? timer.endTime : undefined
+    // Auto-scroll to bottom when new messages are added
+    useEffect(() => {
+        if (messagesEndRef.current && scrollContainerRef.current) {
+            // Scroll the container to the bottom smoothly
+            scrollContainerRef.current.scrollTo({
+                top: scrollContainerRef.current.scrollHeight,
+                behavior: 'smooth'
             })
         }
-    }
+    }, [chatHistory])
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!input.trim() || isLoading) return
-
-        timer.startTimer()
 
         const userMessage: ChatMessage = {
             id: `user-${Date.now()}`,
@@ -79,8 +70,7 @@ export default function ChatDemoPage() {
 
         try {
             const response: ChatResponse = await memoryAPI.chat(userMessage.content)
-            timer.endTimer()
-
+            
             if (response.success) {
                 const assistantMessage: ChatMessage = {
                     id: `assistant-${Date.now()}`,
@@ -93,7 +83,6 @@ export default function ChatDemoPage() {
                 setError('Failed to get response from chat API')
             }
         } catch (err) {
-            timer.endTimer()
             setError(err instanceof Error ? err.message : 'Failed to send message')
         } finally {
             setIsLoading(false)
@@ -102,6 +91,9 @@ export default function ChatDemoPage() {
 
     const clearError = () => setError(null)
 
+    // Check if there are any chat messages
+    const hasMessages = chatHistory.length > 0
+
     return (
         <PageLayout
             error={error}
@@ -109,18 +101,82 @@ export default function ChatDemoPage() {
             onClearError={clearError}
         >
             {/* Chat Demo Content */}
-            <UnifiedChat
-                messages={messages}
-                input={input}
-                onInputChange={setInput}
-                onSubmit={handleSubmit}
-                isLoading={isLoading}
-                title="/api/agent/chat"
-                subtitle="Have a conversation with your memories using the LangGraph workflow"
-                prompts={chatPrompts}
-                placeholder="Ask me anything about your memories..."
-                fixedHeight={false}
-            />
+            <div className="h-full flex flex-col">
+                {hasMessages ? (
+                    // Layout when there are messages - input at bottom
+                    <>
+                        <div ref={scrollContainerRef} className="flex-1 min-h-0 overflow-y-auto p-4 bg-white">
+                            <div className="space-y-4">
+                                {chatHistory.map((message) => (
+                                    <div
+                                        key={message.id}
+                                        className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
+                                    >
+                                        <div
+                                            className={`max-w-[80%] rounded-lg px-4 py-2 ${
+                                                message.type === 'user'
+                                                    ? 'bg-blue-500 text-white'
+                                                    : 'bg-gray-100 text-gray-900'
+                                            }`}
+                                        >
+                                            <div className="whitespace-pre-wrap">{message.content}</div>
+                                            <div className={`text-xs mt-1 ${
+                                                message.type === 'user' ? 'text-blue-100' : 'text-gray-500'
+                                            }`}>
+                                                {new Date(message.created_at).toLocaleTimeString()}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                                {isLoading && (
+                                    <div className="flex justify-start">
+                                        <div className="bg-gray-100 text-gray-900 rounded-lg px-4 py-2">
+                                            <div className="flex items-center space-x-2">
+                                                <div className="animate-pulse">Thinking...</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                                {/* Scroll target */}
+                                <div ref={messagesEndRef} />
+                            </div>
+                        </div>
+
+                        {/* Input Form at bottom */}
+                        <div className="flex-shrink-0 rounded">
+                            <PageInputForm
+                                input={input}
+                                setInput={setInput}
+                                pageType="chat"
+                                isLoading={isLoading}
+                                onSubmit={handleSubmit}
+                                placeholder="Ask me anything about your memories..."
+                            />
+                        </div>
+                    </>
+                ) : (
+                    // Layout when no messages - input centered vertically with prompt
+                    <div className="flex-1 flex items-center justify-center -mt-40 bg-white">
+                        <div className="w-full">
+                            <div className="text-center mb-8">
+                                <h1 className="text-3xl font-bold text-gray-900 mb-2">/api/agent/chat</h1>
+                                <p className="text-gray-600">
+                                    Have a conversation with your memories using the LangGraph workflow
+                                </p>
+                            </div>
+                            <RotatingPrompts prompts={chatPrompts} />
+                            <PageInputForm
+                                input={input}
+                                setInput={setInput}
+                                pageType="chat"
+                                isLoading={isLoading}
+                                onSubmit={handleSubmit}
+                                placeholder="Ask me anything about your memories..."
+                            />
+                        </div>
+                    </div>
+                )}
+            </div>
         </PageLayout>
     )
 }

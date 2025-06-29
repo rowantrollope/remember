@@ -24,6 +24,9 @@ import { Trash2, AlertTriangle } from "lucide-react"
 import { useMemoryAPI } from "@/hooks"
 import { usePersistentChat } from "@/hooks/usePersistentChat"
 
+// Components for grounding info
+import { GroundingInfo } from "@/components/GroundingInfo"
+
 // Types
 import type { MemorySaveResponse } from "@/hooks/usePersistentChat"
 
@@ -134,22 +137,24 @@ export default function SavePage() {
         e.preventDefault()
         if (!input.trim()) return
 
+        const currentInput = input
+        setInput("")
+
         // Create a temporary memory save response with "thinking" state
+        const tempId = `temp-${Date.now()}`
         const tempSaveResponse: MemorySaveResponse = {
             success: true,
             response: {
                 success: true,
-                memory_id: `temp-${Date.now()}`,
+                memory_id: tempId,
                 message: "thinking...",
             },
-            originalText: input,
+            originalText: currentInput,
             timestamp: new Date().toISOString()
         }
 
         // Add the temporary response immediately
         addMemorySaveResponse(tempSaveResponse)
-        const currentInput = input
-        setInput("")
 
         try {
             const result = await saveMemory(currentInput)
@@ -162,23 +167,26 @@ export default function SavePage() {
                 }
 
                 // Replace the temporary response with the real one
-                const updatedResponses = memorySaveResponses.map(resp =>
-                    resp.response?.memory_id === tempSaveResponse.response?.memory_id ? realSaveResponse : resp
+                updateMemorySaveResponses(prev =>
+                    prev.map(resp =>
+                        resp.response?.memory_id === tempId ? realSaveResponse : resp
+                    )
                 )
-                updateMemorySaveResponses(updatedResponses)
             } else {
                 // Remove the temporary response on error
-                const filteredResponses = memorySaveResponses.filter(resp =>
-                    resp.response?.memory_id !== tempSaveResponse.response?.memory_id
+                updateMemorySaveResponses(prev =>
+                    prev.filter(resp =>
+                        resp.response?.memory_id !== tempId
+                    )
                 )
-                updateMemorySaveResponses(filteredResponses)
             }
         } catch {
             // Remove the temporary response on error
-            const filteredResponses = memorySaveResponses.filter(resp =>
-                resp.response?.memory_id !== tempSaveResponse.response?.memory_id
+            updateMemorySaveResponses(prev =>
+                prev.filter(resp =>
+                    resp.response?.memory_id !== tempId
+                )
             )
-            updateMemorySaveResponses(filteredResponses)
         }
     }
 
@@ -226,26 +234,60 @@ export default function SavePage() {
 
                                         {/* System Response */}
                                         <div className="flex justify-start">
-                                            <div className="max-w-[80%] bg-green-100 text-green-800 rounded-lg px-4 py-2">
-                                                <div className="text-sm font-medium mb-2">✓ Memory saved successfully</div>
-                                                {saveResponse.response && (
-                                                    <div className="space-y-2 text-sm">
-                                                        <div>
-                                                            <strong>Memory ID:</strong> {saveResponse.response.memory_id}
-                                                        </div>
-                                                        {saveResponse.response.grounding_applied && (
-                                                            <div>
-                                                                <strong>Contextual grounding applied</strong>
-                                                            </div>
-                                                        )}
-                                                        {saveResponse.response.grounded_text && saveResponse.response.grounded_text !== saveResponse.originalText && (
-                                                            <div>
-                                                                <strong>Enhanced text:</strong> {saveResponse.response.grounded_text}
-                                                            </div>
-                                                        )}
+                                            {saveResponse.response?.message === "thinking..." ? (
+                                                <div className="max-w-[80%] bg-gray-100 text-gray-600 rounded-lg px-4 py-2">
+                                                    <div className="text-sm font-medium mb-2 flex items-center gap-2">
+                                                        <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                                                        Thinking...
                                                     </div>
-                                                )}
-                                            </div>
+                                                </div>
+                                            ) : (
+                                                <div className="max-w-[80%] bg-green-100 text-green-800 rounded-lg px-4 py-2">
+                                                    <div className="text-sm font-medium mb-2">✓ Memory saved successfully</div>
+                                                    {saveResponse.response && (
+                                                        <div className="space-y-3 text-sm">
+                                                            <div>
+                                                                <strong>Memory ID:</strong> {saveResponse.response.memory_id}
+                                                            </div>
+
+                                                            {saveResponse.response.grounding_applied && (
+                                                                <div className="space-y-2">
+                                                                    <div>
+                                                                        <strong>✓ Contextual grounding applied</strong>
+                                                                    </div>
+
+                                                                    {saveResponse.response.grounded_text && saveResponse.response.grounded_text !== saveResponse.originalText && (
+                                                                        <div>
+                                                                            <strong>Enhanced text:</strong> {saveResponse.response.grounded_text}
+                                                                        </div>
+                                                                    )}
+
+                                                                    {/* Use GroundingInfo component for detailed debug data */}
+                                                                    {saveResponse.response.grounding_info && (
+                                                                        <div className="flex justify-start">
+                                                                            <GroundingInfo
+                                                                                memory={{
+                                                                                    id: saveResponse.response.memory_id,
+                                                                                    content: saveResponse.originalText,
+                                                                                    text: saveResponse.response.grounded_text || saveResponse.originalText,
+                                                                                    original_text: saveResponse.originalText,
+                                                                                    grounded_text: saveResponse.response.grounded_text,
+                                                                                    created_at: saveResponse.timestamp,
+                                                                                    grounding_applied: saveResponse.response.grounding_applied,
+                                                                                    grounding_info: saveResponse.response.grounding_info,
+                                                                                    context_snapshot: saveResponse.response.context_snapshot,
+                                                                                    metadata: {}
+                                                                                }}
+                                                                                className="text-xs"
+                                                                            />
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 ))}

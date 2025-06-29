@@ -120,9 +120,17 @@ export function usePersistentChat() {
     }, [memorySaveResponses, saveToStorage])
 
     // Update memory save responses array and persist
-    const updateMemorySaveResponses = useCallback((newMemorySaves: MemorySaveResponse[]) => {
-        setMemorySaveResponses(newMemorySaves)
-        saveToStorage(conversations, newMemorySaves)
+    const updateMemorySaveResponses = useCallback((newMemorySaves: MemorySaveResponse[] | ((prev: MemorySaveResponse[]) => MemorySaveResponse[])) => {
+        if (typeof newMemorySaves === 'function') {
+            setMemorySaveResponses(prev => {
+                const updated = newMemorySaves(prev)
+                saveToStorage(conversations, updated)
+                return updated
+            })
+        } else {
+            setMemorySaveResponses(newMemorySaves)
+            saveToStorage(conversations, newMemorySaves)
+        }
     }, [conversations, saveToStorage])
 
     // Clear all chat history

@@ -8,6 +8,7 @@ import { PageInputForm } from "@/components/PageInputForm"
 import { RotatingPrompts } from "@/components/RotatingPrompts"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { GroundingInfo } from "@/components/GroundingInfo"
 
 // Hooks and types
 import { useConfiguredAPI } from "@/hooks/useConfiguredAPI"
@@ -160,7 +161,7 @@ export default function RecallPage() {
                                             <div className="max-w-[80%] bg-blue-500 text-white rounded-lg px-4 py-2">
                                                 <div className="whitespace-pre-wrap">{result.query}</div>
                                                 <div className="text-xs text-blue-100 mt-1">
-                                                    {new Date(result.timestamp).toLocaleTimeString()}
+                                                    {new Date(result.created_at).toLocaleTimeString()}
                                                 </div>
                                             </div>
                                         </div>
@@ -320,31 +321,22 @@ export default function RecallPage() {
                                                                             {/* Expandable Sections */}
                                                                             <div className="space-y-2">
                                                                                 {/* Grounding Info */}
-                                                                                {memory.grounding_info && Object.keys(memory.grounding_info).length > 0 && (
-                                                                                    <details className="text-xs">
-                                                                                        <summary className="cursor-pointer hover:text-gray-700 font-medium text-gray-600">
-                                                                                            🔗 Grounding Information
-                                                                                        </summary>
-                                                                                        <div className="mt-2 bg-blue-50 p-2 rounded border">
-                                                                                            <pre className="text-xs overflow-x-auto">
-                                                                                                {JSON.stringify(memory.grounding_info, null, 2)}
-                                                                                            </pre>
-                                                                                        </div>
-                                                                                    </details>
-                                                                                )}
-
-                                                                                {/* Context Snapshot */}
-                                                                                {memory.context_snapshot && Object.keys(memory.context_snapshot).length > 0 && (
-                                                                                    <details className="text-xs">
-                                                                                        <summary className="cursor-pointer hover:text-gray-700 font-medium text-gray-600">
-                                                                                            📸 Context Snapshot
-                                                                                        </summary>
-                                                                                        <div className="mt-2 bg-yellow-50 p-2 rounded border">
-                                                                                            <pre className="text-xs overflow-x-auto">
-                                                                                                {JSON.stringify(memory.context_snapshot, null, 2)}
-                                                                                            </pre>
-                                                                                        </div>
-                                                                                    </details>
+                                                                                {memory.grounding_applied && memory.grounding_info && (
+                                                                                    <GroundingInfo
+                                                                                        memory={{
+                                                                                            id: memory.id || 'unknown',
+                                                                                            content: memory.content || memory.text || memory.memory || '',
+                                                                                            text: memory.text || memory.content || memory.memory || '',
+                                                                                            original_text: memory.original_text,
+                                                                                            grounded_text: memory.grounded_text,
+                                                                                            created_at: memory.created_at || new Date().toISOString(),
+                                                                                            grounding_applied: memory.grounding_applied,
+                                                                                            grounding_info: memory.grounding_info,
+                                                                                            context_snapshot: memory.context_snapshot,
+                                                                                            metadata: memory.metadata || {}
+                                                                                        }}
+                                                                                        className="text-xs"
+                                                                                    />
                                                                                 )}
 
                                                                                 {/* Raw Metadata */}
