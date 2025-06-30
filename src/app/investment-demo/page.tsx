@@ -16,7 +16,8 @@ import {
 } from "@/components/ui/dialog"
 import { TrendingUp, Brain, Database, HelpCircle, FileText, BarChart3 } from "lucide-react"
 import { PageLayout } from "@/components/PageLayout"
-import { ChatBox, ChatMessage } from "@/components/ChatBox"
+import { ChatCard } from "@/components/ChatCard"
+import { ChatMessage } from "@/components/ChatBox"
 import { useMemoryAPI } from "@/hooks"
 import { useSettings } from "@/hooks/useSettings"
 
@@ -363,7 +364,7 @@ export default function InvestmentDemo() {
                     </TabsList>
 
                     <TabsContent value="standard" className="space-y-6">
-                        <ChatBox
+                        <ChatCard
                             title="Document Analyst (No Conversation Memory)"
                             subtitle="Analyzes the 10Q document but treats each question independently"
                             messages={standardMessages}
@@ -384,7 +385,7 @@ export default function InvestmentDemo() {
                     </TabsContent>
 
                     <TabsContent value="memory" className="space-y-6">
-                        <ChatBox
+                        <ChatCard
                             title="Memory-Enhanced Analyst"
                             subtitle="Analyzes the 10Q document AND remembers conversation history for context"
                             messages={memoryMessages}

@@ -6,6 +6,7 @@ import { useState } from "react"
 import { PageLayout } from "@/components/PageLayout"
 import { PageInputForm } from "@/components/PageInputForm"
 import { RecallTab } from "@/components/tabs/RecallTab"
+import { ApiPageHeader } from "@/components/ApiPageHeader"
 // Hooks
 import { useMemoryAPI } from "@/hooks"
 import { useSettings } from "@/hooks/useSettings"
@@ -53,6 +54,12 @@ export default function SearchPage() {
         }
     }
 
+    const clearSearch = () => {
+        setCurrentSearchQuery(null)
+        // Note: searchResults are managed by useMemoryAPI hook,
+        // they will be cleared when a new search is performed
+    }
+
     // Check if there are any search results or if we're currently searching
     const hasSearchResults = searchResults.length > 0
     const isSearching = currentSearchQuery !== null
@@ -64,14 +71,13 @@ export default function SearchPage() {
             onClearError={clearError}
         >
             {/* Search Content */}
-            <div className="relative h-full flex flex-col">
-                <div className="absolute w-full bg-white/75 backdrop-blur-sm -top-0 flex-shrink-0 flex justify-between items-center">
-                    <div className="grow"></div>
-                    <div className="font-mono text-muted-foreground">
-                        (POST) /api/memory/search
-                    </div>
-                </div>
-
+            <div className="h-full flex flex-col">
+                <ApiPageHeader
+                    endpoint="(POST) /api/memory/search"
+                    hasMessages={isSearching}
+                    onClearChat={clearSearch}
+                    isLoading={isLoading}
+                />
                 {isSearching ? (
                     // Layout when searching or have search results - input at bottom
                     <>

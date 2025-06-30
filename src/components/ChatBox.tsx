@@ -2,14 +2,13 @@
 
 import React, { useRef, useEffect } from 'react'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Send, Brain, MapPin, Trash2 } from 'lucide-react'
+import { Brain, MapPin } from 'lucide-react'
 import { ConfidencePill } from '@/components/ConfidencePill'
 import { SupportingMemoriesDialog } from '@/components/SupportingMemoriesDialog'
 import { SessionMemoriesDialog } from '@/components/SessionMemoriesDialog'
 import type { Memory } from '@/types'
+import type { ApiMemory } from '@/lib/api'
 
 export interface SessionMemory {
     memory_id?: string
@@ -19,6 +18,42 @@ export interface SessionMemory {
     similarity_score?: number
 }
 
+// Enhanced message interface that can handle different API response types
+export interface UnifiedChatMessage {
+    id: string
+    type: 'user' | 'assistant' | 'system' | 'memory_save' | 'recall_result'
+    content: string
+    created_at: string | Date
+
+    // Optional fields for different message types
+    user_question?: string
+
+    // For API responses with supporting memories
+    confidence?: 'high' | 'medium' | 'low'
+    reasoning?: string
+    supporting_memories?: Memory[] | ApiMemory[]
+    excluded_memories?: Memory[] | ApiMemory[]
+    filtering_info?: {
+        min_similarity_threshold?: number
+        total_candidates?: number
+        excluded_count?: number
+        included_count?: number
+    }
+
+    // For recall/K-line responses
+    mental_state?: string
+    memory_count?: number
+
+    // For memory save responses
+    memory_id?: string
+    save_success?: boolean
+
+    // For session-based chat
+    hasMemory?: boolean
+    session_memories?: SessionMemory[]
+}
+
+// Legacy interface for backward compatibility
 export interface ChatMessage {
     id: string
     question: string
@@ -38,46 +73,31 @@ export interface ChatMessage {
     session_memories?: SessionMemory[]
 }
 
+// Simplified props interface focused on chat content only
 export interface ChatBoxProps {
-    title: string
-    subtitle: string
-    messages: ChatMessage[]
-    input: string
-    onInputChange: (value: string) => void
-    onSubmit: (e: React.FormEvent) => void
-    onClearChat?: () => void
-    isLoading: boolean
-    placeholder?: string
-    headerIcon?: React.ReactNode
-    borderColor?: string
-    headerBgColor?: string
-    messageBgColor?: string
-    buttonColor?: string
+    messages: UnifiedChatMessage[] | ChatMessage[]
+    isLoading?: boolean
     loadingText?: string
     showMemoryIndicators?: boolean
-    badge?: React.ReactNode
     className?: string
+
+    // New props for enhanced functionality
+    showTimestamps?: boolean
+    enableMemoryExpansion?: boolean
+    copiedId?: string | null
+    onCopyId?: (id: string) => void
 }
 
 export function ChatBox({
-    title,
-    subtitle,
     messages,
-    input,
-    onInputChange,
-    onSubmit,
-    onClearChat,
-    isLoading,
-    placeholder = "Ask a question...",
-    headerIcon,
-    borderColor = "border-gray-200",
-    headerBgColor = "bg-gray-50",
-    messageBgColor = "bg-gray-100",
-    buttonColor = "bg-blue-600 hover:bg-blue-700",
+    isLoading = false,
     loadingText = "Thinking...",
     showMemoryIndicators = false,
-    badge,
-    className = ""
+    className = "",
+    showTimestamps = true,
+    enableMemoryExpansion = true,
+    copiedId,
+    onCopyId
 }: ChatBoxProps) {
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const scrollAreaRef = useRef<HTMLDivElement>(null)
@@ -97,119 +117,283 @@ export function ChatBox({
         }
     }, [messages])
 
-    return (
-        <div className={`h-[600px] flex flex-col rounded-lg border bg-card text-card-foreground shadow-sm ${borderColor} ${className}`}>
-            {/* Header */}
-            <div className={`flex flex-col space-y-1.5 p-6 ${headerBgColor} border-b ${borderColor} rounded-t-lg`}>
-                <div className="flex items-center justify-between">
-                    <h3 className="text-xl font-semibold leading-none tracking-tight flex items-center gap-2">
-                        {headerIcon}
-                        {title}
-                        {badge}
-                    </h3>
-                    {onClearChat && messages.length > 0 && (
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={onClearChat}
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                            disabled={isLoading}
-                        >
-                            <Trash2 className="w-4 h-4" />
-                        </Button>
-                    )}
-                </div>
-                <p className="text-sm text-muted-foreground">{subtitle}</p>
-            </div>
+    // Helper function to get the last component of an ID after the final dash
+    const getShortId = (id: string) => {
+        const parts = id.split('-')
+        return parts[parts.length - 1]
+    }
 
-            {/* Content */}
-            <div className="flex-1 flex flex-col p-0 overflow-hidden">
-                {/* Messages */}
-                <div className="flex-1 min-h-0">
-                    <ScrollArea ref={scrollAreaRef} className="h-full">
-                        <div className="p-4 space-y-4">
-                            {messages.map((message) => (
-                                <div key={message.id} className="space-y-2">
-                                    <div className="bg-blue-100 p-3 rounded-lg ml-8">
-                                        <p className="text-sm font-medium text-blue-800">You:</p>
-                                        <p className="text-blue-700">{message.question}</p>
-                                    </div>
-                                    <div className={`${messageBgColor} p-3 rounded-lg mr-8`}>
-                                        <p className="text-sm font-medium">Assistant:</p>
-                                        <p className="whitespace-pre-wrap">{message.answer}</p>
-                                        
-                                        {/* Memory indicators */}
-                                        {showMemoryIndicators && (
-                                            <div className="flex flex-wrap items-center gap-2 mt-2">
-                                                {message.hasMemory && message.session_memories && message.session_memories.length > 0 ? (
-                                                    <SessionMemoriesDialog
-                                                        memories={message.session_memories}
-                                                        excludedMemories={message.excluded_memories as SessionMemory[]}
-                                                        filteringInfo={message.filtering_info}
-                                                        className="text-xs"
-                                                    />
-                                                ) : message.hasMemory ? (
-                                                    <Badge variant="secondary" className="text-xs">
-                                                        <Brain className="w-3 h-3 mr-1" />
-                                                        Memory Enhanced
-                                                    </Badge>
-                                                ) : null}
-                                                {message.confidence && (
-                                                    <ConfidencePill confidence={message.confidence} className="text-xs" />
-                                                )}
-                                                {message.supporting_memories && message.supporting_memories.length > 0 && (
-                                                    <SupportingMemoriesDialog
-                                                        memories={message.supporting_memories as Memory[]}
-                                                        excludedMemories={message.excluded_memories as Memory[]}
-                                                        filteringInfo={message.filtering_info}
-                                                        className="text-xs"
-                                                    />
-                                                )}
-                                                {message.reasoning && (
-                                                    <Badge variant="outline" className="text-xs">
-                                                        <MapPin className="w-3 h-3 mr-1" />
-                                                        Reasoning available
-                                                    </Badge>
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
+    // Function to copy ID to clipboard with visual feedback
+    const copyIdToClipboard = async (fullId: string) => {
+        if (onCopyId) {
+            onCopyId(fullId)
+        } else {
+            try {
+                await navigator.clipboard.writeText(fullId)
+            } catch (err) {
+                console.error('Failed to copy ID to clipboard:', err)
+            }
+        }
+    }
+
+    // Helper function to determine if message is legacy format
+    const isLegacyMessage = (msg: UnifiedChatMessage | ChatMessage): msg is ChatMessage => {
+        return 'question' in msg && 'answer' in msg
+    }
+
+    // Helper function to get memory ID safely
+    const getMemoryId = (memory: Memory | ApiMemory | unknown): string => {
+        if (memory && typeof memory === 'object' && 'id' in memory) {
+            return (memory as { id: string }).id
+        }
+        return ''
+    }
+
+    // Helper function to render memory indicators for legacy messages
+    const renderMemoryIndicators = (message: ChatMessage) => {
+        if (!showMemoryIndicators) return null
+
+        return (
+            <div className="flex flex-wrap items-center gap-2 mt-2">
+                {message.hasMemory && message.session_memories && message.session_memories.length > 0 ? (
+                    <SessionMemoriesDialog
+                        memories={message.session_memories}
+                        excludedMemories={message.excluded_memories as SessionMemory[]}
+                        filteringInfo={message.filtering_info}
+                        className="text-xs"
+                    />
+                ) : message.hasMemory ? (
+                    <Badge variant="secondary" className="text-xs">
+                        <Brain className="w-3 h-3 mr-1" />
+                        Memory Enhanced
+                    </Badge>
+                ) : null}
+                {message.confidence && (
+                    <ConfidencePill confidence={message.confidence} className="text-xs" />
+                )}
+                {message.supporting_memories && message.supporting_memories.length > 0 && (
+                    <SupportingMemoriesDialog
+                        memories={message.supporting_memories as Memory[]}
+                        excludedMemories={message.excluded_memories as Memory[]}
+                        filteringInfo={message.filtering_info}
+                        className="text-xs"
+                    />
+                )}
+                {message.reasoning && (
+                    <Badge variant="outline" className="text-xs">
+                        <MapPin className="w-3 h-3 mr-1" />
+                        Reasoning available
+                    </Badge>
+                )}
+            </div>
+        )
+    }
+
+    // Helper function to render assistant messages in unified format
+    const renderAssistantMessage = (message: UnifiedChatMessage) => {
+        const bgColor = message.type === 'memory_save' ? 'bg-green-100 text-green-800' :
+                       message.type === 'system' ? 'bg-yellow-100 text-yellow-800' :
+                       'bg-gray-100 text-gray-800'
+
+        return (
+            <div className={`${bgColor} rounded-lg px-4 py-2`}>
+                {/* Confidence Badge */}
+                {message.confidence && (
+                    <div className="mb-2">
+                        <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
+                            message.confidence === 'high' ? 'bg-green-100 text-green-800' :
+                            message.confidence === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-red-100 text-red-800'
+                        }`}>
+                            {message.confidence} confidence
+                        </span>
+                    </div>
+                )}
+
+                {/* Main Content */}
+                <div className="whitespace-pre-wrap mb-2">{message.content}</div>
+
+                {/* Mental State for recall results */}
+                {message.mental_state && (
+                    <div className="bg-white/50 rounded p-3 mb-2">
+                        <div className="text-sm font-medium mb-1">🧠 Mental State (K-Line)</div>
+                        <div className="whitespace-pre-wrap">{message.mental_state}</div>
+                        {message.memory_count && (
+                            <Badge variant="secondary" className="mt-2">
+                                {message.memory_count} memories
+                            </Badge>
+                        )}
+                    </div>
+                )}
+
+                {/* Memory Save Success */}
+                {message.type === 'memory_save' && message.save_success && (
+                    <div className="text-sm font-medium mb-2">✓ Memory saved successfully</div>
+                )}
+
+                {/* Reasoning */}
+                {message.reasoning && (
+                    <div className="text-sm text-gray-600 italic mb-2">
+                        {message.reasoning}
+                    </div>
+                )}
+
+                {/* Supporting Memories with expandable link */}
+                {enableMemoryExpansion && message.supporting_memories && message.supporting_memories.length > 0 && (
+                    <details className="mt-2">
+                        <summary className="text-sm text-blue-600 cursor-pointer hover:text-blue-800">
+                            See {message.supporting_memories.length} supporting memories
+                        </summary>
+                        <div className="mt-2 space-y-2">
+                            {message.supporting_memories.map((memory, index) => (
+                                <div key={getMemoryId(memory) || `${message.id}-memory-${index}`}
+                                     className="bg-white border rounded p-2 text-sm">
+                                    {renderMemoryDetails(memory as Memory, false)}
                                 </div>
                             ))}
-                            {isLoading && (
-                                <div className={`${messageBgColor} p-3 rounded-lg mr-8`}>
-                                    <div className="flex items-center gap-2">
-                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
-                                        <span>{loadingText}</span>
-                                    </div>
+                        </div>
+                    </details>
+                )}
+
+                {/* Excluded Memories */}
+                {enableMemoryExpansion && message.excluded_memories && message.excluded_memories.length > 0 && (
+                    <details className="mt-2">
+                        <summary className="text-sm text-orange-600 cursor-pointer hover:text-orange-800">
+                            See {message.excluded_memories.length} excluded memories
+                        </summary>
+                        <div className="mt-2 space-y-2">
+                            <div className="text-xs text-orange-700 bg-orange-50 p-2 rounded">
+                                These memories were retrieved but excluded due to similarity threshold filtering.
+                                {message.filtering_info?.min_similarity_threshold && (
+                                    <span> Threshold: {(message.filtering_info.min_similarity_threshold * 100).toFixed(1)}%</span>
+                                )}
+                            </div>
+                            {message.excluded_memories.map((memory, index) => (
+                                <div key={getMemoryId(memory) || `${message.id}-excluded-memory-${index}`}
+                                     className="bg-orange-50 border border-orange-200 rounded p-2 text-sm">
+                                    {renderMemoryDetails(memory as Memory, true)}
+                                </div>
+                            ))}
+                        </div>
+                    </details>
+                )}
+
+                {showTimestamps && (
+                    <div className="text-xs text-gray-500 mt-1">
+                        {new Date(message.created_at).toLocaleTimeString()}
+                    </div>
+                )}
+            </div>
+        )
+    }
+
+    // Helper function to render memory details
+    const renderMemoryDetails = (memory: Memory, isExcluded: boolean = false) => {
+        const badgeStyle = isExcluded ?
+            'border-orange-300 text-orange-700 hover:bg-orange-100' :
+            'hover:bg-gray-50'
+
+        return (
+            <>
+                {/* Memory ID Badge */}
+                {memory.id && (
+                    <div className="mb-2">
+                        <Badge
+                            variant="outline"
+                            className={`font-mono text-xs cursor-pointer transition-colors ${
+                                copiedId === memory.id
+                                    ? 'bg-green-50 text-green-700 border-green-200'
+                                    : badgeStyle
+                            }`}
+                            onClick={() => copyIdToClipboard(memory.id!)}
+                            title={`Click to copy full ID: ${memory.id}`}
+                        >
+                            {copiedId === memory.id ? '✓ Copied!' : `Neme ID: ${getShortId(memory.id)}`}
+                        </Badge>
+                    </div>
+                )}
+                <div className="text-gray-700">{memory.content || memory.text}</div>
+                <div className="text-xs text-gray-500 mt-1 flex justify-between">
+                    <span>{new Date(memory.created_at).toLocaleString()}</span>
+                    {memory.metadata?.relevance_score && (
+                        <span className={isExcluded ? 'text-orange-600' : ''}>
+                            {memory.metadata.relevance_score}% relevant
+                        </span>
+                    )}
+                </div>
+            </>
+        )
+    }
+
+    // Helper function to render message content based on type
+    const renderMessageContent = (message: UnifiedChatMessage | ChatMessage) => {
+        if (isLegacyMessage(message)) {
+            // Legacy format - render as question/answer pair
+            return (
+                <div className="space-y-2">
+                    <div className="bg-blue-100 p-3 rounded-lg ml-8">
+                        <p className="text-sm font-medium text-blue-800">You:</p>
+                        <p className="text-blue-700">{message.question}</p>
+                    </div>
+                    <div className="bg-gray-100 text-gray-800 p-3 rounded-lg mr-8">
+                        <p className="text-sm font-medium">Assistant:</p>
+                        <p className="whitespace-pre-wrap">{message.answer}</p>
+                        {renderMemoryIndicators(message)}
+                    </div>
+                </div>
+            )
+        } else {
+            // New unified format
+            const unifiedMsg = message as UnifiedChatMessage
+
+            if (unifiedMsg.type === 'user') {
+                return (
+                    <div className="flex justify-end">
+                        <div className="max-w-[80%] bg-blue-500 text-white rounded-lg px-4 py-2">
+                            <div className="whitespace-pre-wrap">{unifiedMsg.content}</div>
+                            {showTimestamps && (
+                                <div className="text-xs text-blue-100 mt-1">
+                                    {new Date(unifiedMsg.created_at).toLocaleTimeString()}
                                 </div>
                             )}
-                            {/* Scroll target */}
-                            <div ref={messagesEndRef} />
                         </div>
-                    </ScrollArea>
+                    </div>
+                )
+            } else {
+                return (
+                    <div className="flex justify-start">
+                        <div className="max-w-[90%] space-y-2">
+                            {renderAssistantMessage(unifiedMsg)}
+                        </div>
+                    </div>
+                )
+            }
+        }
+    }
+
+    return (
+        <div className={`h-full ${className}`}>
+            <ScrollArea ref={scrollAreaRef} className="h-full">
+                <div className="space-y-4">
+                    {messages.map((message) => (
+                        <div key={message.id} className="space-y-2">
+                            {renderMessageContent(message)}
+                        </div>
+                    ))}
+                    {isLoading && (
+                        <div className="flex justify-start">
+                            <div className="max-w-[90%] bg-gray-100 text-gray-800 rounded-lg px-4 py-2">
+                                <div className="flex items-center gap-2">
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
+                                    <span>{loadingText}</span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    {/* Scroll target */}
+                    <div ref={messagesEndRef} />
                 </div>
-                
-                {/* Input Form */}
-                <div className={`border-t ${borderColor} p-4`}>
-                    <form onSubmit={onSubmit} className="flex gap-2">
-                        <Input
-                            value={input}
-                            onChange={(e) => onInputChange(e.target.value)}
-                            placeholder={placeholder}
-                            disabled={isLoading}
-                            className="flex-1"
-                        />
-                        <Button
-                            type="submit"
-                            disabled={isLoading || !input.trim()}
-                            className={buttonColor}
-                        >
-                            <Send className="w-4 h-4" />
-                        </Button>
-                    </form>
-                </div>
-            </div>
+            </ScrollArea>
         </div>
     )
 }

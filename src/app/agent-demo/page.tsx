@@ -15,7 +15,8 @@ import {
 } from "@/components/ui/dialog"
 import { Brain, Code, GitPullRequest, Lightbulb, HelpCircle } from "lucide-react"
 import { PageLayout } from "@/components/PageLayout"
-import { ChatBox, ChatMessage } from "@/components/ChatBox"
+import { ChatCard } from "@/components/ChatCard"
+import { ChatMessage } from "@/components/ChatBox"
 import { useMemoryAPI } from "@/hooks"
 import { useConfiguredAPI } from "@/hooks/useConfiguredAPI"
 import { useSettings } from "@/hooks/useSettings"
@@ -516,7 +517,7 @@ export default function AgentDemo() {
                     </TabsList>
 
                     <TabsContent value="standard" className="space-y-6">
-                        <ChatBox
+                        <ChatCard
                             title="Standard Code Review Agent"
                             subtitle="Provides general code feedback but doesn't remember your preferences"
                             messages={standardMessages}
@@ -537,7 +538,7 @@ export default function AgentDemo() {
                     </TabsContent>
 
                     <TabsContent value="memory" className="space-y-6">
-                        <ChatBox
+                        <ChatCard
                             title="Memory-Enhanced Code Review Agent"
                             subtitle="Learns your coding preferences and provides personalized feedback"
                             messages={memoryMessages}

@@ -1,34 +1,23 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import React, { useState, useEffect } from "react"
 
 // Components
 import { PageLayout } from "@/components/PageLayout"
 import { PageInputForm } from "@/components/PageInputForm"
 import { RotatingPrompts } from "@/components/RotatingPrompts"
-import { Button } from "@/components/ui/button"
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from "@/components/ui/dialog"
-
-// Icons
-import { Trash2, AlertTriangle } from "lucide-react"
+import { ChatBox, type UnifiedChatMessage } from "@/components/ChatBox"
+import { ApiPageHeader } from "@/components/ApiPageHeader"
 
 // Hooks
 import { useMemoryAPI } from "@/hooks"
 import { usePersistentChat } from "@/hooks/usePersistentChat"
 
-// Components for grounding info
-import { GroundingInfo } from "@/components/GroundingInfo"
-
 // Types
 import type { MemorySaveResponse } from "@/hooks/usePersistentChat"
+
+// Utils
+import { memorySaveResponsesToMessages, createThinkingMessage, updateThinkingMessage } from "@/lib/chatMessageUtils"
 
 const savePrompts = [
     "Example: I had lunch at a great Italian restaurant",
@@ -38,75 +27,14 @@ const savePrompts = [
     "Example: Discovered a beautiful hiking trail"
 ]
 
-interface ClearHistoryDialogProps {
-    onConfirm: () => void
-    messageCount: number
-}
-
-function ClearHistoryDialog({ onConfirm, messageCount }: ClearHistoryDialogProps) {
-    const [isOpen, setIsOpen] = useState(false)
-
-    const handleConfirm = () => {
-        onConfirm()
-        setIsOpen(false)
-    }
-
-    return (
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
-            <DialogTrigger asChild>
-                <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex items-center gap-2"
-                >
-                    <Trash2 className="w-4 h-4" />
-                    Clear History
-                </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2 text-red-600">
-                        <AlertTriangle className="w-5 h-5" />
-                        Clear Chat History
-                    </DialogTitle>
-                    <DialogDescription className="text-left">
-                        This action will permanently delete all {messageCount} saved memory conversations from your local chat history.
-                        <br />
-                        <br />
-                        <strong className="text-red-600">This action cannot be undone.</strong>
-                        <br />
-                        <br />
-                        Are you sure you want to continue?
-                    </DialogDescription>
-                </DialogHeader>
-                <DialogFooter className="flex gap-2">
-                    <Button
-                        variant="outline"
-                        onClick={() => setIsOpen(false)}
-                    >
-                        Cancel
-                    </Button>
-                    <Button
-                        variant="destructive"
-                        onClick={handleConfirm}
-                    >
-                        Clear History
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
-    )
-}
-
 export default function SavePage() {
     const [input, setInput] = useState("")
-    const messagesEndRef = useRef<HTMLDivElement>(null)
+    const [messages, setMessages] = useState<UnifiedChatMessage[]>([])
 
-    // Use persistent chat hook for memory save responses
+    // Use persistent chat hook for memory save responses (for persistence)
     const {
         memorySaveResponses,
         addMemorySaveResponse,
-        updateMemorySaveResponses,
         clearChatHistory,
     } = usePersistentChat()
 
@@ -120,18 +48,13 @@ export default function SavePage() {
         clearError,
     } = useMemoryAPI()
 
-    // Auto-scroll to bottom when new messages are added
+    // Convert persistent memory save responses to messages on component mount
     useEffect(() => {
-        if (messagesEndRef.current && scrollContainerRef.current) {
-            // Scroll the container to the bottom smoothly
-            scrollContainerRef.current.scrollTo({
-                top: scrollContainerRef.current.scrollHeight,
-                behavior: 'smooth'
-            })
+        if (memorySaveResponses.length > 0) {
+            const convertedMessages = memorySaveResponsesToMessages(memorySaveResponses)
+            setMessages(convertedMessages)
         }
     }, [memorySaveResponses])
-
-    const scrollContainerRef = useRef<HTMLDivElement>(null)
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -140,62 +63,60 @@ export default function SavePage() {
         const currentInput = input
         setInput("")
 
-        // Create a temporary memory save response with "thinking" state
-        const tempId = `temp-${Date.now()}`
-        const tempSaveResponse: MemorySaveResponse = {
-            success: true,
-            response: {
-                success: true,
-                memory_id: tempId,
-                message: "thinking...",
-            },
-            originalText: currentInput,
-            timestamp: new Date().toISOString()
+        // Add user message
+        const userMessage: UnifiedChatMessage = {
+            id: `user-${Date.now()}`,
+            type: 'user',
+            content: `Add memory: ${currentInput}`,
+            created_at: new Date().toISOString()
         }
 
-        // Add the temporary response immediately
-        addMemorySaveResponse(tempSaveResponse)
+        // Add thinking message
+        const thinkingMessage = createThinkingMessage(Date.now().toString())
+
+        setMessages(prev => [...prev, userMessage, thinkingMessage])
 
         try {
             const result = await saveMemory(currentInput)
             if (result.success && result.response) {
-                const realSaveResponse: MemorySaveResponse = {
+                // Create success message
+                const successMessage: UnifiedChatMessage = {
+                    id: `save-${Date.now()}`,
+                    type: 'memory_save',
+                    content: `✓ Memory saved successfully\nMemory ID: ${result.response.memory_id}`,
+                    created_at: new Date().toISOString(),
+                    memory_id: result.response.memory_id,
+                    save_success: true
+                }
+
+                // Replace thinking message with success message
+                setMessages(prev => updateThinkingMessage(prev, thinkingMessage.id, successMessage))
+
+                // Also add to persistent storage
+                const saveResponse: MemorySaveResponse = {
                     success: true,
                     response: result.response,
                     originalText: currentInput,
                     timestamp: new Date().toISOString()
                 }
-
-                // Replace the temporary response with the real one
-                updateMemorySaveResponses(prev =>
-                    prev.map(resp =>
-                        resp.response?.memory_id === tempId ? realSaveResponse : resp
-                    )
-                )
+                addMemorySaveResponse(saveResponse)
             } else {
-                // Remove the temporary response on error
-                updateMemorySaveResponses(prev =>
-                    prev.filter(resp =>
-                        resp.response?.memory_id !== tempId
-                    )
-                )
+                // Remove thinking message on error
+                setMessages(prev => prev.filter(msg => msg.id !== thinkingMessage.id))
             }
         } catch {
-            // Remove the temporary response on error
-            updateMemorySaveResponses(prev =>
-                prev.filter(resp =>
-                    resp.response?.memory_id !== tempId
-                )
-            )
+            // Remove thinking message on error
+            setMessages(prev => prev.filter(msg => msg.id !== thinkingMessage.id))
         }
     }
 
-    const handleClearHistory = () => {
+    const clearChat = () => {
+        setMessages([])
         clearChatHistory()
     }
 
     // Check if there are any memory save responses
-    const hasMessages = memorySaveResponses.length > 0
+    const hasMessages = messages.length > 0
 
     return (
         <PageLayout
@@ -204,95 +125,24 @@ export default function SavePage() {
             onClearError={clearError}
         >
             {/* Memory Save Content */}
-            <div className="relative h-full flex flex-col">
+            <div className="h-full flex flex-col">
+                <ApiPageHeader
+                    endpoint="(POST) /api/nemes/save"
+                    hasMessages={hasMessages}
+                    onClearChat={clearChat}
+                    isLoading={isLoading}
+                />
                 {hasMessages ? (
-                    // Layout when there are messages - input at bottom
+                    // Layout when there are messages - ChatBox + input at bottom
                     <>
-                        {/* Header with Clear History button */}
-                        <div className="absolute w-full bg-white/75 backdrop-blur-sm -top-0 flex-shrink-0 flex justify-between items-center">
-                            <ClearHistoryDialog
-                                onConfirm={handleClearHistory}
-                                messageCount={memorySaveResponses.length}
+                        <div className="flex-1 min-h-0 p-4 bg-white">
+                            <ChatBox
+                                messages={messages}
+                                isLoading={isLoading}
+                                loadingText="Saving memory..."
+                                showMemoryIndicators={true}
+                                enableMemoryExpansion={true}
                             />
-                            <div className="grow"></div>
-                            <div className="font-mono text-muted-foreground">
-                                (POST) /api/memory
-                            </div>
-                        </div>
-
-                        <div ref={scrollContainerRef} className="flex-1 min-h-0 overflow-y-auto p-4 bg-white">
-                            <div className="space-y-6">
-                                {memorySaveResponses.map((saveResponse, index) => (
-                                    <div key={index} className="space-y-3">
-                                        {/* User Input */}
-                                        <div className="flex justify-end">
-                                            <div className="max-w-[80%] bg-blue-500 text-white rounded-lg px-4 py-2">
-                                                <div className="text-sm font-medium mb-1">Add memory:</div>
-                                                <div>{saveResponse.originalText}</div>
-                                            </div>
-                                        </div>
-
-                                        {/* System Response */}
-                                        <div className="flex justify-start">
-                                            {saveResponse.response?.message === "thinking..." ? (
-                                                <div className="max-w-[80%] bg-gray-100 text-gray-600 rounded-lg px-4 py-2">
-                                                    <div className="text-sm font-medium mb-2 flex items-center gap-2">
-                                                        <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
-                                                        Thinking...
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                <div className="max-w-[80%] bg-green-100 text-green-800 rounded-lg px-4 py-2">
-                                                    <div className="text-sm font-medium mb-2">✓ Memory saved successfully</div>
-                                                    {saveResponse.response && (
-                                                        <div className="space-y-3 text-sm">
-                                                            <div>
-                                                                <strong>Memory ID:</strong> {saveResponse.response.memory_id}
-                                                            </div>
-
-                                                            {saveResponse.response.grounding_applied && (
-                                                                <div className="space-y-2">
-                                                                    <div>
-                                                                        <strong>✓ Contextual grounding applied</strong>
-                                                                    </div>
-
-                                                                    {saveResponse.response.grounded_text && saveResponse.response.grounded_text !== saveResponse.originalText && (
-                                                                        <div>
-                                                                            <strong>Enhanced text:</strong> {saveResponse.response.grounded_text}
-                                                                        </div>
-                                                                    )}
-
-                                                                    {/* Use GroundingInfo component for detailed debug data */}
-                                                                    {saveResponse.response.grounding_info && (
-                                                                        <div className="flex justify-start">
-                                                                            <GroundingInfo
-                                                                                memory={{
-                                                                                    id: saveResponse.response.memory_id,
-                                                                                    content: saveResponse.originalText,
-                                                                                    text: saveResponse.response.grounded_text || saveResponse.originalText,
-                                                                                    original_text: saveResponse.originalText,
-                                                                                    grounded_text: saveResponse.response.grounded_text,
-                                                                                    created_at: saveResponse.timestamp,
-                                                                                    grounding_applied: saveResponse.response.grounding_applied,
-                                                                                    grounding_info: saveResponse.response.grounding_info,
-                                                                                    context_snapshot: saveResponse.response.context_snapshot,
-                                                                                    metadata: {}
-                                                                                }}
-                                                                                className="text-xs"
-                                                                            />
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                ))}
-                                <div ref={messagesEndRef} />
-                            </div>
                         </div>
 
                         {/* Input Form at bottom */}
@@ -312,9 +162,6 @@ export default function SavePage() {
                 ) : (
                     // Layout when no messages - input centered vertically with prompt
                     <div className="flex-1 flex items-center justify-center -mt-40 bg-white">
-                        <div className="absolute top-0 right-0 font-mono text-muted-foreground">
-                            (POST) /api/memory
-                        </div>
                         <div className="w-full">
                             <div className="text-center mb-8">
                                 <h1 className="text-3xl font-bold text-gray-900 mb-2">

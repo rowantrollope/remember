@@ -1,29 +1,22 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState } from "react"
 
 // Components
 import { PageLayout } from "@/components/PageLayout"
 import { PageInputForm } from "@/components/PageInputForm"
 import { RotatingPrompts } from "@/components/RotatingPrompts"
-import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { GroundingInfo } from "@/components/GroundingInfo"
+import { ChatBox, type UnifiedChatMessage } from "@/components/ChatBox"
+import { ApiPageHeader } from "@/components/ApiPageHeader"
 
 // Hooks and types
 import { useConfiguredAPI } from "@/hooks/useConfiguredAPI"
 import { useMemoryAPI } from "@/hooks"
 import { useSettings } from "@/hooks/useSettings"
-import type { RecallMentalStateResponse, ApiMemory } from "@/lib/api"
+import type { RecallMentalStateResponse } from "@/lib/api"
 
-interface RecallResult {
-    id: string
-    query: string
-    mental_state: string
-    memories: ApiMemory[]
-    memory_count: number
-    created_at: string
-}
+// Utils
+import { createThinkingMessage, updateThinkingMessage } from "@/lib/chatMessageUtils"
 
 const recallPrompts = [
     "Example: Construct mental state about travel preferences",
@@ -35,17 +28,14 @@ const recallPrompts = [
 
 export default function RecallPage() {
     const [input, setInput] = useState("")
-    const [results, setResults] = useState<RecallResult[]>([])
+    const [messages, setMessages] = useState<UnifiedChatMessage[]>([])
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [copiedId, setCopiedId] = useState<string | null>(null)
-    const messagesEndRef = useRef<HTMLDivElement>(null)
 
-    // Helper function to get the last component of an ID after the final dash
-    const getShortId = (id: string) => {
-        const parts = id.split('-')
-        return parts[parts.length - 1]
-    }
+    const { api } = useConfiguredAPI()
+    const { apiStatus, clearError: clearMemoryError } = useMemoryAPI()
+    const { settings } = useSettings()
 
     // Function to copy ID to clipboard with visual feedback
     const copyIdToClipboard = async (fullId: string) => {
@@ -58,69 +48,52 @@ export default function RecallPage() {
         }
     }
 
-    const { api } = useConfiguredAPI()
-    const { apiStatus, clearError: clearMemoryError } = useMemoryAPI()
-    const { settings } = useSettings()
-
-    // Auto-scroll to bottom when new results are added
-    useEffect(() => {
-        if (messagesEndRef.current && scrollContainerRef.current) {
-            // Scroll the container to the bottom smoothly
-            scrollContainerRef.current.scrollTo({
-                top: scrollContainerRef.current.scrollHeight,
-                behavior: 'smooth'
-            })
-        }
-    }, [results])
-
-    const scrollContainerRef = useRef<HTMLDivElement>(null)
-
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!input.trim()) return
 
-        // Create a temporary result with "thinking" state
-        const tempResult: RecallResult = {
-            id: `temp-recall-${Date.now()}`,
-            query: input,
-            mental_state: "thinking...",
-            memories: [],
-            memory_count: 0,
-            created_at: new Date().toISOString()
-        }
-
-        // Add the temporary result immediately
-        setResults(prev => [...prev, tempResult])
         const currentInput = input
         setInput("")
         setIsLoading(true)
         setError(null)
 
+        // Add user message
+        const userMessage: UnifiedChatMessage = {
+            id: `user-${Date.now()}`,
+            type: 'user',
+            content: currentInput,
+            created_at: new Date().toISOString()
+        }
+
+        // Add thinking message
+        const thinkingMessage = createThinkingMessage(Date.now().toString())
+
+        setMessages(prev => [...prev, userMessage, thinkingMessage])
+
         try {
             const response: RecallMentalStateResponse = await api.recallMentalState(currentInput, settings.questionTopK, settings.minSimilarity)
 
             if (response.success) {
-                const realResult: RecallResult = {
+                // Replace thinking message with real response
+                const realMessage: UnifiedChatMessage = {
                     id: `recall-${Date.now()}`,
-                    query: response.query,
+                    type: 'recall_result',
+                    content: response.mental_state,
+                    created_at: new Date().toISOString(),
                     mental_state: response.mental_state,
-                    memories: response.memories,
                     memory_count: response.memory_count,
-                    created_at: new Date().toISOString()
+                    supporting_memories: response.memories
                 }
 
-                // Replace the temporary result with the real one
-                setResults(prev => prev.map(result =>
-                    result.id === tempResult.id ? realResult : result
-                ))
+                setMessages(prev => updateThinkingMessage(prev, thinkingMessage.id, realMessage))
             } else {
-                // Remove the temporary result on error
-                setResults(prev => prev.filter(result => result.id !== tempResult.id))
+                // Remove thinking message on error
+                setMessages(prev => prev.filter(msg => msg.id !== thinkingMessage.id))
                 setError('Failed to construct mental state')
             }
         } catch (err) {
-            // Remove the temporary result on error
-            setResults(prev => prev.filter(result => result.id !== tempResult.id))
+            // Remove thinking message on error
+            setMessages(prev => prev.filter(msg => msg.id !== thinkingMessage.id))
             setError(err instanceof Error ? err.message : 'Failed to recall mental state')
         } finally {
             setIsLoading(false)
@@ -132,8 +105,12 @@ export default function RecallPage() {
         clearMemoryError()
     }
 
-    // Check if there are any results
-    const hasResults = results.length > 0
+    const clearChat = () => {
+        setMessages([])
+    }
+
+    // Check if there are any messages
+    const hasMessages = messages.length > 0
 
     return (
         <PageLayout
@@ -142,235 +119,26 @@ export default function RecallPage() {
             onClearError={clearError}
         >
             {/* Recall API Content */}
-            <div className="relative h-full flex flex-col">
-                <div className="absolute w-full bg-white/75 backdrop-blur-md flex-shrink-0 flex justify-between items-center">
-                    <div className="grow"></div>
-                    <div className="font-mono text-muted-foreground">
-                        (POST) /api/klines/recall
-                    </div>
-                </div>
-                {hasResults ? (
-                    // Layout when there are results - input at bottom
+            <div className="h-full flex flex-col">
+                <ApiPageHeader
+                    endpoint="(POST) /api/klines/recall"
+                    hasMessages={hasMessages}
+                    onClearChat={clearChat}
+                    isLoading={isLoading}
+                />
+                {hasMessages ? (
+                    // Layout when there are messages - ChatBox + input at bottom
                     <>
-                        <div ref={scrollContainerRef} className="flex-1 min-h-0 overflow-y-auto p-4 bg-white">
-                            <div className="space-y-6">
-                                {results.map((result) => (
-                                    <div key={result.id} className="space-y-4">
-                                        {/* User Query */}
-                                        <div className="flex justify-end">
-                                            <div className="max-w-[80%] bg-blue-500 text-white rounded-lg px-4 py-2">
-                                                <div className="whitespace-pre-wrap">{result.query}</div>
-                                                <div className="text-xs text-blue-100 mt-1">
-                                                    {new Date(result.created_at).toLocaleTimeString()}
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* Mental State Response */}
-                                        <div className="flex justify-start">
-                                            <div className="max-w-[90%] space-y-4">
-                                                {/* Mental State Card */}
-                                                <Card>
-                                                    <CardHeader>
-                                                        <CardTitle className="text-lg flex items-center gap-2">
-                                                            🧠 Mental State (K-Line)
-                                                            <Badge variant="secondary">
-                                                                {result.memory_count} memories
-                                                            </Badge>
-                                                        </CardTitle>
-                                                    </CardHeader>
-                                                    <CardContent>
-                                                        <div className="whitespace-pre-wrap text-gray-900">
-                                                            {result.mental_state}
-                                                        </div>
-                                                    </CardContent>
-                                                </Card>
-
-                                                {/* Supporting Memories */}
-                                                {result.memories && result.memories.length > 0 && (
-                                                    <Card>
-                                                        <CardHeader>
-                                                            <CardTitle className="text-lg">
-                                                                📚 Supporting Memories ({result.memories.length})
-                                                            </CardTitle>
-                                                        </CardHeader>
-                                                        <CardContent>
-                                                            <div className="space-y-3">
-                                                                {result.memories.map((memory, index) => (
-                                                                    <div key={memory.id || `${result.id}-memory-${index}`}
-                                                                         className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
-
-                                                                        {/* Memory Header */}
-                                                                        <div className="flex items-start justify-between mb-3">
-                                                                            <div className="flex items-center gap-2">
-                                                                                {memory.id && (
-                                                                                    <Badge
-                                                                                        variant="outline"
-                                                                                        className={`font-mono text-xs cursor-pointer transition-colors ${
-                                                                                            copiedId === memory.id
-                                                                                                ? 'bg-green-50 text-green-700 border-green-200'
-                                                                                                : 'hover:bg-gray-50'
-                                                                                        }`}
-                                                                                        onClick={() => copyIdToClipboard(memory.id!)}
-                                                                                        title={`Click to copy full ID: ${memory.id}`}
-                                                                                    >
-                                                                                        {copiedId === memory.id ? '✓ Copied!' : `Neme ID: ${getShortId(memory.id)}`}
-                                                                                    </Badge>
-                                                                                )}
-                                                                                {memory.relevance_score && (
-                                                                                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                                                                                        {memory.relevance_score.toFixed(3)} Relevance Score
-                                                                                    </Badge>
-                                                                                )}
-                                                                                {memory.score && (
-                                                                                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                                                                                        {(memory.score * 100).toFixed(1)}% Vector similarity
-                                                                                    </Badge>
-                                                                                )}
-                                                                            </div>
-                                                                        </div>
-
-                                                                        {/* Memory Content */}
-                                                                        <div className="space-y-3">
-                                                                            {/* Main Text */}
-                                                                            <div>
-                                                                                <div className="text-sm font-medium text-gray-700 mb-1">Current Text:</div>
-                                                                                <div className="text-gray-900 bg-gray-50 p-3 rounded border-l-4 border-blue-400">
-                                                                                    {memory.text || memory.grounded_text}
-                                                                                </div>
-                                                                            </div>
-
-                                                                            {/* Original vs Grounded Text */}
-                                                                            {memory.original_text && memory.grounded_text && memory.original_text !== memory.grounded_text && (
-                                                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                                                                    <div>
-                                                                                        <div className="text-sm font-medium text-gray-700 mb-1">Original:</div>
-                                                                                        <div className="text-sm text-gray-600 bg-gray-50 p-2 rounded border">
-                                                                                            {memory.original_text}
-                                                                                        </div>
-                                                                                    </div>
-                                                                                    <div>
-                                                                                        <div className="text-sm font-medium text-gray-700 mb-1">Grounded:</div>
-                                                                                        <div className="text-sm text-gray-600 bg-blue-50 p-2 rounded border border-blue-200">
-                                                                                            {memory.grounded_text}
-                                                                                        </div>
-                                                                                    </div>
-                                                                                </div>
-                                                                            )}
-
-                                                                            {/* Tags */}
-                                                                            {memory.tags && memory.tags.length > 0 && (
-                                                                                <div>
-                                                                                    <div className="text-sm font-medium text-gray-700 mb-1">Tags:</div>
-                                                                                    <div className="flex flex-wrap gap-1">
-                                                                                        {memory.tags.map((tag: string, tagIndex: number) => (
-                                                                                            <Badge key={tagIndex} variant="secondary" className="text-xs">
-                                                                                                {tag}
-                                                                                            </Badge>
-                                                                                        ))}
-                                                                                    </div>
-                                                                                </div>
-                                                                            )}
-
-                                                                            {/* Temporal Information */}
-                                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                                                                                <div>
-                                                                                    <div className="font-medium text-gray-700 mb-1">Created:</div>
-                                                                                    <div className="text-gray-600">
-                                                                                        {memory.created_at ? new Date(memory.created_at).toLocaleString() : 'Unknown'}
-                                                                                    </div>
-                                                                                </div>
-                                                                                {memory.last_accessed_at && (
-                                                                                    <div>
-                                                                                        <div className="font-medium text-gray-700 mb-1">Last Accessed:</div>
-                                                                                        <div className="text-gray-600">
-                                                                                            {new Date(memory.last_accessed_at).toLocaleString()}
-                                                                                        </div>
-                                                                                    </div>
-                                                                                )}
-                                                                                <div>
-                                                                                    <div className="font-medium text-gray-700 mb-1">Grounding:</div>
-                                                                                    <div className="text-gray-600">
-                                                                                        {memory.grounding_applied ? (
-                                                                                            <span className="text-green-600">✓ Applied</span>
-                                                                                        ) : (
-                                                                                            <span className="text-gray-400">✗ Not applied</span>
-                                                                                        )}
-                                                                                    </div>
-                                                                                </div>
-                                                                            </div>
-
-                                                                            {/* Access Information */}
-                                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                                                                                {memory.last_accessed_at && (
-                                                                                    <div>
-                                                                                        <div className="font-medium text-gray-700 mb-1">Last Accessed:</div>
-                                                                                        <div className="text-gray-600">
-                                                                                            {new Date(memory.last_accessed_at).toLocaleString()}
-                                                                                        </div>
-                                                                                    </div>
-                                                                                )}
-                                                                                <div>
-                                                                                    <div className="font-medium text-gray-700 mb-1">Access Count:</div>
-                                                                                    <div className="text-gray-600">
-                                                                                        {memory.access_count || 0} times
-                                                                                    </div>
-                                                                                </div>
-                                                                            </div>
-
-                                                                            {/* Expandable Sections */}
-                                                                            <div className="space-y-2">
-                                                                                {/* Grounding Info */}
-                                                                                {memory.grounding_applied && memory.grounding_info && (
-                                                                                    <GroundingInfo
-                                                                                        memory={{
-                                                                                            id: memory.id || 'unknown',
-                                                                                            content: memory.content || memory.text || memory.memory || '',
-                                                                                            text: memory.text || memory.content || memory.memory || '',
-                                                                                            original_text: memory.original_text,
-                                                                                            grounded_text: memory.grounded_text,
-                                                                                            created_at: memory.created_at || new Date().toISOString(),
-                                                                                            grounding_applied: memory.grounding_applied,
-                                                                                            grounding_info: memory.grounding_info,
-                                                                                            context_snapshot: memory.context_snapshot,
-                                                                                            metadata: memory.metadata || {}
-                                                                                        }}
-                                                                                        className="text-xs"
-                                                                                    />
-                                                                                )}
-
-                                                                                {/* Raw Metadata */}
-                                                                                {memory.metadata && Object.keys(memory.metadata).length > 0 && (
-                                                                                    <details className="text-xs">
-                                                                                        <summary className="cursor-pointer hover:text-gray-700 font-medium text-gray-600">
-                                                                                            🔧 Raw Metadata
-                                                                                        </summary>
-                                                                                        <div className="mt-2 bg-gray-50 p-2 rounded border">
-                                                                                            <pre className="text-xs overflow-x-auto">
-                                                                                                {JSON.stringify(memory.metadata, null, 2)}
-                                                                                            </pre>
-                                                                                        </div>
-                                                                                    </details>
-                                                                                )}
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        </CardContent>
-                                                    </Card>
-                                                )}
-
-                                                <div className="text-xs text-gray-500">
-                                                    {new Date(result.created_at).toLocaleTimeString()}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                                {/* Scroll target */}
-                                <div ref={messagesEndRef} />
-                            </div>
+                        <div className="flex-1 min-h-0 p-4 bg-white">
+                            <ChatBox
+                                messages={messages}
+                                isLoading={isLoading}
+                                loadingText="Constructing mental state..."
+                                showMemoryIndicators={true}
+                                enableMemoryExpansion={true}
+                                copiedId={copiedId}
+                                onCopyId={copyIdToClipboard}
+                            />
                         </div>
 
                         {/* Input Form at bottom */}
@@ -386,7 +154,7 @@ export default function RecallPage() {
                         </div>
                     </>
                 ) : (
-                    // Layout when no results - input centered vertically with prompt
+                    // Layout when no messages - input centered vertically with prompt
                     <div className="flex-1 flex items-center justify-center -mt-40 bg-white">
                         <div className="w-full">
                             <div className="text-center mb-8">

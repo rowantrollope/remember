@@ -13,7 +13,8 @@ import {
 } from "@/components/ui/dialog"
 import { Plane, Brain, HelpCircle, Compass, Map, GitBranch } from "lucide-react"
 import { PageLayout } from "@/components/PageLayout"
-import { ChatBox, ChatMessage } from "@/components/ChatBox"
+import { ChatCard } from "@/components/ChatCard"
+import { ChatMessage } from "@/components/ChatBox"
 import { useMemoryAPI } from "@/hooks"
 import { useConfiguredAPI } from "@/hooks/useConfiguredAPI"
 import { useSettings } from "@/hooks/useSettings"
@@ -485,7 +486,7 @@ export default function TravelDemo() {
                     </TabsList>
 
                     <TabsContent value="standard" className="space-y-6">
-                        <ChatBox
+                        <ChatCard
                             title="Standard Travel Agent"
                             subtitle="Provides general travel advice but doesn't remember your preferences"
                             messages={standardMessages}
@@ -506,7 +507,7 @@ export default function TravelDemo() {
                     </TabsContent>
 
                     <TabsContent value="memory" className="space-y-6">
-                        <ChatBox
+                        <ChatCard
                             title="Travel Agent, with Remem for Memory"
                             subtitle="Learns your preferences and provides personalized recommendations"
                             messages={memoryMessages}
@@ -532,7 +533,7 @@ export default function TravelDemo() {
                     </TabsContent>
 
                     <TabsContent value="langgraph" className="space-y-6">
-                        <ChatBox
+                        <ChatCard
                             title="Travel Agent, Langgraph + Remem"
                             subtitle="Powered by Langgraph API + Remem for advanced travel assistance"
                             messages={langgraphMessages}
