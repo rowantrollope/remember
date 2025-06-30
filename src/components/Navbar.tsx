@@ -53,7 +53,7 @@ export function Navbar() {
     const demoItems = [
         {
             href: "/chat-demo",
-            label: "Chat Demo",
+            label: "Memory Chat (LangGraph)",
             icon: MessageCircle,
             isActive: pathname === "/chat-demo"
         },
