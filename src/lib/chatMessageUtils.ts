@@ -95,7 +95,12 @@ export function memorySaveResponsesToMessages(responses: MemorySaveResponse[]): 
                 `✓ Memory saved successfully\nMemory ID: ${saveResponse.response?.memory_id}`,
             created_at: saveResponse.timestamp,
             memory_id: saveResponse.response?.memory_id,
-            save_success: !isThinking && saveResponse.success
+            save_success: !isThinking && saveResponse.success,
+            grounding_applied: saveResponse.response?.grounding_applied,
+            grounding_info: saveResponse.response?.grounding_info,
+            context_snapshot: saveResponse.response?.context_snapshot,
+            original_text: saveResponse.response?.original_text,
+            grounded_text: saveResponse.response?.grounded_text
         })
     })
 

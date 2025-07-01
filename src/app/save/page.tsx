@@ -79,14 +79,19 @@ export default function SavePage() {
         try {
             const result = await saveMemory(currentInput)
             if (result.success && result.response) {
-                // Create success message
+                // Create success message with grounding information
                 const successMessage: UnifiedChatMessage = {
                     id: `save-${Date.now()}`,
                     type: 'memory_save',
                     content: `✓ Memory saved successfully\nMemory ID: ${result.response.memory_id}`,
                     created_at: new Date().toISOString(),
                     memory_id: result.response.memory_id,
-                    save_success: true
+                    save_success: true,
+                    grounding_applied: result.response.grounding_applied,
+                    grounding_info: result.response.grounding_info,
+                    context_snapshot: result.response.context_snapshot,
+                    original_text: result.response.original_text,
+                    grounded_text: result.response.grounded_text
                 }
 
                 // Replace thinking message with success message
@@ -127,7 +132,7 @@ export default function SavePage() {
             {/* Memory Save Content */}
             <div className="h-full flex flex-col">
                 <ApiPageHeader
-                    endpoint="(POST) /api/nemes/save"
+                    endpoint="(POST) /api/memory/save"
                     hasMessages={hasMessages}
                     onClearChat={clearChat}
                     isLoading={isLoading}

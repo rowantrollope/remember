@@ -7,6 +7,7 @@ import { Brain, MapPin } from 'lucide-react'
 import { ConfidencePill } from '@/components/ConfidencePill'
 import { SupportingMemoriesDialog } from '@/components/SupportingMemoriesDialog'
 import { SessionMemoriesDialog } from '@/components/SessionMemoriesDialog'
+import { GroundingInfo } from '@/components/GroundingInfo'
 import type { Memory } from '@/types'
 import type { ApiMemory } from '@/lib/api'
 
@@ -47,6 +48,46 @@ export interface UnifiedChatMessage {
     // For memory save responses
     memory_id?: string
     save_success?: boolean
+    grounding_applied?: boolean
+    grounding_info?: {
+        dependencies_found?: {
+            spatial?: string[]
+            environmental?: string[]
+            temporal?: string[]
+            social?: string[]
+        }
+        changes_made?: Array<{
+            original: string
+            replacement: string
+            type: string
+        }>
+        unresolved_references?: string[]
+    }
+    context_snapshot?: {
+        temporal?: {
+            date?: string
+            time?: string
+            iso_date?: string
+            day_of_week?: string
+            month?: string
+            year?: number
+        }
+        spatial?: {
+            location?: string
+            activity?: string
+        }
+        social?: {
+            people_present?: string[]
+        }
+        environmental?: {
+            weather?: string
+            temperature?: string
+            mood?: string
+            [key: string]: any
+        }
+    }
+    original_text?: string
+    grounded_text?: string
 
     // For session-based chat
     hasMemory?: boolean
@@ -229,6 +270,26 @@ export function ChatBox({
                 {/* Memory Save Success */}
                 {message.type === 'memory_save' && message.save_success && (
                     <div className="text-sm font-medium mb-2">✓ Memory saved successfully</div>
+                )}
+
+                {/* Memory Save Grounding Information */}
+                {message.type === 'memory_save' && message.grounding_applied && message.grounding_info && (
+                    <div className="mt-2">
+                        <GroundingInfo
+                            memory={{
+                                id: message.memory_id || 'temp-id',
+                                content: message.content,
+                                text: message.grounded_text || message.content,
+                                original_text: message.original_text,
+                                grounded_text: message.grounded_text,
+                                created_at: typeof message.created_at === 'string' ? message.created_at : message.created_at.toISOString(),
+                                grounding_applied: message.grounding_applied,
+                                grounding_info: message.grounding_info,
+                                context_snapshot: message.context_snapshot
+                            } as Memory}
+                            className="text-xs"
+                        />
+                    </div>
                 )}
 
                 {/* Reasoning */}
