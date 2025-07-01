@@ -8,13 +8,15 @@ export interface ApiPageHeaderProps {
     hasMessages: boolean
     onClearChat: () => void
     isLoading?: boolean
+    title?: string
 }
 
 export function ApiPageHeader({
     endpoint,
     hasMessages,
     onClearChat,
-    isLoading = false
+    isLoading = false,
+    title
 }: ApiPageHeaderProps) {
     return (
         <div className="flex-shrink-0 bg-white pb-2 flex justify-between items-center">
@@ -31,6 +33,13 @@ export function ApiPageHeader({
                 </Button>
             ) : (
                 <div></div>
+            )}
+            {title && (
+                <div className="absolute left-1/2 transform -translate-x-1/2">
+                    <h1 className="text-lg font-semibold text-gray-900">
+                        {title}
+                    </h1>
+                </div>
             )}
             <div className="font-mono text-sm text-muted-foreground">
                 {endpoint}

@@ -155,6 +155,7 @@ export default function RecallPage() {
                     hasMessages={hasMessages}
                     onClearChat={clearChat}
                     isLoading={isLoading}
+                    title="Recall Mental State"
                 />
                 {hasMessages ? (
                     // Layout when there are messages - ChatBox + input at bottom

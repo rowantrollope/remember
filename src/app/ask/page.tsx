@@ -148,6 +148,7 @@ export default function AskPage() {
                     hasMessages={hasMessages}
                     onClearChat={clearChat}
                     isLoading={isLoading}
+                    title="Ask Memory A Question"
                 />
                 {hasMessages ? (
                     // Layout when there are messages - ChatBox + input at bottom

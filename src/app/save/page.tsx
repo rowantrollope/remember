@@ -131,6 +131,7 @@ export default function SavePage() {
                     hasMessages={hasMessages}
                     onClearChat={clearChat}
                     isLoading={isLoading}
+                    title="Create a new memory"
                 />
                 {hasMessages ? (
                     // Layout when there are messages - ChatBox + input at bottom

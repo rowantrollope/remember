@@ -118,6 +118,7 @@ export default function SearchPage() {
                     hasMessages={isSearching}
                     onClearChat={clearSearch}
                     isLoading={isLoading}
+                    title="Search Memory"
                 />
                 {isSearching ? (
                     // Layout when searching or have search results - input at bottom
