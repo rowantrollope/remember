@@ -37,7 +37,12 @@ export default function RecallPage() {
 
     const { api } = useConfiguredAPI()
     const { apiStatus, clearError: clearMemoryError } = useMemoryAPI()
-    const { settings } = useSettings()
+    const { settings, isLoaded } = useSettings()
+
+    // Debug: Log settings when they change
+    useEffect(() => {
+        console.log('Recall page - Current settings:', settings, 'isLoaded:', isLoaded)
+    }, [settings, isLoaded])
 
     // Use persistent chat hook for recall responses (for persistence)
     const {
@@ -68,6 +73,10 @@ export default function RecallPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!input.trim()) return
+        if (!isLoaded) {
+            console.log('Settings not loaded yet, waiting...')
+            return
+        }
 
         const currentInput = input
         setInput("")
@@ -88,7 +97,19 @@ export default function RecallPage() {
         setMessages(prev => [...prev, userMessage, thinkingMessage])
 
         try {
-            const response: RecallMentalStateResponse = await api.recallMentalState(currentInput, settings.questionTopK, settings.minSimilarity)
+            // Force explicit values for debugging
+            const topK = settings.questionTopK
+            const minSimilarity = settings.minSimilarity
+
+            console.log('Recall API call with explicit values:', {
+                topK,
+                minSimilarity,
+                query: currentInput,
+                settingsObject: settings,
+                isLoaded
+            })
+
+            const response: RecallMentalStateResponse = await api.recallMentalState(currentInput, topK, minSimilarity)
 
             if (response.success) {
                 // Replace thinking message with real response
@@ -156,6 +177,7 @@ export default function RecallPage() {
                     onClearChat={clearChat}
                     isLoading={isLoading}
                     title="Recall Mental State"
+                    showSettingsButton={true}
                 />
                 {hasMessages ? (
                     // Layout when there are messages - ChatBox + input at bottom

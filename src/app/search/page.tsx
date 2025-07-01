@@ -119,6 +119,7 @@ export default function SearchPage() {
                     onClearChat={clearSearch}
                     isLoading={isLoading}
                     title="Search Memory"
+                    showSettingsButton={true}
                 />
                 {isSearching ? (
                     // Layout when searching or have search results - input at bottom

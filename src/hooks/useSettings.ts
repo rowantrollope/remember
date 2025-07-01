@@ -1,5 +1,15 @@
 import { useState, useEffect, useCallback } from 'react'
 
+// Create a custom event for settings changes
+const SETTINGS_CHANGE_EVENT = 'settings-changed'
+
+// Dispatch custom event when settings change
+const dispatchSettingsChange = (newSettings: UserSettings) => {
+    window.dispatchEvent(new CustomEvent(SETTINGS_CHANGE_EVENT, {
+        detail: newSettings
+    }))
+}
+
 export interface UserSettings {
     questionTopK: number // Number of memories to use when answering questions
     minSimilarity: number // Minimum similarity threshold for memory retrieval (0.0 to 1.0)
@@ -76,6 +86,20 @@ export function useSettings() {
         }
     }, [])
 
+    // Listen for settings changes from other components
+    useEffect(() => {
+        const handleSettingsChange = (event: CustomEvent<UserSettings>) => {
+            console.log('useSettings: Received settings change event:', event.detail)
+            setSettings(event.detail)
+        }
+
+        window.addEventListener(SETTINGS_CHANGE_EVENT, handleSettingsChange as EventListener)
+
+        return () => {
+            window.removeEventListener(SETTINGS_CHANGE_EVENT, handleSettingsChange as EventListener)
+        }
+    }, [])
+
     // Save settings to localStorage
     const saveToStorage = useCallback((newSettings: UserSettings) => {
         try {
@@ -87,6 +111,9 @@ export function useSettings() {
 
             localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(dataToSave))
             console.log('Settings saved to localStorage:', newSettings)
+
+            // Notify other components about the settings change
+            dispatchSettingsChange(newSettings)
         } catch (error) {
             console.error('Failed to save settings to localStorage:', error)
         }
@@ -94,11 +121,13 @@ export function useSettings() {
 
     // Update a specific setting
     const updateSetting = useCallback(<K extends keyof UserSettings>(
-        key: K, 
+        key: K,
         value: UserSettings[K]
     ) => {
+        console.log('updateSetting called:', { key, value })
         setSettings(prev => {
             const updated = { ...prev, [key]: value }
+            console.log('Settings updated from', prev[key], 'to', value)
             saveToStorage(updated)
             return updated
         })
