@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 
 // Components
 import { PageLayout } from "@/components/PageLayout"
@@ -13,10 +13,12 @@ import { ApiPageHeader } from "@/components/ApiPageHeader"
 import { useConfiguredAPI } from "@/hooks/useConfiguredAPI"
 import { useMemoryAPI } from "@/hooks"
 import { useSettings } from "@/hooks/useSettings"
+import { usePersistentChat } from "@/hooks/usePersistentChat"
 import type { RecallMentalStateResponse } from "@/lib/api"
+import type { RecallResponse } from "@/hooks/usePersistentChat"
 
 // Utils
-import { createThinkingMessage, updateThinkingMessage } from "@/lib/chatMessageUtils"
+import { createThinkingMessage, updateThinkingMessage, recallResponsesToMessages } from "@/lib/chatMessageUtils"
 
 const recallPrompts = [
     "Example: Construct mental state about travel preferences",
@@ -36,6 +38,21 @@ export default function RecallPage() {
     const { api } = useConfiguredAPI()
     const { apiStatus, clearError: clearMemoryError } = useMemoryAPI()
     const { settings } = useSettings()
+
+    // Use persistent chat hook for recall responses (for persistence)
+    const {
+        recallResponses: persistentRecallResponses,
+        addRecallResponse,
+        updateRecallResponses,
+    } = usePersistentChat()
+
+    // Convert persistent recall responses to messages on component mount
+    useEffect(() => {
+        if (persistentRecallResponses.length > 0) {
+            const convertedMessages = recallResponsesToMessages(persistentRecallResponses)
+            setMessages(convertedMessages)
+        }
+    }, [persistentRecallResponses])
 
     // Function to copy ID to clipboard with visual feedback
     const copyIdToClipboard = async (fullId: string) => {
@@ -82,10 +99,21 @@ export default function RecallPage() {
                     created_at: new Date().toISOString(),
                     mental_state: response.mental_state,
                     memory_count: response.memory_count,
-                    supporting_memories: response.memories
+                    supporting_memories: response.memories,
+                    excluded_memories: response.excluded_memories,
+                    filtering_info: response.filtering_info
                 }
 
                 setMessages(prev => updateThinkingMessage(prev, thinkingMessage.id, realMessage))
+
+                // Also add to persistent storage
+                const recallResponse: RecallResponse = {
+                    success: true,
+                    response: response,
+                    originalQuery: currentInput,
+                    timestamp: new Date().toISOString()
+                }
+                addRecallResponse(recallResponse)
             } else {
                 // Remove thinking message on error
                 setMessages(prev => prev.filter(msg => msg.id !== thinkingMessage.id))
@@ -107,6 +135,8 @@ export default function RecallPage() {
 
     const clearChat = () => {
         setMessages([])
+        // Also clear persistent recall responses
+        updateRecallResponses([])
     }
 
     // Check if there are any messages

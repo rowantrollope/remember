@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 
 // Components
 import { PageLayout } from "@/components/PageLayout"
@@ -10,10 +10,13 @@ import { ApiPageHeader } from "@/components/ApiPageHeader"
 // Hooks
 import { useMemoryAPI } from "@/hooks"
 import { useSettings } from "@/hooks/useSettings"
+import { usePersistentChat } from "@/hooks/usePersistentChat"
+import type { SearchResponse } from "@/hooks/usePersistentChat"
 
 export default function SearchPage() {
     const [input, setInput] = useState("")
     const [currentSearchQuery, setCurrentSearchQuery] = useState<string | null>(null)
+    const [lastSearchQuery, setLastSearchQuery] = useState<string | null>(null)
 
     const {
         searchResults,
@@ -30,6 +33,40 @@ export default function SearchPage() {
     // Get settings for search top_k
     const { settings } = useSettings()
 
+    // Use persistent chat hook for search responses (for persistence)
+    const {
+        searchResponses: persistentSearchResponses,
+        addSearchResponse,
+        updateSearchResponses,
+    } = usePersistentChat()
+
+    // Restore search state from persistent storage on component mount
+    useEffect(() => {
+        if (persistentSearchResponses.length > 0) {
+            // Get the most recent search response
+            const lastSearch = persistentSearchResponses[persistentSearchResponses.length - 1]
+            setCurrentSearchQuery(lastSearch.query)
+            setLastSearchQuery(lastSearch.query)
+            // Note: searchResults are managed by useMemoryAPI hook and will be set when we trigger the search
+        }
+    }, [persistentSearchResponses])
+
+    // Save search results when they are updated (after a successful search)
+    useEffect(() => {
+        if (searchResults.length > 0 && currentSearchQuery && currentSearchQuery !== lastSearchQuery) {
+            const searchResponse: SearchResponse = {
+                success: true,
+                query: currentSearchQuery,
+                results: searchResults,
+                excludedMemories: excludedMemories,
+                filteringInfo: filteringInfo || undefined,
+                timestamp: new Date().toISOString()
+            }
+            addSearchResponse(searchResponse)
+            setLastSearchQuery(currentSearchQuery)
+        }
+    }, [searchResults, excludedMemories, filteringInfo, currentSearchQuery, lastSearchQuery, addSearchResponse])
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!input.trim()) return
@@ -44,6 +81,7 @@ export default function SearchPage() {
             if (success) {
                 // Keep the search query to show results
                 // setCurrentSearchQuery will remain set to show the query that was searched
+                // Search results will be saved by the useEffect hook when they are updated
             } else {
                 // Clear the search query on error
                 setCurrentSearchQuery(null)
@@ -56,6 +94,9 @@ export default function SearchPage() {
 
     const clearSearch = () => {
         setCurrentSearchQuery(null)
+        setLastSearchQuery(null)
+        // Also clear persistent search responses
+        updateSearchResponses([])
         // Note: searchResults are managed by useMemoryAPI hook,
         // they will be cleared when a new search is performed
     }
@@ -85,7 +126,7 @@ export default function SearchPage() {
                             {/* Show current search query */}
                             <div className="mb-4 p-3 bg-blue-50 rounded-lg border-l-4 border-blue-400">
                                 <div className="text-sm text-blue-700 font-medium">
-                                    Searching for: "{currentSearchQuery}"
+                                    Searching for: &ldquo;{currentSearchQuery}&rdquo;
                                 </div>
                                 {isLoading && (
                                     <div className="text-sm text-blue-600 mt-1">

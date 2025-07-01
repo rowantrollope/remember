@@ -1,7 +1,7 @@
 import type { UnifiedChatMessage } from '@/components/ChatBox'
 import type { Conversation } from '@/types'
-import type { RecallMentalStateResponse, ApiMemory } from '@/lib/api'
-import type { MemorySaveResponse } from '@/hooks/usePersistentChat'
+import type { ApiMemory } from '@/lib/api'
+import type { MemorySaveResponse, RecallResponse } from '@/hooks/usePersistentChat'
 
 // Convert Conversation (from ask API) to UnifiedChatMessage format
 export function conversationToMessages(conversations: Conversation[]): UnifiedChatMessage[] {
@@ -75,7 +75,7 @@ export function recallResultsToMessages(results: RecallResult[]): UnifiedChatMes
 // Convert memory save responses to UnifiedChatMessage format
 export function memorySaveResponsesToMessages(responses: MemorySaveResponse[]): UnifiedChatMessage[] {
     const messages: UnifiedChatMessage[] = []
-    
+
     responses.forEach((saveResponse, index) => {
         // User input
         messages.push({
@@ -84,21 +84,60 @@ export function memorySaveResponsesToMessages(responses: MemorySaveResponse[]): 
             content: `Add memory: ${saveResponse.originalText}`,
             created_at: saveResponse.timestamp
         })
-        
+
         // System response
         const isThinking = saveResponse.response?.message === "thinking..."
         messages.push({
             id: `save-${index}-response`,
             type: 'memory_save',
-            content: isThinking ? 
-                "Thinking..." : 
+            content: isThinking ?
+                "Thinking..." :
                 `✓ Memory saved successfully\nMemory ID: ${saveResponse.response?.memory_id}`,
             created_at: saveResponse.timestamp,
             memory_id: saveResponse.response?.memory_id,
             save_success: !isThinking && saveResponse.success
         })
     })
-    
+
+    return messages
+}
+
+// Convert recall responses to UnifiedChatMessage format
+export function recallResponsesToMessages(responses: RecallResponse[]): UnifiedChatMessage[] {
+    const messages: UnifiedChatMessage[] = []
+
+    responses.forEach((recallResponse, index) => {
+        // User query
+        messages.push({
+            id: `recall-${index}-query`,
+            type: 'user',
+            content: recallResponse.originalQuery,
+            created_at: recallResponse.timestamp
+        })
+
+        // Recall response
+        if (recallResponse.success && recallResponse.response) {
+            messages.push({
+                id: `recall-${index}-response`,
+                type: 'recall_result',
+                content: recallResponse.response.mental_state,
+                created_at: recallResponse.timestamp,
+                mental_state: recallResponse.response.mental_state,
+                memory_count: recallResponse.response.memory_count,
+                supporting_memories: recallResponse.response.memories,
+                excluded_memories: recallResponse.response.excluded_memories,
+                filtering_info: recallResponse.response.filtering_info
+            })
+        } else {
+            messages.push({
+                id: `recall-${index}-response`,
+                type: 'assistant',
+                content: "Failed to construct mental state",
+                created_at: recallResponse.timestamp
+            })
+        }
+    })
+
     return messages
 }
 

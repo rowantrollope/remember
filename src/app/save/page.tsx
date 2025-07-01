@@ -135,7 +135,7 @@ export default function SavePage() {
                 {hasMessages ? (
                     // Layout when there are messages - ChatBox + input at bottom
                     <>
-                        <div className="flex-1 min-h-0 p-4 bg-white">
+                        <div className="flex-1 min-h-0 px-4 bg-white">
                             <ChatBox
                                 messages={messages}
                                 isLoading={isLoading}

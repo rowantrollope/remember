@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { Conversation } from '@/types'
-import type { RememberResponse } from '@/lib/api'
+import type { RememberResponse, RecallMentalStateResponse, ApiMemory } from '@/lib/api'
 
 export interface MemorySaveResponse {
     success: boolean
@@ -9,9 +9,32 @@ export interface MemorySaveResponse {
     timestamp: string
 }
 
+export interface RecallResponse {
+    success: boolean
+    response: RecallMentalStateResponse | null
+    originalQuery: string
+    timestamp: string
+}
+
+export interface SearchResponse {
+    success: boolean
+    query: string
+    results: ApiMemory[]
+    excludedMemories?: ApiMemory[]
+    filteringInfo?: {
+        min_similarity_threshold?: number
+        total_candidates?: number
+        excluded_count?: number
+        included_count?: number
+    }
+    timestamp: string
+}
+
 interface ChatState {
     conversations: Conversation[]
     memorySaveResponses: MemorySaveResponse[]
+    recallResponses: RecallResponse[]
+    searchResponses: SearchResponse[]
     lastUpdated: string
 }
 
@@ -21,6 +44,8 @@ const STORAGE_VERSION = '1.0'
 export function usePersistentChat() {
     const [conversations, setConversations] = useState<Conversation[]>([])
     const [memorySaveResponses, setMemorySaveResponses] = useState<MemorySaveResponse[]>([])
+    const [recallResponses, setRecallResponses] = useState<RecallResponse[]>([])
+    const [searchResponses, setSearchResponses] = useState<SearchResponse[]>([])
     const [isLoaded, setIsLoaded] = useState(false)
 
     // Load chat history from localStorage on initialization
@@ -32,32 +57,60 @@ export function usePersistentChat() {
                 
                 // Validate the data structure and version
                 if (parsed && parsed.version === STORAGE_VERSION && parsed.data) {
-                    const { conversations: savedConversations, memorySaveResponses: savedMemorySaves } = parsed.data
-                    
+                    const {
+                        conversations: savedConversations,
+                        memorySaveResponses: savedMemorySaves,
+                        recallResponses: savedRecallResponses,
+                        searchResponses: savedSearchResponses
+                    } = parsed.data
+
                     // Validate and restore conversations
                     if (Array.isArray(savedConversations)) {
-                        setConversations(savedConversations.filter(conv => 
-                            conv && 
-                            typeof conv.id === 'string' && 
-                            typeof conv.question === 'string' && 
+                        setConversations(savedConversations.filter(conv =>
+                            conv &&
+                            typeof conv.id === 'string' &&
+                            typeof conv.question === 'string' &&
                             typeof conv.answer === 'string' &&
-                            typeof conv.timestamp === 'string'
+                            typeof conv.created_at === 'string'
                         ))
                     }
-                    
+
                     // Validate and restore memory save responses
                     if (Array.isArray(savedMemorySaves)) {
-                        setMemorySaveResponses(savedMemorySaves.filter(save => 
-                            save && 
-                            typeof save.success === 'boolean' && 
+                        setMemorySaveResponses(savedMemorySaves.filter(save =>
+                            save &&
+                            typeof save.success === 'boolean' &&
                             typeof save.originalText === 'string' &&
                             typeof save.timestamp === 'string'
                         ))
                     }
-                    
+
+                    // Validate and restore recall responses
+                    if (Array.isArray(savedRecallResponses)) {
+                        setRecallResponses(savedRecallResponses.filter(recall =>
+                            recall &&
+                            typeof recall.success === 'boolean' &&
+                            typeof recall.originalQuery === 'string' &&
+                            typeof recall.timestamp === 'string'
+                        ))
+                    }
+
+                    // Validate and restore search responses
+                    if (Array.isArray(savedSearchResponses)) {
+                        setSearchResponses(savedSearchResponses.filter(search =>
+                            search &&
+                            typeof search.success === 'boolean' &&
+                            typeof search.query === 'string' &&
+                            typeof search.timestamp === 'string' &&
+                            Array.isArray(search.results)
+                        ))
+                    }
+
                     console.log('Chat history loaded from localStorage', {
                         conversations: savedConversations?.length || 0,
-                        memorySaves: savedMemorySaves?.length || 0
+                        memorySaves: savedMemorySaves?.length || 0,
+                        recallResponses: savedRecallResponses?.length || 0,
+                        searchResponses: savedSearchResponses?.length || 0
                     })
                 }
             }
@@ -71,11 +124,13 @@ export function usePersistentChat() {
     }, [])
 
     // Save chat history to localStorage whenever it changes
-    const saveToStorage = useCallback((newConversations: Conversation[], newMemorySaves: MemorySaveResponse[]) => {
+    const saveToStorage = useCallback((newConversations: Conversation[], newMemorySaves: MemorySaveResponse[], newRecallResponses: RecallResponse[], newSearchResponses: SearchResponse[]) => {
         try {
             const chatState: ChatState = {
                 conversations: newConversations,
                 memorySaveResponses: newMemorySaves,
+                recallResponses: newRecallResponses,
+                searchResponses: newSearchResponses,
                 lastUpdated: new Date().toISOString()
             }
 
@@ -88,7 +143,9 @@ export function usePersistentChat() {
             localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(dataToSave))
             console.log('Chat history saved to localStorage', {
                 conversations: newConversations.length,
-                memorySaves: newMemorySaves.length
+                memorySaves: newMemorySaves.length,
+                recallResponses: newRecallResponses.length,
+                searchResponses: newSearchResponses.length
             })
         } catch (error) {
             console.error('Failed to save chat history to localStorage:', error)
@@ -99,72 +156,126 @@ export function usePersistentChat() {
     const addConversation = useCallback((conversation: Conversation) => {
         setConversations(prev => {
             const updated = [...prev, conversation]
-            saveToStorage(updated, memorySaveResponses)
+            saveToStorage(updated, memorySaveResponses, recallResponses, searchResponses)
             return updated
         })
-    }, [memorySaveResponses, saveToStorage])
+    }, [memorySaveResponses, recallResponses, searchResponses, saveToStorage])
 
     // Add a new memory save response and persist
     const addMemorySaveResponse = useCallback((saveResponse: MemorySaveResponse) => {
         setMemorySaveResponses(prev => {
             const updated = [...prev, saveResponse]
-            saveToStorage(conversations, updated)
+            saveToStorage(conversations, updated, recallResponses, searchResponses)
             return updated
         })
-    }, [conversations, saveToStorage])
+    }, [conversations, recallResponses, searchResponses, saveToStorage])
+
+    // Add a new recall response and persist
+    const addRecallResponse = useCallback((recallResponse: RecallResponse) => {
+        setRecallResponses(prev => {
+            const updated = [...prev, recallResponse]
+            saveToStorage(conversations, memorySaveResponses, updated, searchResponses)
+            return updated
+        })
+    }, [conversations, memorySaveResponses, searchResponses, saveToStorage])
+
+    // Add a new search response and persist
+    const addSearchResponse = useCallback((searchResponse: SearchResponse) => {
+        setSearchResponses(prev => {
+            const updated = [...prev, searchResponse]
+            saveToStorage(conversations, memorySaveResponses, recallResponses, updated)
+            return updated
+        })
+    }, [conversations, memorySaveResponses, recallResponses, saveToStorage])
 
     // Update conversations array and persist
     const updateConversations = useCallback((newConversations: Conversation[]) => {
         setConversations(newConversations)
-        saveToStorage(newConversations, memorySaveResponses)
-    }, [memorySaveResponses, saveToStorage])
+        saveToStorage(newConversations, memorySaveResponses, recallResponses, searchResponses)
+    }, [memorySaveResponses, recallResponses, searchResponses, saveToStorage])
 
     // Update memory save responses array and persist
     const updateMemorySaveResponses = useCallback((newMemorySaves: MemorySaveResponse[] | ((prev: MemorySaveResponse[]) => MemorySaveResponse[])) => {
         if (typeof newMemorySaves === 'function') {
             setMemorySaveResponses(prev => {
                 const updated = newMemorySaves(prev)
-                saveToStorage(conversations, updated)
+                saveToStorage(conversations, updated, recallResponses, searchResponses)
                 return updated
             })
         } else {
             setMemorySaveResponses(newMemorySaves)
-            saveToStorage(conversations, newMemorySaves)
+            saveToStorage(conversations, newMemorySaves, recallResponses, searchResponses)
         }
-    }, [conversations, saveToStorage])
+    }, [conversations, recallResponses, searchResponses, saveToStorage])
+
+    // Update recall responses array and persist
+    const updateRecallResponses = useCallback((newRecallResponses: RecallResponse[] | ((prev: RecallResponse[]) => RecallResponse[])) => {
+        if (typeof newRecallResponses === 'function') {
+            setRecallResponses(prev => {
+                const updated = newRecallResponses(prev)
+                saveToStorage(conversations, memorySaveResponses, updated, searchResponses)
+                return updated
+            })
+        } else {
+            setRecallResponses(newRecallResponses)
+            saveToStorage(conversations, memorySaveResponses, newRecallResponses, searchResponses)
+        }
+    }, [conversations, memorySaveResponses, searchResponses, saveToStorage])
+
+    // Update search responses array and persist
+    const updateSearchResponses = useCallback((newSearchResponses: SearchResponse[] | ((prev: SearchResponse[]) => SearchResponse[])) => {
+        if (typeof newSearchResponses === 'function') {
+            setSearchResponses(prev => {
+                const updated = newSearchResponses(prev)
+                saveToStorage(conversations, memorySaveResponses, recallResponses, updated)
+                return updated
+            })
+        } else {
+            setSearchResponses(newSearchResponses)
+            saveToStorage(conversations, memorySaveResponses, recallResponses, newSearchResponses)
+        }
+    }, [conversations, memorySaveResponses, recallResponses, saveToStorage])
 
     // Clear all chat history
     const clearChatHistory = useCallback(() => {
         setConversations([])
         setMemorySaveResponses([])
+        setRecallResponses([])
+        setSearchResponses([])
         localStorage.removeItem(CHAT_STORAGE_KEY)
         console.log('Chat history cleared')
     }, [])
 
     // Get total message count for debugging
     const getTotalMessageCount = useCallback(() => {
-        return conversations.length * 2 + memorySaveResponses.length * 2 // Each conversation = 2 messages, each memory save = 2 messages
-    }, [conversations.length, memorySaveResponses.length])
+        return conversations.length * 2 + memorySaveResponses.length * 2 + recallResponses.length * 2 + searchResponses.length * 2 // Each conversation = 2 messages, each memory save = 2 messages, each recall = 2 messages, each search = 2 messages
+    }, [conversations.length, memorySaveResponses.length, recallResponses.length, searchResponses.length])
 
     // Export chat history as JSON
     const exportChatHistory = useCallback(() => {
         const exportData = {
             conversations,
             memorySaveResponses,
+            recallResponses,
+            searchResponses,
             exportedAt: new Date().toISOString(),
             version: STORAGE_VERSION
         }
         return JSON.stringify(exportData, null, 2)
-    }, [conversations, memorySaveResponses])
+    }, [conversations, memorySaveResponses, recallResponses, searchResponses])
 
     // Import chat history from JSON
     const importChatHistory = useCallback((jsonData: string) => {
         try {
             const imported = JSON.parse(jsonData)
             if (imported.conversations && imported.memorySaveResponses) {
+                const importedRecallResponses = imported.recallResponses || []
+                const importedSearchResponses = imported.searchResponses || []
                 setConversations(imported.conversations)
                 setMemorySaveResponses(imported.memorySaveResponses)
-                saveToStorage(imported.conversations, imported.memorySaveResponses)
+                setRecallResponses(importedRecallResponses)
+                setSearchResponses(importedSearchResponses)
+                saveToStorage(imported.conversations, imported.memorySaveResponses, importedRecallResponses, importedSearchResponses)
                 return true
             }
             return false
@@ -178,15 +289,21 @@ export function usePersistentChat() {
         // State
         conversations,
         memorySaveResponses,
+        recallResponses,
+        searchResponses,
         isLoaded,
-        
+
         // Actions
         addConversation,
         addMemorySaveResponse,
+        addRecallResponse,
+        addSearchResponse,
         updateConversations,
         updateMemorySaveResponses,
+        updateRecallResponses,
+        updateSearchResponses,
         clearChatHistory,
-        
+
         // Utilities
         getTotalMessageCount,
         exportChatHistory,
