@@ -7,7 +7,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Info, MessageCircle, Search, MapPin, Brain, Save, Menu, X, ChevronDown, TrendingUp, Plane, Network } from "lucide-react"
+import { Info, MessageCircle, Search, Brain, Save, Menu, X, ChevronDown, TrendingUp, Plane, Network, ShoppingCart } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
@@ -74,6 +74,12 @@ export function Navbar() {
             label: "Travel Agent",
             icon: Plane,
             isActive: pathname === "/travel-demo"
+        },
+        {
+            href: "/retail-demo",
+            label: "Retail Demo",
+            icon: ShoppingCart,
+            isActive: pathname === "/retail-demo"
         }
     ]
 
