@@ -93,14 +93,14 @@ export function RecallSettingsDialog() {
                     className="flex items-center gap-2"
                 >
                     <Settings className="w-4 h-4" />
-                    Recall Settings
+                    Options
                 </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         <Settings className="w-5 h-5" />
-                        Recall Settings
+                        Options
                     </DialogTitle>
                     <DialogDescription>
                         Configure how many memories to retrieve and the similarity threshold for API calls.

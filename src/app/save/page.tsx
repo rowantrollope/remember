@@ -132,11 +132,11 @@ export default function SavePage() {
             {/* Memory Save Content */}
             <div className="h-full flex flex-col">
                 <ApiPageHeader
-                    endpoint="(POST) /api/memory/save"
+                    endpoint="(POST) /api/memory"
                     hasMessages={hasMessages}
                     onClearChat={clearChat}
                     isLoading={isLoading}
-                    title="Create a new memory"
+                    title="Add memory"
                 />
                 {hasMessages ? (
                     // Layout when there are messages - ChatBox + input at bottom
@@ -161,7 +161,7 @@ export default function SavePage() {
                                 onSubmit={handleSubmit}
                                 groundingEnabled={groundingEnabled}
                                 onGroundingToggle={setGroundingEnabled}
-                                placeholder="Enter a memory to save..."
+                                placeholder="Enter a memory to add..."
                             />
                         </div>
                     </>
@@ -186,7 +186,7 @@ export default function SavePage() {
                                 onSubmit={handleSubmit}
                                 groundingEnabled={groundingEnabled}
                                 onGroundingToggle={setGroundingEnabled}
-                                placeholder="Enter a memory to save..."
+                                placeholder="Enter a memory to add..."
                             />
                         </div>
                     </div>

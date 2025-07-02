@@ -20,7 +20,7 @@ export function Navbar() {
     const apiItems = [
         {
             href: "/save",
-            label: "Add new memory",
+            label: "Add memory",
             icon: Save,
             isActive: pathname === "/save"
         },
