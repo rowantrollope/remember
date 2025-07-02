@@ -224,10 +224,7 @@ export interface SessionChatResponse {
     }
 }
 
-export interface StatusResponse {
-    status: 'ready' | 'not_initialized' | 'healthy'
-    created_at: string
-}
+
 
 export interface DeleteResponse {
     success: boolean
@@ -587,9 +584,7 @@ class MemoryAgentAPI {
         return this.request<GetSessionsResponse>('/api/agent/sessions')
     }
 
-    async getStatus(): Promise<StatusResponse> {
-        return this.request<StatusResponse>('/api/health')
-    }
+
 
     async getMemoryInfo(): Promise<MemoryInfoResponse> {
         return this.request<MemoryInfoResponse>('/api/memory')

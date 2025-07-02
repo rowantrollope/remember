@@ -21,11 +21,21 @@ export function RecallSettingsDialog() {
     const [tempMinSimilarity, setTempMinSimilarity] = useState<string>('')
     const [isOpen, setIsOpen] = useState(false)
 
-    // Sync temp values with settings when dialog opens or settings change
+    // Sync temp values with settings when settings change
     useEffect(() => {
         setTempTopK(settings.questionTopK.toString())
         setTempMinSimilarity(settings.minSimilarity.toString())
-    }, [settings.questionTopK, settings.minSimilarity, isOpen])
+    }, [settings.questionTopK, settings.minSimilarity])
+
+    // Handle dialog open/close and sync temp values when opening
+    const handleOpenChange = (open: boolean) => {
+        setIsOpen(open)
+        if (open) {
+            // Sync temp values when dialog opens
+            setTempTopK(settings.questionTopK.toString())
+            setTempMinSimilarity(settings.minSimilarity.toString())
+        }
+    }
 
     const handleSaveTopK = () => {
         const value = parseInt(tempTopK)
@@ -75,7 +85,7 @@ export function RecallSettingsDialog() {
     }
 
     return (
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <Dialog open={isOpen} onOpenChange={handleOpenChange}>
             <DialogTrigger asChild>
                 <Button
                     variant="outline"

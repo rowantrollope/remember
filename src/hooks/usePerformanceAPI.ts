@@ -34,7 +34,7 @@ interface UsePerformanceAPIReturn extends UsePerformanceAPIState {
 }
 
 export function usePerformanceAPI(): UsePerformanceAPIReturn {
-    const { api } = useConfiguredAPI()
+    const { api, isLoaded: apiConfigLoaded } = useConfiguredAPI()
     const [state, setState] = useState<UsePerformanceAPIState>({
         isLoading: false,
         error: null,
@@ -183,7 +183,7 @@ export function usePerformanceAvailability() {
     const [isAvailable, setIsAvailable] = useState<boolean | null>(null)
     const [isChecking, setIsChecking] = useState(false)
     const [error, setError] = useState<string | null>(null)
-    const { api } = useConfiguredAPI()
+    const { api, isLoaded: apiConfigLoaded } = useConfiguredAPI()
 
     const checkAvailability = useCallback(async () => {
         setIsChecking(true)
@@ -226,6 +226,7 @@ export function usePerformanceAvailability() {
 export function usePerformanceMetrics(autoRefresh = false, intervalSeconds = 30) {
     const [metrics, setMetrics] = useState<PerformanceMetricsResponse | null>(null)
     const { getMetrics, isLoading, error, clearError } = usePerformanceAPI()
+    const { isLoaded: apiConfigLoaded } = useConfiguredAPI()
 
     const fetchMetrics = useCallback(async () => {
         const result = await getMetrics()
@@ -270,8 +271,12 @@ export function usePerformanceMetrics(autoRefresh = false, intervalSeconds = 30)
 
     // Initial fetch
     React.useEffect(() => {
+        // Don't try to fetch until API configuration is loaded
+        if (!apiConfigLoaded) {
+            return
+        }
         fetchMetrics()
-    }, [fetchMetrics])
+    }, [fetchMetrics, apiConfigLoaded])
 
     return {
         metrics,

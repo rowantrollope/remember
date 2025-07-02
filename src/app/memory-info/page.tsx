@@ -13,8 +13,6 @@ import { ClearAllMemoriesDialog } from "@/components/ClearAllMemoriesDialog"
 import { usePersistentChat } from "@/hooks/usePersistentChat"
 import { useSettings } from "@/hooks/useSettings"
 import { Navbar } from "@/components/Navbar"
-import { PerformanceConfigDialog } from "@/components/performance/PerformanceConfigDialog"
-import { QuickStatsWidget } from "@/components/performance/PerformanceWidgets"
 import { LLMConfigurationPanel } from "@/components/llm"
 
 export default function MemoryInfoPage() {
@@ -34,7 +32,7 @@ export default function MemoryInfoPage() {
 
     // Get settings and configured API
     const { settings, updateSetting, resetSettings } = useSettings()
-    const { api: memoryAPI } = useConfiguredAPI()
+    const { api: memoryAPI, isLoaded: apiConfigLoaded } = useConfiguredAPI()
 
     // Sync temp values with settings when settings change
     useEffect(() => {
@@ -46,27 +44,24 @@ export default function MemoryInfoPage() {
 
     // Check API status and fetch memory info on component mount
     useEffect(() => {
+        // Don't try to connect until API configuration is loaded
+        if (!apiConfigLoaded) {
+            return
+        }
+
         const initializeAPI = async () => {
             try {
                 setIsLoading(true)
-                // Check status first
-                const status = await memoryAPI.getStatus()
-                // Map 'healthy' status from server to 'ready' for frontend
-                const mappedStatus = status.status === 'healthy' ? 'ready' : status.status
-                setApiStatus(mappedStatus)
+                setError(null)
 
-                // If API is ready, try to fetch memory info
-                if (mappedStatus === 'ready') {
-                    try {
-                        const info = await memoryAPI.getMemoryInfo()
-                        if (info.success) {
-                            setMemoryInfo(info)
-                        }
-                    } catch (error) {
-                        // Memory info endpoint not available - continue without it
-                        console.warn('Memory info endpoint not available:', error)
-                        setError('Memory info endpoint not available')
-                    }
+                // Try to fetch memory info to check if API is working
+                const info = await memoryAPI.getMemoryInfo()
+                if (info.success) {
+                    setMemoryInfo(info)
+                    setApiStatus('ready')
+                } else {
+                    setApiStatus('not_initialized')
+                    setError('Memory Agent API returned an error')
                 }
             } catch (error) {
                 setApiStatus('not_initialized')
@@ -76,7 +71,7 @@ export default function MemoryInfoPage() {
             }
         }
         initializeAPI()
-    }, [memoryAPI])
+    }, [memoryAPI, apiConfigLoaded])
 
     const handleClearAllMemories = async () => {
         setIsClearingMemories(true)
@@ -448,34 +443,6 @@ export default function MemoryInfoPage() {
                                         </div>
                                     </div>
                                 )}
-                            </CardContent>
-                        </Card>
-                    )}
-
-                    {/* Performance Configuration Section */}
-                    {apiStatus === 'ready' && (
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <BarChart3 className="w-5 h-5" />
-                                    Performance Configuration
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-6">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <h3 className="font-medium text-gray-900">Cache Settings</h3>
-                                        <p className="text-sm text-gray-600">
-                                            Configure cache behavior, similarity thresholds, and TTL settings for optimal performance.
-                                        </p>
-                                    </div>
-                                    <PerformanceConfigDialog />
-                                </div>
-
-                                <div className="border-t pt-4">
-                                    <h4 className="font-medium text-gray-900 mb-3">Current Performance</h4>
-                                    <QuickStatsWidget compact className="w-full" />
-                                </div>
                             </CardContent>
                         </Card>
                     )}

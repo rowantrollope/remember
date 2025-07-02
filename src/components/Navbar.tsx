@@ -20,7 +20,7 @@ export function Navbar() {
     const apiItems = [
         {
             href: "/save",
-            label: "Create new memory",
+            label: "Add new memory",
             icon: Save,
             isActive: pathname === "/save"
         },
@@ -36,12 +36,6 @@ export function Navbar() {
             icon: Network,
             isActive: pathname === "/recall"
         },
-        // {
-        //     href: "/context",
-        //     label: "Set Context",
-        //     icon: MapPin,
-        //     isActive: pathname === "/context"
-        // },
         {
             href: "/ask",
             label: "Ask Memory a Question",

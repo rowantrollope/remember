@@ -257,7 +257,6 @@ export function ChatBox({
                 {/* Mental State for recall results */}
                 {message.mental_state && (
                     <div className="bg-white/50 rounded p-3 mb-2">
-                        <div className="text-sm font-medium mb-1">🧠 Mental State (K-Line)</div>
                         <div className="whitespace-pre-wrap">{message.mental_state}</div>
                         {message.memory_count && (
                             <Badge variant="secondary" className="mt-2">

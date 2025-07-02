@@ -30,10 +30,9 @@ export function useMemoryAPI() {
         const initializeAPI = async () => {
             try {
                 setApiStatus('unknown') // Reset to unknown while checking
-                const status = await memoryAPI.getStatus()
-                // Map 'healthy' status from server to 'ready' for frontend
-                const mappedStatus = status.status === 'healthy' ? 'ready' : status.status
-                setApiStatus(mappedStatus)
+                // Try to fetch memory info to check if API is working
+                await memoryAPI.getMemoryInfo()
+                setApiStatus('ready')
                 setError(null) // Clear any previous errors
             } catch (error) {
                 console.error('API status check failed:', error)

@@ -29,7 +29,7 @@ interface UseLLMConfigReturn {
 }
 
 export function useLLMConfig(): UseLLMConfigReturn {
-    const { api } = useConfiguredAPI()
+    const { api, isLoaded: apiConfigLoaded } = useConfiguredAPI()
     const [config, setConfig] = useState<LLMConfig | null>(null)
     const [tempConfig, setTempConfig] = useState<LLMConfig | null>(null)
     const [isLoading, setIsLoading] = useState(false)
@@ -147,8 +147,12 @@ export function useLLMConfig(): UseLLMConfigReturn {
 
     // Load config on mount
     useEffect(() => {
+        // Don't try to load until API configuration is loaded
+        if (!apiConfigLoaded) {
+            return
+        }
         loadConfig()
-    }, [loadConfig])
+    }, [loadConfig, apiConfigLoaded])
 
     // Get Ollama models
     const getOllamaModels = useCallback(async (baseUrl?: string): Promise<OllamaModelsResponse> => {
