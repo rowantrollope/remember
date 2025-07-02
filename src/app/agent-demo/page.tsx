@@ -108,13 +108,14 @@ export default function AgentDemo() {
     const { api } = useConfiguredAPI()
     const { settings } = useSettings()
 
-    // Create standard session (no memory)
+    // Create standard session (no memory) - Agent Demo specific
     const createStandardSession = useCallback(async () => {
         if (standardSessionId) return standardSessionId
 
         try {
             const standardSessionResponse = await api.createChatSession({
                 system_prompt: CODE_REVIEW_PROMPT,
+                session_id: `agent-standard-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
                 config: {
                     use_memory: false,
                     model: "gpt-3.5-turbo",
@@ -125,6 +126,7 @@ export default function AgentDemo() {
 
             if (standardSessionResponse.success) {
                 setStandardSessionId(standardSessionResponse.session_id)
+                console.log('Agent Demo: Created standard session:', standardSessionResponse.session_id)
                 return standardSessionResponse.session_id
             }
         } catch (error) {
@@ -133,13 +135,14 @@ export default function AgentDemo() {
         return null
     }, [api, standardSessionId])
 
-    // Create memory session (with memory retrieval)
+    // Create memory session (with memory retrieval) - Agent Demo specific
     const createMemorySession = useCallback(async () => {
         if (memorySessionId) return memorySessionId
 
         try {
             const memorySessionResponse = await api.createChatSession({
                 system_prompt: CODE_REVIEW_PROMPT,
+                session_id: `agent-memory-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
                 config: {
                     use_memory: true,
                     model: "gpt-3.5-turbo",
@@ -150,6 +153,7 @@ export default function AgentDemo() {
             })
             if (memorySessionResponse.success) {
                 setMemorySessionId(memorySessionResponse.session_id)
+                console.log('Agent Demo: Created memory session:', memorySessionResponse.session_id)
                 return memorySessionResponse.session_id
             }
         } catch (error) {

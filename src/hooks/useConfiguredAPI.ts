@@ -10,15 +10,7 @@ export function useConfiguredAPI() {
 
     // Create or update the API instance when settings change
     const api = useMemo(() => {
-        if (!isLoaded) {
-            // Return a default instance while settings are loading
-            if (!apiInstance) {
-                apiInstance = new MemoryAgentAPI()
-            }
-            return apiInstance
-        }
-
-        const baseUrl = getApiBaseUrl()
+        const baseUrl = isLoaded ? getApiBaseUrl() : 'http://localhost:5001'
 
         if (!apiInstance) {
             apiInstance = new MemoryAgentAPI(baseUrl)
@@ -33,7 +25,7 @@ export function useConfiguredAPI() {
     return {
         api,
         isLoaded,
-        baseUrl: isLoaded ? getApiBaseUrl() : 'Loading...'
+        baseUrl: isLoaded ? getApiBaseUrl() : 'http://localhost:5001'
     }
 }
 
@@ -41,7 +33,7 @@ export function useConfiguredAPI() {
 // This can be used in places where hooks can't be used
 export function getConfiguredAPI(): MemoryAgentAPI {
     if (!apiInstance) {
-        apiInstance = new MemoryAgentAPI()
+        apiInstance = new MemoryAgentAPI('http://localhost:5001')
     }
     return apiInstance
 }

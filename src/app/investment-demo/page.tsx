@@ -219,13 +219,14 @@ export default function InvestmentDemo() {
 
 
 
-    // Create standard session (no memory)
+    // Create standard session (no memory) - Investment Demo specific
     const createStandardSession = useCallback(async () => {
         if (standardSessionId) return standardSessionId
 
         try {
             const response = await memoryAPI.createChatSession({
                 system_prompt: `You are a financial analyst helping to analyze Microsoft's 2024 Annual Report. You have access to the complete financial document but no memory of previous conversations. Provide detailed analysis based on the document content. Here is the document: ${documentContent}`,
+                session_id: `investment-standard-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
                 config: {
                     use_memory: false,
                     model: "gpt-3.5-turbo",
@@ -235,6 +236,7 @@ export default function InvestmentDemo() {
             })
             if (response.success) {
                 setStandardSessionId(response.session_id)
+                console.log('Investment Demo: Created standard session:', response.session_id)
                 return response.session_id
             }
         } catch (error) {
@@ -243,13 +245,14 @@ export default function InvestmentDemo() {
         return null
     }, [standardSessionId, documentContent])
 
-    // Create memory session (with memory retrieval)
+    // Create memory session (with memory retrieval) - Investment Demo specific
     const createMemorySession = useCallback(async () => {
         if (memorySessionId) return memorySessionId
 
         try {
             const response = await memoryAPI.createChatSession({
                 system_prompt: `You are a personalized financial advisor with access to Microsoft's 2024 Annual Report and the investor's profile and preferences stored in memory. Use both the document and the investor's stated criteria to provide tailored investment analysis. Always reference the investor's specific preferences when making recommendations. Here is the document: ${documentContent}`,
+                session_id: `investment-memory-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
                 config: {
                     use_memory: true,
                     model: "gpt-3.5-turbo",
@@ -260,6 +263,7 @@ export default function InvestmentDemo() {
             })
             if (response.success) {
                 setMemorySessionId(response.session_id)
+                console.log('Investment Demo: Created memory session:', response.session_id)
                 return response.session_id
             }
         } catch (error) {

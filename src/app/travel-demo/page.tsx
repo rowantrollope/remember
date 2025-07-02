@@ -59,13 +59,14 @@ export default function TravelDemo() {
 
 
 
-    // Create standard session (no memory)
+    // Create standard session (no memory) - Travel Demo specific
     const createStandardSession = useCallback(async () => {
         if (standardSessionId) return standardSessionId
 
         try {
             const standardSessionResponse = await api.createChatSession({
                 system_prompt: TRAVEL_AGENT_PROMPT,
+                session_id: `travel-standard-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
                 config: {
                     use_memory: false,
                     model: "gpt-3.5-turbo",
@@ -76,6 +77,7 @@ export default function TravelDemo() {
 
             if (standardSessionResponse.success) {
                 setStandardSessionId(standardSessionResponse.session_id)
+                console.log('Travel Demo: Created standard session:', standardSessionResponse.session_id)
                 return standardSessionResponse.session_id
             }
         } catch (error) {
@@ -84,13 +86,14 @@ export default function TravelDemo() {
         return null
     }, [api, standardSessionId])
 
-    // Create memory session (with memory retrieval)
+    // Create memory session (with memory retrieval) - Travel Demo specific
     const createMemorySession = useCallback(async () => {
         if (memorySessionId) return memorySessionId
 
         try {
             const memorySessionResponse = await api.createChatSession({
                 system_prompt: TRAVEL_AGENT_PROMPT,
+                session_id: `travel-memory-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
                 config: {
                     use_memory: true,
                     model: "gpt-3.5-turbo",
@@ -101,6 +104,7 @@ export default function TravelDemo() {
             })
             if (memorySessionResponse.success) {
                 setMemorySessionId(memorySessionResponse.session_id)
+                console.log('Travel Demo: Created memory session:', memorySessionResponse.session_id)
                 return memorySessionResponse.session_id
             }
         } catch (error) {

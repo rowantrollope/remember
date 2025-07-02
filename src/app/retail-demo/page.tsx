@@ -100,13 +100,14 @@ export default function RetailDemo() {
         }
     }
 
-    // Create standard session (no memory)
+    // Create standard session (no memory) - Retail Demo specific
     const createStandardSession = useCallback(async () => {
         if (standardSessionId) return standardSessionId
 
         try {
             const response = await api.createChatSession({
                 system_prompt: RETAIL_AGENT_PROMPT,
+                session_id: `retail-standard-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
                 config: {
                     use_memory: false,
                     model: "gpt-3.5-turbo",
@@ -116,6 +117,7 @@ export default function RetailDemo() {
             })
             if (response.success) {
                 setStandardSessionId(response.session_id)
+                console.log('Retail Demo: Created standard session:', response.session_id)
                 return response.session_id
             }
         } catch (error) {
@@ -124,13 +126,14 @@ export default function RetailDemo() {
         return null
     }, [api, standardSessionId])
 
-    // Create memory session (with memory retrieval)
+    // Create memory session (with memory retrieval) - Retail Demo specific
     const createMemorySession = useCallback(async () => {
         if (memorySessionId) return memorySessionId
 
         try {
             const response = await api.createChatSession({
                 system_prompt: MEMORY_ENHANCED_PROMPT,
+                session_id: `retail-memory-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
                 config: {
                     use_memory: true,
                     model: "gpt-3.5-turbo",
@@ -141,6 +144,7 @@ export default function RetailDemo() {
             })
             if (response.success) {
                 setMemorySessionId(response.session_id)
+                console.log('Retail Demo: Created memory session:', response.session_id)
                 return response.session_id
             }
         } catch (error) {
