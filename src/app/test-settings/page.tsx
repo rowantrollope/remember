@@ -64,7 +64,7 @@ export default function TestSettingsPage() {
                     onClick={async () => {
                         console.log('Testing API call with current settings:', settings)
                         try {
-                            const response = await api.recallMentalState("test query", settings.questionTopK, settings.minSimilarity)
+                            const response = await api.recall("test query", settings.questionTopK, settings.minSimilarity)
                             console.log('API Response:', response)
                             setTestResult(`API called with topK: ${settings.questionTopK}, minSimilarity: ${settings.minSimilarity}`)
                         } catch (error) {

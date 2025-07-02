@@ -30,7 +30,7 @@ export interface UnifiedChatMessage {
     user_question?: string
 
     // For API responses with supporting memories
-    confidence?: 'high' | 'medium' | 'low'
+    confidence?: 'high' | 'medium' | 'low' | number
     reasoning?: string
     supporting_memories?: Memory[] | ApiMemory[]
     excluded_memories?: Memory[] | ApiMemory[]
@@ -44,6 +44,9 @@ export interface UnifiedChatMessage {
     // For recall/K-line responses
     mental_state?: string
     memory_count?: number
+    answer?: string
+    coherence_score?: number
+    vectorstore_name?: string
 
     // For memory save responses
     memory_id?: string
@@ -101,7 +104,7 @@ export interface ChatMessage {
     answer: string
     created_at: Date
     hasMemory: boolean
-    confidence?: 'high' | 'medium' | 'low'
+    confidence?: 'high' | 'medium' | 'low' | number
     reasoning?: string
     supporting_memories?: unknown[]
     excluded_memories?: unknown[]
@@ -242,29 +245,22 @@ export function ChatBox({
                 {message.confidence && (
                     <div className="mb-2">
                         <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
-                            message.confidence === 'high' ? 'bg-green-100 text-green-800' :
-                            message.confidence === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                            (typeof message.confidence === 'string' && message.confidence === 'high') ||
+                            (typeof message.confidence === 'number' && message.confidence >= 0.8) ? 'bg-green-100 text-green-800' :
+                            (typeof message.confidence === 'string' && message.confidence === 'medium') ||
+                            (typeof message.confidence === 'number' && message.confidence >= 0.6) ? 'bg-yellow-100 text-yellow-800' :
                             'bg-red-100 text-red-800'
                         }`}>
-                            {message.confidence} confidence
+                            {typeof message.confidence === 'number' ?
+                                `${(message.confidence * 100).toFixed(1)}% confidence` :
+                                `${message.confidence} confidence`
+                            }
                         </span>
                     </div>
                 )}
 
                 {/* Main Content */}
                 <div className="whitespace-pre-wrap mb-2">{message.content}</div>
-
-                {/* Mental State for recall results */}
-                {message.mental_state && (
-                    <div className="bg-white/50 rounded p-3 mb-2">
-                        <div className="whitespace-pre-wrap">{message.mental_state}</div>
-                        {message.memory_count && (
-                            <Badge variant="secondary" className="mt-2">
-                                {message.memory_count} memories
-                            </Badge>
-                        )}
-                    </div>
-                )}
 
                 {/* Memory Save Success */}
                 {message.type === 'memory_save' && message.save_success && (
@@ -291,10 +287,55 @@ export function ChatBox({
                     </div>
                 )}
 
+                {/* Recall Result Information */}
+                {message.type === 'recall_result' && (
+                    <div className="mt-2 space-y-2">
+                        {/* Answer */}
+                        {message.answer && (
+                            <div className="bg-blue-50 border border-blue-200 rounded p-3">
+                                <div className="text-sm font-medium text-blue-800 mb-1">Answer:</div>
+                                <div className="text-blue-700 whitespace-pre-wrap">{message.answer}</div>
+                            </div>
+                        )}
+
+                        {/* Metrics */}
+                        <div className="flex flex-wrap gap-2 text-xs">
+                            {typeof message.confidence === 'number' && (
+                                <span className={`px-2 py-1 rounded-full font-medium ${
+                                    message.confidence >= 0.8 ? 'bg-green-100 text-green-800' :
+                                    message.confidence >= 0.6 ? 'bg-yellow-100 text-yellow-800' :
+                                    'bg-red-100 text-red-800'
+                                }`}>
+                                    Confidence: {(message.confidence * 100).toFixed(1)}%
+                                </span>
+                            )}
+                            {typeof message.coherence_score === 'number' && (
+                                <span className={`px-2 py-1 rounded-full font-medium ${
+                                    message.coherence_score >= 0.8 ? 'bg-green-100 text-green-800' :
+                                    message.coherence_score >= 0.6 ? 'bg-yellow-100 text-yellow-800' :
+                                    'bg-red-100 text-red-800'
+                                }`}>
+                                    Coherence: {(message.coherence_score * 100).toFixed(1)}%
+                                </span>
+                            )}
+                            {message.memory_count && (
+                                <span className="px-2 py-1 rounded-full bg-gray-100 text-gray-800 font-medium">
+                                    {message.memory_count} memories
+                                </span>
+                            )}
+                            {message.vectorstore_name && (
+                                <span className="px-2 py-1 rounded-full bg-purple-100 text-purple-800 font-medium">
+                                    Store: {message.vectorstore_name}
+                                </span>
+                            )}
+                        </div>
+                    </div>
+                )}
+
                 {/* Reasoning */}
                 {message.reasoning && (
                     <div className="text-sm text-gray-600 italic mb-2">
-                        {message.reasoning}
+                        Reasoning: {message.reasoning}
                     </div>
                 )}
 
@@ -368,7 +409,7 @@ export function ChatBox({
                             onClick={() => copyIdToClipboard(memory.id!)}
                             title={`Click to copy full ID: ${memory.id}`}
                         >
-                            {copiedId === memory.id ? '✓ Copied!' : `Neme ID: ${getShortId(memory.id)}`}
+                            {copiedId === memory.id ? '✓ Copied!' : `Memory ID: ${memory.id}`}
                         </Badge>
                     </div>
                 )}

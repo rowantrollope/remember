@@ -31,12 +31,6 @@ export function Navbar() {
             isActive: pathname === "/search"
         },
         {
-            href: "/recall",
-            label: "Recall mental state (k-line)",
-            icon: Network,
-            isActive: pathname === "/recall"
-        },
-        {
             href: "/ask",
             label: "Ask Memory a Question",
             icon: Brain,

@@ -34,19 +34,25 @@ export function conversationToMessages(conversations: Conversation[]): UnifiedCh
     return messages
 }
 
-// Convert recall results to UnifiedChatMessage format
-export interface RecallResult {
+// Convert search results to UnifiedChatMessage format
+export interface SearchResult {
     id: string
     query: string
-    mental_state: string
     memories: ApiMemory[]
     memory_count: number
     created_at: string
+    excluded_memories?: ApiMemory[]
+    filtering_info?: {
+        min_similarity_threshold?: number
+        total_candidates?: number
+        excluded_count?: number
+        included_count?: number
+    }
 }
 
-export function recallResultsToMessages(results: RecallResult[]): UnifiedChatMessage[] {
+export function searchResultsToMessages(results: SearchResult[]): UnifiedChatMessage[] {
     const messages: UnifiedChatMessage[] = []
-    
+
     results.forEach(result => {
         // User query
         messages.push({
@@ -56,19 +62,20 @@ export function recallResultsToMessages(results: RecallResult[]): UnifiedChatMes
             created_at: result.created_at,
             user_question: result.query
         })
-        
-        // Mental state response
+
+        // Search results response
         messages.push({
             id: `${result.id}-response`,
             type: 'recall_result',
-            content: result.mental_state,
+            content: `Found ${result.memory_count} memories matching "${result.query}"`,
             created_at: result.created_at,
-            mental_state: result.mental_state,
             memory_count: result.memory_count,
-            supporting_memories: result.memories
+            supporting_memories: result.memories,
+            excluded_memories: result.excluded_memories,
+            filtering_info: result.filtering_info
         })
     })
-    
+
     return messages
 }
 
@@ -125,10 +132,9 @@ export function recallResponsesToMessages(responses: RecallResponse[]): UnifiedC
             messages.push({
                 id: `recall-${index}-response`,
                 type: 'recall_result',
-                content: recallResponse.response.mental_state,
+                content: `Found ${recallResponse.response.memories.length} memories matching "${recallResponse.originalQuery}"`,
                 created_at: recallResponse.timestamp,
-                mental_state: recallResponse.response.mental_state,
-                memory_count: recallResponse.response.memory_count,
+                memory_count: recallResponse.response.memories.length,
                 supporting_memories: recallResponse.response.memories,
                 excluded_memories: recallResponse.response.excluded_memories,
                 filtering_info: recallResponse.response.filtering_info
@@ -137,7 +143,7 @@ export function recallResponsesToMessages(responses: RecallResponse[]): UnifiedC
             messages.push({
                 id: `recall-${index}-response`,
                 type: 'assistant',
-                content: "Failed to construct mental state",
+                content: "Failed to search memories",
                 created_at: recallResponse.timestamp
             })
         }

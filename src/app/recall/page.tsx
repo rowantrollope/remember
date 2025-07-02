@@ -14,19 +14,18 @@ import { useConfiguredAPI } from "@/hooks/useConfiguredAPI"
 import { useMemoryAPI } from "@/hooks"
 import { useSettings } from "@/hooks/useSettings"
 import { usePersistentChat } from "@/hooks/usePersistentChat"
-import type { RecallMentalStateResponse } from "@/lib/api"
+import type { RecallResponse as ApiRecallResponse } from "@/lib/api"
 import type { RecallResponse } from "@/hooks/usePersistentChat"
-import { CompactPerformanceSummary } from "@/components/performance/PerformanceWidgets"
 
 // Utils
 import { createThinkingMessage, updateThinkingMessage, recallResponsesToMessages } from "@/lib/chatMessageUtils"
 
 const recallPrompts = [
-    "Example: Construct mental state about travel preferences",
-    "Example: Build context around food experiences", 
-    "Example: Recall memories about work projects",
-    "Example: Mental state for learning activities",
-    "Example: Context around social interactions"
+    "Example: Search for travel experiences",
+    "Example: Find memories about restaurants",
+    "Example: Look up work project memories",
+    "Example: Search for learning activities",
+    "Example: Find social interaction memories"
 ]
 
 export default function RecallPage() {
@@ -52,13 +51,13 @@ export default function RecallPage() {
         updateRecallResponses,
     } = usePersistentChat()
 
-    // Convert persistent recall responses to messages on component mount
+    // Convert persistent recall responses to messages on component mount only
     useEffect(() => {
-        if (persistentRecallResponses.length > 0) {
+        if (persistentRecallResponses.length > 0 && messages.length === 0) {
             const convertedMessages = recallResponsesToMessages(persistentRecallResponses)
             setMessages(convertedMessages)
         }
-    }, [persistentRecallResponses])
+    }, [persistentRecallResponses, messages.length])
 
     // Function to copy ID to clipboard with visual feedback
     const copyIdToClipboard = async (fullId: string) => {
@@ -110,20 +109,19 @@ export default function RecallPage() {
                 isLoaded
             })
 
-            const response: RecallMentalStateResponse = await api.recallMentalState(currentInput, topK, minSimilarity)
+            const response: ApiRecallResponse = await api.recall(currentInput, topK, minSimilarity)
 
             if (response.success) {
                 // Replace thinking message with real response
                 const realMessage: UnifiedChatMessage = {
                     id: `recall-${Date.now()}`,
                     type: 'recall_result',
-                    content: response.mental_state,
+                    content: `Found ${response.memories.length} memories matching "${currentInput}"`,
                     created_at: new Date().toISOString(),
-                    mental_state: response.mental_state,
-                    memory_count: response.memory_count,
                     supporting_memories: response.memories,
                     excluded_memories: response.excluded_memories,
-                    filtering_info: response.filtering_info
+                    filtering_info: response.filtering_info,
+                    memory_count: response.memories.length
                 }
 
                 setMessages(prev => updateThinkingMessage(prev, thinkingMessage.id, realMessage))
@@ -139,12 +137,12 @@ export default function RecallPage() {
             } else {
                 // Remove thinking message on error
                 setMessages(prev => prev.filter(msg => msg.id !== thinkingMessage.id))
-                setError('Failed to construct mental state')
+                setError('Failed to search memories')
             }
         } catch (err) {
             // Remove thinking message on error
             setMessages(prev => prev.filter(msg => msg.id !== thinkingMessage.id))
-            setError(err instanceof Error ? err.message : 'Failed to recall mental state')
+            setError(err instanceof Error ? err.message : 'Failed to search memories')
         } finally {
             setIsLoading(false)
         }
@@ -173,18 +171,13 @@ export default function RecallPage() {
             {/* Recall API Content */}
             <div className="h-full flex flex-col">
                 <ApiPageHeader
-                    endpoint="(POST) /api/klines/recall"
+                    endpoint="(POST) /api/memory/search"
                     hasMessages={hasMessages}
                     onClearChat={clearChat}
                     isLoading={isLoading}
-                    title="Recall Mental State"
+                    title="Search Memory"
                     showSettingsButton={true}
                 />
-
-                {/* Performance Summary */}
-                <div className="flex-shrink-0 px-4 py-2 border-b bg-gray-50">
-                    <CompactPerformanceSummary />
-                </div>
 
                 {hasMessages ? (
                     // Layout when there are messages - ChatBox + input at bottom
@@ -209,7 +202,7 @@ export default function RecallPage() {
                                 pageType="chat"
                                 isLoading={isLoading}
                                 onSubmit={handleSubmit}
-                                placeholder="Enter query to construct mental state..."
+                                placeholder="Enter search query..."
                             />
                         </div>
                     </>
@@ -219,10 +212,10 @@ export default function RecallPage() {
                         <div className="w-full">
                             <div className="text-center mb-8">
                                 <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                                    K-Line Mental State Re-construction
+                                    Memory Search
                                 </h1>
                                 <p className="text-gray-600">
-                                    Build coherent mental states by recalling and organizing relevant memories
+                                    Search through your memories to find relevant information
                                 </p>
                             </div>
                             <RotatingPrompts prompts={recallPrompts} />

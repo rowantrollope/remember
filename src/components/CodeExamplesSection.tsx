@@ -30,7 +30,7 @@ export function CodeExamplesSection() {
         },
         {
             title: "Ask a Question",
-            code: `curl -X POST http://localhost:5001/api/klines/answer \\
+            code: `curl -X POST http://localhost:5001/api/memory/answer \\
   -H "Content-Type: application/json" \\
   -d '{
     "question": "Where did I eat Italian food recently?",

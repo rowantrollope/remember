@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { Conversation } from '@/types'
-import type { RememberResponse, RecallMentalStateResponse, ApiMemory } from '@/lib/api'
+import type { RememberResponse, RecallResponse as ApiRecallResponse, ApiMemory } from '@/lib/api'
 
 export interface MemorySaveResponse {
     success: boolean
@@ -11,7 +11,7 @@ export interface MemorySaveResponse {
 
 export interface RecallResponse {
     success: boolean
-    response: RecallMentalStateResponse | null
+    response: ApiRecallResponse | null
     originalQuery: string
     timestamp: string
 }

@@ -91,7 +91,7 @@ export function MemoryConfirmationDialog({
                             </CardHeader>
                             <CardContent className="space-y-3">
                                 <div>
-                                    <h4 className="text-xs font-medium text-gray-700 mb-1">Neme ID</h4>
+                                    <h4 className="text-xs font-medium text-gray-700 mb-1">Memory ID</h4>
                                     <div className="flex items-center gap-2 text-sm font-mono bg-gray-100 p-2 rounded">
                                         <span className="flex-1">{formatNemeId(response.memory_id)}</span>
                                         <button

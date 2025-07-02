@@ -176,7 +176,7 @@ export function SupportingMemoriesDialog({
                                                         className="flex items-center gap-1 text-xs text-gray-400 font-mono hover:text-gray-600 transition-colors cursor-pointer"
                                                         title="Click to copy full ID"
                                                     >
-                                                        <span>Neme ID: {formatNemeId(memory.id)}</span>
+                                                        <span>Memory ID: {formatNemeId(memory.id)}</span>
                                                         {copiedIds.has(memory.id) ? (
                                                             <Check className="w-3 h-3 text-green-600" />
                                                         ) : (
@@ -432,7 +432,7 @@ export function SupportingMemoriesDialog({
                                                                 className="flex items-center gap-1 text-xs text-gray-400 font-mono hover:text-gray-600 transition-colors cursor-pointer"
                                                                 title="Click to copy full ID"
                                                             >
-                                                                <span>Neme ID: {formatNemeId(memory.id)}</span>
+                                                                <span>Memory ID: {formatNemeId(memory.id)}</span>
                                                                 {copiedIds.has(memory.id) ? (
                                                                     <Check className="w-3 h-3 text-green-600" />
                                                                 ) : (

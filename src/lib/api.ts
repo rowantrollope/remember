@@ -285,20 +285,7 @@ export interface MemoryInfoResponse {
     created_at: string
 }
 
-export interface RecallMentalStateResponse {
-    success: boolean
-    query: string
-    mental_state: string
-    memories: ApiMemory[]
-    memory_count: number
-    excluded_memories?: ApiMemory[]
-    filtering_info?: {
-        min_similarity_threshold?: number
-        total_candidates?: number
-        excluded_count?: number
-        included_count?: number
-    }
-}
+
 
 export interface GetSessionResponse {
     success: boolean
@@ -510,17 +497,7 @@ class MemoryAgentAPI {
         })
     }
 
-    // New K-LINE API endpoint for constructing mental state from memories
-    async recallMentalState(query: string, topK: number = 5, minSimilarity?: number): Promise<RecallMentalStateResponse> {
-        const body: any = { query, top_k: topK }
-        if (minSimilarity !== undefined) {
-            body.min_similarity = minSimilarity
-        }
-        return this.request<RecallMentalStateResponse>('/api/klines/recall', {
-            method: 'POST',
-            body: JSON.stringify(body),
-        })
-    }
+
 
     // K-LINE API endpoint for memory extraction
     async extractMemories(

@@ -61,8 +61,7 @@ export function SessionMemoriesDialog({
 
     const formatNemeId = (memoryId: string) => {
         // Extract the last component after the final dash
-        const parts = memoryId.split('-')
-        return parts[parts.length - 1]
+        return memoryId
     }
 
     const copyToClipboard = async (memoryId: string) => {
@@ -167,7 +166,7 @@ export function SessionMemoriesDialog({
                                         className="flex items-center gap-1 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
                                         title="Click to copy full ID"
                                     >
-                                        <span>Neme ID: {formatNemeId(memory.memory_id)}</span>
+                                        <span>Memory ID: {formatNemeId(memory.memory_id)}</span>
                                         {copiedIds.has(memory.memory_id) ? (
                                             <Check className="w-3 h-3 text-green-600" />
                                         ) : (
@@ -239,7 +238,7 @@ export function SessionMemoriesDialog({
                                                 className="flex items-center gap-1 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
                                                 title="Click to copy full ID"
                                             >
-                                                <span>Neme ID: {formatNemeId(memory.memory_id)}</span>
+                                                <span>Memory ID: {formatNemeId(memory.memory_id)}</span>
                                                 {copiedIds.has(memory.memory_id) ? (
                                                     <Check className="w-3 h-3 text-green-600" />
                                                 ) : (

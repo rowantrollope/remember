@@ -107,35 +107,12 @@ export default function ApiDocsPage() {
                 </CardHeader>
                 <CardContent className="space-y-4">
 
-                  {/* Recall Mental State */}
-                  <div className="border rounded-lg p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Badge variant="default">POST</Badge>
-                      <code className="text-sm">/api/klines/recall</code>
-                      <span className="text-sm text-muted-foreground">Recall a mental state (multiple memories)</span>
-                    </div>
-                    <div className="bg-gray-50 rounded p-3 text-sm">
-                      <strong>Request:</strong>
-                      <pre className="mt-1 text-xs">{`{
-  "query": "my restaurant experiences",
-  "top_k": 5,
-  "min_similarity": 0.7
-}`}</pre>
-                      <strong className="block mt-2">Response:</strong>
-                      <pre className="mt-1 text-xs">{`{
-  "success": true,
-  "mental_state": "Based on your memories...",
-  "memories": [...],
-  "memory_count": 5
-}`}</pre>
-                    </div>
-                  </div>
 
                   {/* Ask Question */}
                   <div className="border rounded-lg p-4">
                     <div className="flex items-center gap-2 mb-2">
                       <Badge variant="default">POST</Badge>
-                      <code className="text-sm">/api/klines/ask</code>
+                      <code className="text-sm">/api/memory/ask</code>
                       <span className="text-sm text-muted-foreground">Ask a question with K-line cognitive reasoning</span>
                     </div>
                     <div className="bg-gray-50 rounded p-3 text-sm">
@@ -296,7 +273,7 @@ export default function ApiDocsPage() {
               <ol className="list-decimal list-inside space-y-1 text-sm">
                 <li>Store memories: <code>POST /api/memory</code></li>
                 <li>Search memories: <code>POST /api/memory/search</code></li>
-                <li>Ask questions: <code>POST /api/klines/ask</code></li>
+                <li>Ask questions: <code>POST /api/memory/ask</code></li>
                 <li>Create chat session: <code>POST /api/agent/session</code></li>
                 <li>Chat with memory: <code>POST /api/agent/session/{`{id}`}</code></li>
               </ol>
