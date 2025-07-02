@@ -262,11 +262,6 @@ export function ChatBox({
                 {/* Main Content */}
                 <div className="whitespace-pre-wrap mb-2">{message.content}</div>
 
-                {/* Memory Save Success */}
-                {message.type === 'memory_save' && message.save_success && (
-                    <div className="text-sm font-medium mb-2">✓ Memory saved successfully</div>
-                )}
-
                 {/* Memory Save Grounding Information */}
                 {message.type === 'memory_save' && message.grounding_applied && message.grounding_info && (
                     <div className="mt-2">
