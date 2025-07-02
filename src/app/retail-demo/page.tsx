@@ -271,7 +271,7 @@ export default function RetailDemo() {
                 <div className="text-center space-y-4">
                     <div className="flex items-center justify-center gap-3">
                         <ShoppingCart className="w-8 h-8 text-green-600" />
-                        <h1 className="text-3xl font-bold text-gray-900">Retail Shopping Demo</h1>
+                        <h1 className="text-3xl font-bold text-gray-900">Retail Shopping Agent</h1>
                         <div className="flex gap-2">
                             <Dialog open={showMemoriesDialog} onOpenChange={setShowMemoriesDialog}>
                                 <DialogTrigger asChild>
@@ -293,7 +293,7 @@ export default function RetailDemo() {
                                     <DialogHeader>
                                         <DialogTitle>Customer Shopping Profile</DialogTitle>
                                         <DialogDescription>
-                                            These memories will be added to help the memory-enhanced assistant provide personalized recommendations.
+                                            These memories will be added to help the memory-enhanced agent provide personalized recommendations.
                                         </DialogDescription>
                                     </DialogHeader>
                                     <div className="space-y-4">
@@ -363,7 +363,7 @@ export default function RetailDemo() {
                         </div>
                     </div>
                     <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-                        Compare how a standard shopping assistant vs. a memory-enhanced assistant analyzes your grocery basket and provides recommendations.
+                        Compare how a standard shopping agent vs. a memory-enhanced agent analyzes your grocery basket and provides recommendations.
                     </p>
                 </div>
 
@@ -383,17 +383,17 @@ export default function RetailDemo() {
                     <TabsList className="grid w-full grid-cols-2">
                         <TabsTrigger value="standard" className="flex items-center gap-2">
                             <ShoppingCart className="w-4 h-4" />
-                            Standard Assistant
+                            Standard Agent
                         </TabsTrigger>
                         <TabsTrigger value="memory" className="flex items-center gap-2">
                             <Brain className="w-4 h-4" />
-                            Memory-Enhanced Assistant
+                            Memory-Enhanced Agent
                         </TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="standard" className="space-y-6">
                         <ChatCard
-                            title="Standard Shopping Assistant"
+                            title="Standard Shopping Agent"
                             subtitle="Analyzes your basket but has no memory of your preferences, dietary restrictions, or shopping history"
                             messages={standardMessages}
                             input={standardQuestion}
@@ -414,7 +414,7 @@ export default function RetailDemo() {
 
                     <TabsContent value="memory" className="space-y-6">
                         <ChatCard
-                            title="Memory-Enhanced Shopping Assistant"
+                            title="Memory-Enhanced Shopping Agent"
                             subtitle="Analyzes your basket with full knowledge of your dietary preferences, shopping patterns, and household needs"
                             messages={memoryMessages}
                             input={memoryQuestion}

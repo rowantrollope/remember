@@ -1,22 +1,302 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 
 // Components
 import { PageLayout } from "@/components/PageLayout"
 import { PageInputForm } from "@/components/PageInputForm"
-import { RecallTab } from "@/components/tabs/RecallTab"
+
 import { ApiPageHeader } from "@/components/ApiPageHeader"
+import { Badge } from "@/components/ui/badge"
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table"
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog"
+import type { UnifiedChatMessage } from "@/components/ChatBox"
 // Hooks
 import { useMemoryAPI } from "@/hooks"
 import { useSettings } from "@/hooks/useSettings"
 import { usePersistentChat } from "@/hooks/usePersistentChat"
 import type { SearchResponse } from "@/hooks/usePersistentChat"
+import type { ApiMemory } from "@/lib/api"
+import type { Memory } from "@/types"
+// Icons
+import { Anchor } from "lucide-react"
+
+// Helper function to format memory ID (short version - 8 chars with ...)
+function formatShortId(memoryId: string) {
+    if (!memoryId) return 'N/A'
+    if (memoryId.length <= 8) return memoryId
+    return memoryId.substring(0, 8) + '...'
+}
+
+// Component to display search results in a professional format
+interface SearchResultsDisplayProps {
+    results: ApiMemory[]
+    excludedMemories?: ApiMemory[]
+    filteringInfo?: {
+        min_similarity_threshold?: number
+        total_candidates?: number
+        excluded_count?: number
+        included_count?: number
+    }
+}
+
+function SearchResultsDisplay({ results, excludedMemories, filteringInfo }: SearchResultsDisplayProps) {
+    const [selectedMemory, setSelectedMemory] = useState<ApiMemory | null>(null)
+    const [isDialogOpen, setIsDialogOpen] = useState(false)
+
+    const handleRowClick = (memory: ApiMemory) => {
+        setSelectedMemory(memory)
+        setIsDialogOpen(true)
+    }
+
+    const getSimilarityColor = (score: number | undefined) => {
+        if (score === undefined || score === null) return 'text-gray-600'
+        if (score >= 0.9) return 'text-green-600'
+        if (score >= 0.7) return 'text-yellow-600'
+        return 'text-red-600'
+    }
+
+    const getRelevanceColor = (score: number | undefined) => {
+        if (score === undefined || score === null) return 'text-gray-600'
+        if (score >= 80) return 'text-green-600'
+        if (score >= 60) return 'text-yellow-600'
+        return 'text-red-600'
+    }
+
+    return (
+        <div className="space-y-4">
+
+            {/* Memory Results Table */}
+            <div className="border rounded-lg overflow-hidden">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead className="w-20">Similarity</TableHead>
+                            <TableHead className="w-32">Date</TableHead>
+                            <TableHead className="w-24">ID</TableHead>
+                            <TableHead>Memory Text</TableHead>
+                            <TableHead className="w-24">Grounding</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {results.map((memory, index) => {
+                            const memoryId = memory.id || `memory-${index}`
+                            const score = memory.metadata?.score || memory.score
+                            const content = memory.content || memory.text || memory.memory || 'No content available'
+                            const shortContent = content.length > 100 ? content.substring(0, 100) + '...' : content
+
+                            return (
+                                <TableRow
+                                    key={memoryId}
+                                    className="cursor-pointer hover:bg-gray-50"
+                                    onClick={() => handleRowClick(memory)}
+                                >
+                                    <TableCell>
+                                        <span className={`font-medium ${getSimilarityColor(score)}`}>
+                                            {score !== undefined ? `${(score * 100).toFixed(1)}%` : 'N/A'}
+                                        </span>
+                                    </TableCell>
+                                    <TableCell className="text-sm text-gray-600">
+                                        {memory.created_at ? new Date(memory.created_at).toLocaleDateString() : 'N/A'}
+                                    </TableCell>
+                                    <TableCell className="font-mono text-xs text-gray-500">
+                                        {formatShortId(memoryId)}
+                                    </TableCell>
+                                    <TableCell className="text-sm">
+                                        {shortContent}
+                                    </TableCell>
+                                    <TableCell>
+                                        {memory.grounding_applied ? (
+                                            <Badge className="text-xs bg-orange-100 text-orange-800">
+                                                <Anchor className="w-3 h-3 mr-1" />
+                                                Yes
+                                            </Badge>
+                                        ) : (
+                                            <span className="text-xs text-gray-400">No</span>
+                                        )}
+                                    </TableCell>
+                                </TableRow>
+                            )
+                        })}
+                    </TableBody>
+                </Table>
+            </div>
+
+            {/* JSON Dialog */}
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogContent className="max-w-4xl max-h-[80vh]">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            Memory Details
+                            {selectedMemory?.id && (
+                                <span className="font-mono text-sm text-gray-500">
+                                    {formatShortId(selectedMemory.id)}
+                                </span>
+                            )}
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="overflow-auto">
+                        {selectedMemory && (
+                            <pre className="text-xs bg-gray-50 p-4 rounded border overflow-x-auto">
+                                {JSON.stringify(selectedMemory, null, 2)}
+                            </pre>
+                        )}
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Excluded Memories */}
+            {excludedMemories && excludedMemories.length > 0 && (
+                <div className="mt-6">
+                    <h4 className="text-sm font-medium text-gray-700 mb-3">
+                        Excluded Memories ({excludedMemories.length})
+                    </h4>
+                    <div className="space-y-2">
+                        {excludedMemories.map((memory, index) => {
+                            const memoryId = memory.id || `excluded-${index}`
+                            const score = memory.metadata?.score || memory.score
+                            return (
+                                <div key={memoryId} className="flex items-center justify-between p-2 bg-orange-50 border border-orange-200 rounded text-sm">
+                                    <span className="text-orange-800">
+                                        {index + 1}. {formatShortId(memoryId)}
+                                    </span>
+                                    {score !== undefined && (
+                                        <Badge variant="outline" className="text-xs text-orange-600">
+                                            {(score * 100).toFixed(1)}%
+                                        </Badge>
+                                    )}
+                                </div>
+                            )
+                        })}
+                    </div>
+                </div>
+            )}
+
+            {/* Filtering Info */}
+            {filteringInfo && (
+                <div className="mt-6 p-3 bg-gray-50 rounded border">
+                    <h4 className="text-sm font-medium text-gray-700 mb-2">Filtering Information</h4>
+                    <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
+                        <div>Min Similarity: {filteringInfo.min_similarity_threshold || 'N/A'}</div>
+                        <div>Total Candidates: {filteringInfo.total_candidates || 'N/A'}</div>
+                        <div>Included: {filteringInfo.included_count || 'N/A'}</div>
+                        <div>Excluded: {filteringInfo.excluded_count || 'N/A'}</div>
+                    </div>
+                </div>
+            )}
+        </div>
+    )
+}
+
+// Custom chat interface for search results
+interface SearchChatInterfaceProps {
+    messages: UnifiedChatMessage[]
+    isLoading: boolean
+    searchResults: Memory[]
+    excludedMemories: Memory[]
+    filteringInfo: {
+        min_similarity_threshold?: number
+        total_candidates?: number
+        excluded_count?: number
+        included_count?: number
+    } | null
+}
+
+function SearchChatInterface({
+    messages,
+    isLoading
+}: SearchChatInterfaceProps) {
+    const messagesEndRef = useRef<HTMLDivElement>(null)
+    const scrollAreaRef = useRef<HTMLDivElement>(null)
+
+    // Auto-scroll to bottom when new messages are added
+    useEffect(() => {
+        if (messagesEndRef.current && scrollAreaRef.current) {
+            const viewport = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement
+            if (viewport) {
+                viewport.scrollTo({
+                    top: viewport.scrollHeight,
+                    behavior: 'smooth'
+                })
+            }
+        }
+    }, [messages])
+
+    return (
+        <div className="h-full">
+            <div ref={scrollAreaRef} className="h-full overflow-y-auto">
+                <div className="space-y-4">
+                    {messages.map((message, index) => (
+                        <div key={message.id} className="space-y-2">
+                            {message.type === 'user' ? (
+                                <div className="flex justify-end">
+                                    <div className="max-w-[80%] bg-blue-500 text-white rounded-lg px-4 py-2">
+                                        <div className="whitespace-pre-wrap">{message.content}</div>
+                                        <div className="text-xs text-blue-100 mt-1">
+                                            {new Date(message.created_at).toLocaleTimeString()}
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="flex justify-start">
+                                    <div className="max-w-[95%] space-y-2">
+                                        <div className="bg-gray-100 text-gray-800 rounded-lg px-4 py-2">
+                                            <div className="whitespace-pre-wrap">{message.content}</div>
+                                            <div className="text-xs text-gray-500 mt-1">
+                                                {new Date(message.created_at).toLocaleTimeString()}
+                                            </div>
+                                        </div>
+
+                                        {/* Show SearchResultsDisplay for the latest assistant message with search results */}
+                                        {index === messages.length - 1 &&
+                                         message.type === 'assistant' &&
+                                         message.supporting_memories &&
+                                         message.supporting_memories.length > 0 && (
+                                            <div className="mt-4">
+                                                <SearchResultsDisplay
+                                                    results={message.supporting_memories as ApiMemory[]}
+                                                    excludedMemories={message.excluded_memories as ApiMemory[]}
+                                                    filteringInfo={message.filtering_info}
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    ))}
+                    {isLoading && (
+                        <div className="flex justify-start">
+                            <div className="max-w-[90%] bg-gray-100 text-gray-800 rounded-lg px-4 py-2">
+                                <div className="flex items-center gap-2">
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
+                                    <span>Searching memories...</span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    <div ref={messagesEndRef} />
+                </div>
+            </div>
+        </div>
+    )
+}
 
 export default function SearchPage() {
     const [input, setInput] = useState("")
-    const [currentSearchQuery, setCurrentSearchQuery] = useState<string | null>(null)
-    const [lastSearchQuery, setLastSearchQuery] = useState<string | null>(null)
+    const [chatMessages, setChatMessages] = useState<UnifiedChatMessage[]>([])
 
     const {
         searchResults,
@@ -26,7 +306,6 @@ export default function SearchPage() {
         error,
         apiStatus,
         searchMemories,
-        deleteMemory,
         clearError,
     } = useMemoryAPI()
 
@@ -40,70 +319,118 @@ export default function SearchPage() {
         updateSearchResponses,
     } = usePersistentChat()
 
-    // Restore search state from persistent storage on component mount
+    // Restore chat messages from persistent storage on component mount
     useEffect(() => {
         if (persistentSearchResponses.length > 0) {
-            // Get the most recent search response
-            const lastSearch = persistentSearchResponses[persistentSearchResponses.length - 1]
-            setCurrentSearchQuery(lastSearch.query)
-            setLastSearchQuery(lastSearch.query)
-            // Note: searchResults are managed by useMemoryAPI hook and will be set when we trigger the search
+            const messages: UnifiedChatMessage[] = []
+
+            persistentSearchResponses.forEach((searchResponse, index) => {
+                // Add user message
+                const userMessage: UnifiedChatMessage = {
+                    id: `user-${index}-${Date.now()}`,
+                    type: 'user',
+                    content: searchResponse.query,
+                    created_at: searchResponse.timestamp
+                }
+                messages.push(userMessage)
+
+                // Add assistant response with search results
+                const assistantMessage: UnifiedChatMessage = {
+                    id: `assistant-${index}-${Date.now()}`,
+                    type: 'assistant',
+                    content: `Found ${searchResponse.results.length} matching memories`,
+                    created_at: searchResponse.timestamp,
+                    supporting_memories: searchResponse.results,
+                    excluded_memories: searchResponse.excludedMemories,
+                    filtering_info: searchResponse.filteringInfo
+                }
+                messages.push(assistantMessage)
+            })
+
+            setChatMessages(messages)
         }
     }, [persistentSearchResponses])
 
     // Save search results when they are updated (after a successful search)
     useEffect(() => {
-        if (searchResults.length > 0 && currentSearchQuery && currentSearchQuery !== lastSearchQuery) {
-            const searchResponse: SearchResponse = {
-                success: true,
-                query: currentSearchQuery,
-                results: searchResults,
-                excludedMemories: excludedMemories,
-                filteringInfo: filteringInfo || undefined,
-                timestamp: new Date().toISOString()
+        if (searchResults.length > 0 && chatMessages.length > 0) {
+            // Check if the last message is already an assistant response with search results
+            const lastMessage = chatMessages[chatMessages.length - 1]
+            if (lastMessage.type === 'user') {
+                // Add assistant response with search results
+                const assistantMessage: UnifiedChatMessage = {
+                    id: `assistant-${Date.now()}`,
+                    type: 'assistant',
+                    content: `Found ${searchResults.length} matching memories`,
+                    created_at: new Date().toISOString(),
+                    supporting_memories: searchResults,
+                    excluded_memories: excludedMemories,
+                    filtering_info: filteringInfo || undefined
+                }
+                setChatMessages(prev => [...prev, assistantMessage])
+
+                // Save to persistent storage
+                const searchResponse: SearchResponse = {
+                    success: true,
+                    query: lastMessage.content,
+                    results: searchResults,
+                    excludedMemories: excludedMemories,
+                    filteringInfo: filteringInfo || undefined,
+                    timestamp: new Date().toISOString()
+                }
+                addSearchResponse(searchResponse)
             }
-            addSearchResponse(searchResponse)
-            setLastSearchQuery(currentSearchQuery)
         }
-    }, [searchResults, excludedMemories, filteringInfo, currentSearchQuery, lastSearchQuery, addSearchResponse])
+    }, [searchResults, excludedMemories, filteringInfo, chatMessages, addSearchResponse])
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!input.trim()) return
 
-        // Set the current search query immediately to show "thinking" state
-        setCurrentSearchQuery(input)
         const currentInput = input
         setInput("")
 
+        // Add user message immediately
+        const userMessage: UnifiedChatMessage = {
+            id: `user-${Date.now()}`,
+            type: 'user',
+            content: currentInput,
+            created_at: new Date().toISOString()
+        }
+        setChatMessages(prev => [...prev, userMessage])
+
         try {
             const success = await searchMemories(currentInput, settings.questionTopK, settings.minSimilarity)
-            if (success) {
-                // Keep the search query to show results
-                // setCurrentSearchQuery will remain set to show the query that was searched
-                // Search results will be saved by the useEffect hook when they are updated
-            } else {
-                // Clear the search query on error
-                setCurrentSearchQuery(null)
+            if (!success) {
+                // Add error message
+                const errorMessage: UnifiedChatMessage = {
+                    id: `error-${Date.now()}`,
+                    type: 'assistant',
+                    content: 'Failed to search memories. Please try again.',
+                    created_at: new Date().toISOString()
+                }
+                setChatMessages(prev => [...prev, errorMessage])
             }
-        } catch {
-            // Clear the search query on error
-            setCurrentSearchQuery(null)
+            // Success case is handled by the useEffect hook
+        } catch (err) {
+            // Add error message
+            const errorMessage: UnifiedChatMessage = {
+                id: `error-${Date.now()}`,
+                type: 'assistant',
+                content: `Error searching memories: ${err instanceof Error ? err.message : 'Unknown error'}`,
+                created_at: new Date().toISOString()
+            }
+            setChatMessages(prev => [...prev, errorMessage])
         }
     }
 
     const clearSearch = () => {
-        setCurrentSearchQuery(null)
-        setLastSearchQuery(null)
-        // Also clear persistent search responses
+        setChatMessages([])
         updateSearchResponses([])
-        // Note: searchResults are managed by useMemoryAPI hook,
-        // they will be cleared when a new search is performed
     }
 
-    // Check if there are any search results or if we're currently searching
-    const hasSearchResults = searchResults.length > 0
-    const isSearching = currentSearchQuery !== null
+    // Check if there are any chat messages
+    const hasMessages = chatMessages.length > 0
 
     return (
         <PageLayout
@@ -115,37 +442,23 @@ export default function SearchPage() {
             <div className="h-full flex flex-col">
                 <ApiPageHeader
                     endpoint="(POST) /api/memory/search"
-                    hasMessages={isSearching}
+                    hasMessages={hasMessages}
                     onClearChat={clearSearch}
                     isLoading={isLoading}
                     title="Search Memory"
                     showSettingsButton={true}
                 />
-                {isSearching ? (
-                    // Layout when searching or have search results - input at bottom
+                {hasMessages ? (
+                    // Layout when there are chat messages - input at bottom
                     <>
-                        <div className="flex-1 min-h-0 overflow-y-auto p-4 bg-white">
-                            {/* Show current search query */}
-                            <div className="mb-4 p-3 bg-blue-50 rounded-lg border-l-4 border-blue-400">
-                                <div className="text-sm text-blue-700 font-medium">
-                                    Searching for: &ldquo;{currentSearchQuery}&rdquo;
-                                </div>
-                                {isLoading && (
-                                    <div className="text-sm text-blue-600 mt-1">
-                                        thinking...
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Show search results if available */}
-                            {hasSearchResults && (
-                                <RecallTab
-                                    searchResults={searchResults}
-                                    excludedMemories={excludedMemories}
-                                    filteringInfo={filteringInfo || undefined}
-                                    onMemoryDeleted={deleteMemory}
-                                />
-                            )}
+                        <div className="flex-1 min-h-0 p-4 bg-white">
+                            <SearchChatInterface
+                                messages={chatMessages}
+                                isLoading={isLoading}
+                                searchResults={searchResults}
+                                excludedMemories={excludedMemories}
+                                filteringInfo={filteringInfo}
+                            />
                         </div>
 
                         {/* Input Form at bottom */}
@@ -160,15 +473,15 @@ export default function SearchPage() {
                         </div>
                     </>
                 ) : (
-                    // Layout when no search results - input centered vertically with prompt
+                    // Layout when no messages - input centered vertically with prompt
                     <div className="flex-1 flex items-center justify-center -mt-40 bg-white">
-                            <div className="w-full">
-                                <div className="text-center mb-8">
-                                    <h1 className="text-3xl font-bold text-gray-900 mb-2">Search Memories</h1>
+                        <div className="w-full">
+                            <div className="text-center mb-8">
+                                <h1 className="text-3xl font-bold text-gray-900 mb-2">Search Memories</h1>
                                 <p className="text-gray-600">
-                                        Vector search for relevant nemes and return in JSON
-                                    </p>
-                                </div>
+                                    Vector search for relevant nemes and return detailed JSON
+                                </p>
+                            </div>
 
                             <PageInputForm
                                 input={input}

@@ -425,7 +425,7 @@ export default function InvestmentDemo() {
                 <div className="text-center space-y-4">
                     <div className="flex items-center justify-center gap-3">
                         <TrendingUp className="w-8 h-8 text-green-600" />
-                        <h1 className="text-3xl font-bold text-gray-900">Investment Analysis Demo</h1>
+                        <h1 className="text-3xl font-bold text-gray-900">Investment Agent Demo</h1>
                         <div className="flex gap-2">
                             <Dialog open={showHelpDialog} onOpenChange={setShowHelpDialog}>
                                 <DialogTrigger asChild>
@@ -494,7 +494,7 @@ export default function InvestmentDemo() {
                         </div>
                     </div>
                     <p className="text-lg text-gray-600 max-w-5xl mx-auto">
-                        Experience how conversational memory transforms generic financial document analysis into personalized investment advisory.
+                        Experience how conversational memory transforms generic financial document analysis into personalized investment agent.
                         The memory-enhanced analyst remembers your investment philosophy, preferences, and criteria to provide tailored insights
                         that align with your specific investment strategy.
                     </p>
@@ -626,17 +626,17 @@ export default function InvestmentDemo() {
                     <TabsList className="grid w-full grid-cols-2 mb-6">
                         <TabsTrigger value="standard" className="flex items-center gap-2">
                             <BarChart3 className="w-4 h-4" />
-                            Standard Financial Analyst
+                            Standard Financial Agent
                         </TabsTrigger>
                         <TabsTrigger value="memory" className="flex items-center gap-2">
                             <Brain className="w-4 h-4" />
-                            Memory-Enhanced Investment Advisor
+                            Memory-Enhanced Investment Agent
                         </TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="standard" className="space-y-6">
                         <ChatCard
-                            title="Standard Financial Analyst"
+                            title="Standard Financial Agent"
                             subtitle="Analyzes Microsoft's annual report but has no memory of your investment preferences or previous conversations"
                             messages={standardMessages}
                             input={standardQuestion}
@@ -657,7 +657,7 @@ export default function InvestmentDemo() {
 
                     <TabsContent value="memory" className="space-y-6">
                         <ChatCard
-                            title="Memory-Enhanced Investment Advisor"
+                            title="Memory-Enhanced Investment Agent"
                             subtitle="Analyzes Microsoft's annual report with full knowledge of your investment philosophy, preferences, and conversation history"
                             messages={memoryMessages}
                             input={memoryQuestion}
@@ -694,7 +694,7 @@ export default function InvestmentDemo() {
                     <CardContent className="space-y-4">
                         <div className="grid md:grid-cols-2 gap-6">
                             <div>
-                                <h4 className="font-semibold text-orange-800 mb-2">Standard Financial Analyst</h4>
+                                <h4 className="font-semibold text-orange-800 mb-2">Standard Financial Agent</h4>
                                 <ul className="space-y-1 text-sm text-gray-600">
                                     <li>• Analyzes Microsoft's annual report objectively</li>
                                     <li>• Provides generic financial insights</li>
@@ -705,7 +705,7 @@ export default function InvestmentDemo() {
                                 </ul>
                             </div>
                             <div>
-                                <h4 className="font-semibold text-green-800 mb-2">Memory-Enhanced Investment Advisor</h4>
+                                <h4 className="font-semibold text-green-800 mb-2">Memory-Enhanced Investment Agent</h4>
                                 <ul className="space-y-1 text-sm text-gray-600">
                                     <li>• Knows your value-focused investment philosophy</li>
                                     <li>• Prioritizes FCF and ROE metrics you care about</li>
@@ -718,7 +718,7 @@ export default function InvestmentDemo() {
                         </div>
                         <div className="bg-purple-50 p-4 rounded-lg">
                             <p className="text-purple-800 text-sm">
-                                <strong>Key Insight:</strong> Memory transforms generic financial document analysis into personalized investment advisory.
+                                <strong>Key Insight:</strong> Memory transforms generic financial document analysis into personalized investment advice.
                                 The memory-enhanced advisor doesn't just analyze Microsoft's financials—it evaluates Microsoft specifically against
                                 YOUR investment criteria, philosophy, and preferences.
                             </p>

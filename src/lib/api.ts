@@ -313,17 +313,6 @@ export interface GetSessionsResponse {
     }>
 }
 
-export interface ExtractMemoriesResponse {
-    success: boolean
-    raw_input: string
-    extracted_memories: Array<{
-        text: string
-        memory_id: string
-        grounding_applied: boolean
-    }>
-    context_prompt?: string
-}
-
 // Performance API interfaces
 export interface CacheStats {
     hit_rate_percent: number // Percentage (0-100)
@@ -491,27 +480,9 @@ class MemoryAgentAPI {
         if (minSimilarity !== undefined) {
             body.min_similarity = minSimilarity
         }
-        return this.request<AskResponse>('/api/klines/ask', {
+        return this.request<AskResponse>('/api/memory/ask', {
             method: 'POST',
             body: JSON.stringify(body),
-        })
-    }
-
-
-
-    // K-LINE API endpoint for memory extraction
-    async extractMemories(
-        rawInput: string,
-        contextPrompt?: string,
-        applyGrounding: boolean = true
-    ): Promise<ExtractMemoriesResponse> {
-        return this.request<ExtractMemoriesResponse>('/api/klines/extract', {
-            method: 'POST',
-            body: JSON.stringify({
-                raw_input: rawInput,
-                context_prompt: contextPrompt,
-                apply_grounding: applyGrounding
-            }),
         })
     }
 

@@ -65,7 +65,7 @@ export function Navbar() {
         },
         {
             href: "/retail-demo",
-            label: "Retail Demo",
+            label: "Retail Agent",
             icon: ShoppingCart,
             isActive: pathname === "/retail-demo"
         }
@@ -143,7 +143,7 @@ export function Navbar() {
                                         isDemoActive && "text-red-600 hover:text-red-700 bg-white border-b-2 border-red-500 rounded-none hover:bg-white"
                                     )}
                                 >
-                                    Demos
+                                    Agent Demos
                                     <ChevronDown className="w-4 h-4" />
                                 </Button>
                             </DropdownMenuTrigger>
