@@ -8,6 +8,7 @@ import { PageInputForm } from "@/components/PageInputForm"
 
 import { ApiPageHeader } from "@/components/ApiPageHeader"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import {
     Table,
     TableBody,
@@ -19,6 +20,8 @@ import {
 import {
     Dialog,
     DialogContent,
+    DialogDescription,
+    DialogFooter,
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog"
@@ -31,13 +34,80 @@ import type { SearchResponse } from "@/hooks/usePersistentChat"
 import type { ApiMemory } from "@/lib/api"
 import type { Memory } from "@/types"
 // Icons
-import { Anchor } from "lucide-react"
+import { Anchor, Trash2, AlertTriangle } from "lucide-react"
 
 // Helper function to format memory ID (short version - 8 chars with ...)
 function formatShortId(memoryId: string) {
     if (!memoryId) return 'N/A'
     if (memoryId.length <= 8) return memoryId
     return memoryId.substring(0, 8) + '...'
+}
+
+// Delete confirmation dialog component
+interface DeleteConfirmationDialogProps {
+    isOpen: boolean
+    onClose: () => void
+    onConfirm: () => void
+    memoryId: string
+    isDeleting: boolean
+}
+
+function DeleteConfirmationDialog({
+    isOpen,
+    onClose,
+    onConfirm,
+    memoryId,
+    isDeleting
+}: DeleteConfirmationDialogProps) {
+    return (
+        <Dialog open={isOpen} onOpenChange={onClose}>
+            <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2 text-red-600">
+                        <AlertTriangle className="w-5 h-5" />
+                        Delete Memory
+                    </DialogTitle>
+                    <DialogDescription className="text-left">
+                        Are you sure you want to delete this memory?
+                        <br />
+                        <br />
+                        <strong>Memory ID:</strong> <span className="font-mono text-sm">{formatShortId(memoryId)}</span>
+                        <br />
+                        <br />
+                        <strong className="text-red-600">This action cannot be undone.</strong>
+                    </DialogDescription>
+                </DialogHeader>
+                <DialogFooter className="flex-col sm:flex-row gap-2">
+                    <Button
+                        variant="outline"
+                        onClick={onClose}
+                        disabled={isDeleting}
+                        className="w-full sm:w-auto"
+                    >
+                        Cancel
+                    </Button>
+                    <Button
+                        variant="destructive"
+                        onClick={onConfirm}
+                        disabled={isDeleting}
+                        className="w-full sm:w-auto"
+                    >
+                        {isDeleting ? (
+                            <>
+                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                                Deleting...
+                            </>
+                        ) : (
+                            <>
+                                <Trash2 className="w-4 h-4 mr-2" />
+                                Yes, Delete
+                            </>
+                        )}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    )
 }
 
 // Component to display search results in a professional format
@@ -50,15 +120,44 @@ interface SearchResultsDisplayProps {
         excluded_count?: number
         included_count?: number
     }
+    onMemoryDeleted?: (memoryId: string) => void
 }
 
-function SearchResultsDisplay({ results, excludedMemories, filteringInfo }: SearchResultsDisplayProps) {
+function SearchResultsDisplay({ results, excludedMemories, filteringInfo, onMemoryDeleted }: SearchResultsDisplayProps) {
     const [selectedMemory, setSelectedMemory] = useState<ApiMemory | null>(null)
     const [isDialogOpen, setIsDialogOpen] = useState(false)
+    const [deleteMemoryId, setDeleteMemoryId] = useState<string | null>(null)
+    const [isDeleting, setIsDeleting] = useState(false)
+
+    const { deleteMemory } = useMemoryAPI()
 
     const handleRowClick = (memory: ApiMemory) => {
         setSelectedMemory(memory)
         setIsDialogOpen(true)
+    }
+
+    const handleDeleteClick = (e: React.MouseEvent, memoryId: string) => {
+        e.stopPropagation() // Prevent row click
+        setDeleteMemoryId(memoryId)
+    }
+
+    const handleDeleteConfirm = async () => {
+        if (!deleteMemoryId) return
+
+        setIsDeleting(true)
+        try {
+            const success = await deleteMemory(deleteMemoryId)
+            if (success && onMemoryDeleted) {
+                onMemoryDeleted(deleteMemoryId)
+            }
+        } finally {
+            setIsDeleting(false)
+            setDeleteMemoryId(null)
+        }
+    }
+
+    const handleDeleteCancel = () => {
+        setDeleteMemoryId(null)
     }
 
     const getSimilarityColor = (score: number | undefined) => {
@@ -68,12 +167,7 @@ function SearchResultsDisplay({ results, excludedMemories, filteringInfo }: Sear
         return 'text-red-600'
     }
 
-    const getRelevanceColor = (score: number | undefined) => {
-        if (score === undefined || score === null) return 'text-gray-600'
-        if (score >= 80) return 'text-green-600'
-        if (score >= 60) return 'text-yellow-600'
-        return 'text-red-600'
-    }
+
 
     return (
         <div className="space-y-4">
@@ -88,6 +182,7 @@ function SearchResultsDisplay({ results, excludedMemories, filteringInfo }: Sear
                             <TableHead className="w-24">ID</TableHead>
                             <TableHead>Memory Text</TableHead>
                             <TableHead className="w-24">Grounding</TableHead>
+                            <TableHead className="w-16">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -127,6 +222,17 @@ function SearchResultsDisplay({ results, excludedMemories, filteringInfo }: Sear
                                             <span className="text-xs text-gray-400">No</span>
                                         )}
                                     </TableCell>
+                                    <TableCell>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                            onClick={(e) => handleDeleteClick(e, memoryId)}
+                                            title="Delete memory"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </Button>
+                                    </TableCell>
                                 </TableRow>
                             )
                         })}
@@ -156,6 +262,15 @@ function SearchResultsDisplay({ results, excludedMemories, filteringInfo }: Sear
                     </div>
                 </DialogContent>
             </Dialog>
+
+            {/* Delete Confirmation Dialog */}
+            <DeleteConfirmationDialog
+                isOpen={deleteMemoryId !== null}
+                onClose={handleDeleteCancel}
+                onConfirm={handleDeleteConfirm}
+                memoryId={deleteMemoryId || ''}
+                isDeleting={isDeleting}
+            />
 
             {/* Excluded Memories */}
             {excludedMemories && excludedMemories.length > 0 && (
@@ -212,11 +327,13 @@ interface SearchChatInterfaceProps {
         excluded_count?: number
         included_count?: number
     } | null
+    onMemoryDeleted?: (memoryId: string) => void
 }
 
 function SearchChatInterface({
     messages,
-    isLoading
+    isLoading,
+    onMemoryDeleted
 }: SearchChatInterfaceProps) {
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const scrollAreaRef = useRef<HTMLDivElement>(null)
@@ -269,6 +386,7 @@ function SearchChatInterface({
                                                     results={message.supporting_memories as ApiMemory[]}
                                                     excludedMemories={message.excluded_memories as ApiMemory[]}
                                                     filteringInfo={message.filtering_info}
+                                                    onMemoryDeleted={onMemoryDeleted}
                                                 />
                                             </div>
                                         )}
@@ -308,6 +426,22 @@ export default function SearchPage() {
         searchMemories,
         clearError,
     } = useMemoryAPI()
+
+    // Handle memory deletion from search results
+    const handleMemoryDeleted = (memoryId: string) => {
+        // Update chat messages to remove the deleted memory from supporting_memories
+        setChatMessages(prev => prev.map(message => {
+            if (message.type === 'assistant' && message.supporting_memories) {
+                return {
+                    ...message,
+                    supporting_memories: message.supporting_memories.filter(
+                        (memory: ApiMemory) => memory.id !== memoryId
+                    )
+                }
+            }
+            return message
+        }))
+    }
 
     // Get settings for search top_k
     const { settings } = useSettings()
@@ -458,6 +592,7 @@ export default function SearchPage() {
                                 searchResults={searchResults}
                                 excludedMemories={excludedMemories}
                                 filteringInfo={filteringInfo}
+                                onMemoryDeleted={handleMemoryDeleted}
                             />
                         </div>
 

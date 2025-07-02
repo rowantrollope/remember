@@ -7,7 +7,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Info, MessageCircle, Search, Brain, Save, Menu, X, ChevronDown, TrendingUp, Plane, Network, ShoppingCart, BarChart3 } from "lucide-react"
+import { Info, MessageCircle, Search, Brain, Save, Menu, X, ChevronDown, TrendingUp, Plane, ShoppingCart, BarChart3, Trash2 } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
@@ -35,6 +35,12 @@ export function Navbar() {
             label: "Ask Memory a Question",
             icon: Brain,
             isActive: pathname === "/ask"
+        },
+        {
+            href: "/delete",
+            label: "Delete memory",
+            icon: Trash2,
+            isActive: pathname === "/delete"
         },
     ]
 
@@ -133,34 +139,6 @@ export function Navbar() {
                     {/* Desktop Navigation */}
                     <div className="hidden sm:flex items-center space-x-0">
 
-                        {/* Demos Dropdown */}
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button
-                                    variant={isDemoActive ? "default" : "ghost"}
-                                    className={cn(
-                                        "flex items-center gap-2 bg-white",
-                                        isDemoActive && "text-red-600 hover:text-red-700 bg-white border-b-2 border-red-500 rounded-none hover:bg-white"
-                                    )}
-                                >
-                                    Agent Demos
-                                    <ChevronDown className="w-4 h-4" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-48">
-                                {demoItems.map((item) => {
-                                    const Icon = item.icon
-                                    return (
-                                        <DropdownMenuItem key={item.href} asChild>
-                                            <Link href={item.href} className="flex items-center gap-2 w-full">
-                                                <Icon className="w-4 h-4" />
-                                                {item.label}
-                                            </Link>
-                                        </DropdownMenuItem>
-                                    )
-                                })}
-                            </DropdownMenuContent>
-                        </DropdownMenu>
 
                         {/* API Dropdown */}
                         <DropdownMenu>
@@ -178,6 +156,34 @@ export function Navbar() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-48">
                                 {apiItems.map((item) => {
+                                    const Icon = item.icon
+                                    return (
+                                        <DropdownMenuItem key={item.href} asChild>
+                                            <Link href={item.href} className="flex items-center gap-2 w-full">
+                                                <Icon className="w-4 h-4" />
+                                                {item.label}
+                                            </Link>
+                                        </DropdownMenuItem>
+                                    )
+                                })}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                        {/* Demos Dropdown */}
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button
+                                    variant={isDemoActive ? "default" : "ghost"}
+                                    className={cn(
+                                        "flex items-center gap-2 bg-white",
+                                        isDemoActive && "text-red-600 hover:text-red-700 bg-white border-b-2 border-red-500 rounded-none hover:bg-white"
+                                    )}
+                                >
+                                    Agent Demos
+                                    <ChevronDown className="w-4 h-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48">
+                                {demoItems.map((item) => {
                                     const Icon = item.icon
                                     return (
                                         <DropdownMenuItem key={item.href} asChild>

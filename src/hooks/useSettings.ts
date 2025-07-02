@@ -1,14 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 
-// Create a custom event for settings changes
-const SETTINGS_CHANGE_EVENT = 'settings-changed'
-
-// Dispatch custom event when settings change
-const dispatchSettingsChange = (newSettings: UserSettings) => {
-    window.dispatchEvent(new CustomEvent(SETTINGS_CHANGE_EVENT, {
-        detail: newSettings
-    }))
-}
+// Remove custom event system to avoid circular updates
 
 export interface UserSettings {
     questionTopK: number // Number of memories to use when answering questions
@@ -86,19 +78,7 @@ export function useSettings() {
         }
     }, [])
 
-    // Listen for settings changes from other components
-    useEffect(() => {
-        const handleSettingsChange = (event: CustomEvent<UserSettings>) => {
-            console.log('useSettings: Received settings change event:', event.detail)
-            setSettings(event.detail)
-        }
-
-        window.addEventListener(SETTINGS_CHANGE_EVENT, handleSettingsChange as EventListener)
-
-        return () => {
-            window.removeEventListener(SETTINGS_CHANGE_EVENT, handleSettingsChange as EventListener)
-        }
-    }, [])
+    // Removed event listener system to avoid circular updates
 
     // Save settings to localStorage
     const saveToStorage = useCallback((newSettings: UserSettings) => {
@@ -111,9 +91,6 @@ export function useSettings() {
 
             localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(dataToSave))
             console.log('Settings saved to localStorage:', newSettings)
-
-            // Notify other components about the settings change
-            dispatchSettingsChange(newSettings)
         } catch (error) {
             console.error('Failed to save settings to localStorage:', error)
         }
