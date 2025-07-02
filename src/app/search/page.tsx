@@ -25,6 +25,12 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog"
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip"
 import type { UnifiedChatMessage } from "@/components/ChatBox"
 // Hooks
 import { useMemoryAPI } from "@/hooks"
@@ -34,7 +40,7 @@ import type { SearchResponse } from "@/hooks/usePersistentChat"
 import type { ApiMemory } from "@/lib/api"
 import type { Memory } from "@/types"
 // Icons
-import { Anchor, Trash2, AlertTriangle } from "lucide-react"
+import { Anchor, Trash2, AlertTriangle, Info } from "lucide-react"
 
 // Helper function to format memory ID (short version - 8 chars with ...)
 function formatShortId(memoryId: string) {
@@ -167,6 +173,13 @@ function SearchResultsDisplay({ results, excludedMemories, filteringInfo, onMemo
         return 'text-red-600'
     }
 
+    const getRelevanceColor = (score: number | undefined) => {
+        if (score === undefined || score === null) return 'text-gray-600'
+        if (score >= 0.8) return 'text-green-600'
+        if (score >= 0.6) return 'text-yellow-600'
+        return 'text-red-600'
+    }
+
 
 
     return (
@@ -177,33 +190,55 @@ function SearchResultsDisplay({ results, excludedMemories, filteringInfo, onMemo
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead className="w-20">Similarity</TableHead>
-                            <TableHead className="w-32">Date</TableHead>
-                            <TableHead className="w-24">ID</TableHead>
+                            <TableHead className="">Similarity</TableHead>
+                            <TableHead className="">
+                                <div className="flex items-center gap-1">
+                                    Relevance
+                                    <TooltipProvider>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Info className="w-3 h-3 text-gray-400 cursor-help" />
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p className="max-w-xs text-sm">
+                                                    Relevance score is a blend of similarity, temporal recency, access recency, and access frequency
+                                                </p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
+                                </div>
+                            </TableHead>
+                            <TableHead className="">Date</TableHead>
+                            <TableHead className="">ID</TableHead>
                             <TableHead>Memory Text</TableHead>
-                            <TableHead className="w-24">Grounding</TableHead>
-                            <TableHead className="w-16">Actions</TableHead>
+                            <TableHead className="">Grounding</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {results.map((memory, index) => {
                             const memoryId = memory.id || `memory-${index}`
                             const score = memory.metadata?.score || memory.score
+                            const relevanceScore = memory.metadata?.relevance_score || memory.relevance_score
                             const content = memory.content || memory.text || memory.memory || 'No content available'
                             const shortContent = content.length > 100 ? content.substring(0, 100) + '...' : content
 
                             return (
                                 <TableRow
                                     key={memoryId}
-                                    className="cursor-pointer hover:bg-gray-50"
+                                    className="group cursor-pointer hover:bg-gray-50"
                                     onClick={() => handleRowClick(memory)}
                                 >
                                     <TableCell>
-                                        <span className={`font-medium ${getSimilarityColor(score)}`}>
+                                        <span className={`font-medium text-xs ${getSimilarityColor(score)}`}>
                                             {score !== undefined ? `${(score * 100).toFixed(1)}%` : 'N/A'}
                                         </span>
                                     </TableCell>
-                                    <TableCell className="text-sm text-gray-600">
+                                    <TableCell>
+                                        <span className={`font-medium text-xs ${getRelevanceColor(relevanceScore)}`}>
+                                            {relevanceScore !== undefined ? `${(relevanceScore * 100).toFixed(1)}%` : 'N/A'}
+                                        </span>
+                                    </TableCell>
+                                    <TableCell className="text-xs text-gray-600">
                                         {memory.created_at ? new Date(memory.created_at).toLocaleDateString() : 'N/A'}
                                     </TableCell>
                                     <TableCell className="font-mono text-xs text-gray-500">
@@ -212,7 +247,7 @@ function SearchResultsDisplay({ results, excludedMemories, filteringInfo, onMemo
                                     <TableCell className="text-sm">
                                         {shortContent}
                                     </TableCell>
-                                    <TableCell>
+                                    <TableCell className="flex w-full">
                                         {memory.grounding_applied ? (
                                             <Badge className="text-xs bg-orange-100 text-orange-800">
                                                 <Anchor className="w-3 h-3 mr-1" />
@@ -221,16 +256,15 @@ function SearchResultsDisplay({ results, excludedMemories, filteringInfo, onMemo
                                         ) : (
                                             <span className="text-xs text-gray-400">No</span>
                                         )}
-                                    </TableCell>
-                                    <TableCell>
+                                        <div className="grow"></div>
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
                                             onClick={(e) => handleDeleteClick(e, memoryId)}
                                             title="Delete memory"
                                         >
-                                            <Trash2 className="w-4 h-4" />
+                                            <Trash2 className="group-hover:flex hidden" />
                                         </Button>
                                     </TableCell>
                                 </TableRow>
@@ -355,7 +389,7 @@ function SearchChatInterface({
         <div className="h-full">
             <div ref={scrollAreaRef} className="h-full overflow-y-auto">
                 <div className="space-y-4">
-                    {messages.map((message, index) => (
+                    {messages.map((message) => (
                         <div key={message.id} className="space-y-2">
                             {message.type === 'user' ? (
                                 <div className="flex justify-end">
@@ -376,9 +410,8 @@ function SearchChatInterface({
                                             </div>
                                         </div>
 
-                                        {/* Show SearchResultsDisplay for the latest assistant message with search results */}
-                                        {index === messages.length - 1 &&
-                                         message.type === 'assistant' &&
+                                        {/* Show SearchResultsDisplay for ALL assistant messages with search results */}
+                                        {message.type === 'assistant' &&
                                          message.supporting_memories &&
                                          message.supporting_memories.length > 0 && (
                                             <div className="mt-4">
