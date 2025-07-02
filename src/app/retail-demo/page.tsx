@@ -11,7 +11,7 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog"
-import { ShoppingCart, Brain, HelpCircle, Package, GitBranch, Plus, Check } from "lucide-react"
+import { ShoppingCart, Brain, HelpCircle, Package, Plus, Check } from "lucide-react"
 import { PageLayout } from "@/components/PageLayout"
 import { ChatCard } from "@/components/ChatCard"
 import { ChatMessage } from "@/components/ChatBox"

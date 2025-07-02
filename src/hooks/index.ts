@@ -1,3 +1,7 @@
-export { useMemoryAPI } from './useMemoryAPI'
-export { usePersistentChat } from './usePersistentChat'
-export { useSettings } from './useSettings'
+export { useConfiguredAPI } from "./useConfiguredAPI"
+export { useMemoryAPI } from "./useMemoryAPI"
+export { usePersistentChat } from "./usePersistentChat"
+export { useSettings } from "./useSettings"
+export { usePerformanceAPI } from "./usePerformanceAPI"
+export { usePerformanceSettings } from "./usePerformanceSettings"
+export { useLLMConfig } from "./useLLMConfig"

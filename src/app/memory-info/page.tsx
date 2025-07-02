@@ -6,13 +6,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
-import { Brain, AlertCircle, CheckCircle, Settings, RotateCcw } from "lucide-react"
+import { Brain, AlertCircle, CheckCircle, Settings, RotateCcw, BarChart3 } from "lucide-react"
 import { type MemoryInfoResponse } from "@/lib/api"
 import { useConfiguredAPI } from "@/hooks/useConfiguredAPI"
 import { ClearAllMemoriesDialog } from "@/components/ClearAllMemoriesDialog"
 import { usePersistentChat } from "@/hooks/usePersistentChat"
 import { useSettings } from "@/hooks/useSettings"
 import { Navbar } from "@/components/Navbar"
+import { PerformanceConfigDialog } from "@/components/performance/PerformanceConfigDialog"
+import { QuickStatsWidget } from "@/components/performance/PerformanceWidgets"
+import { LLMConfigurationPanel } from "@/components/llm"
 
 export default function MemoryInfoPage() {
     const [memoryInfo, setMemoryInfo] = useState<MemoryInfoResponse | null>(null)
@@ -447,6 +450,39 @@ export default function MemoryInfoPage() {
                                 )}
                             </CardContent>
                         </Card>
+                    )}
+
+                    {/* Performance Configuration Section */}
+                    {apiStatus === 'ready' && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <BarChart3 className="w-5 h-5" />
+                                    Performance Configuration
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-6">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <h3 className="font-medium text-gray-900">Cache Settings</h3>
+                                        <p className="text-sm text-gray-600">
+                                            Configure cache behavior, similarity thresholds, and TTL settings for optimal performance.
+                                        </p>
+                                    </div>
+                                    <PerformanceConfigDialog />
+                                </div>
+
+                                <div className="border-t pt-4">
+                                    <h4 className="font-medium text-gray-900 mb-3">Current Performance</h4>
+                                    <QuickStatsWidget compact className="w-full" />
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
+
+                    {/* LLM Configuration Section */}
+                    {apiStatus === 'ready' && (
+                        <LLMConfigurationPanel />
                     )}
 
                     {/* Clear All Memories Section */}

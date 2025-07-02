@@ -1,5 +1,6 @@
 // API client for Memory Agent
-const DEFAULT_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5001'
+// Use relative URL to go through Next.js rewrites (avoids CORS)
+const DEFAULT_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || ''
 
 export interface ApiMemory {
     id?: string
@@ -339,6 +340,105 @@ export interface ExtractMemoriesResponse {
     context_prompt?: string
 }
 
+// Performance API interfaces
+export interface CacheStats {
+    hit_rate_percent: number // Percentage (0-100)
+    total_requests: number
+    semantic_hits?: number // For semantic cache
+    semantic_misses?: number // For semantic cache
+    hits?: number // For hash cache
+    misses?: number // For hash cache
+    stores: number
+    errors: number
+    embedding_calls?: number // Only for semantic cache
+    cache_type?: 'hash' | 'semantic_vectorset' // Only for semantic cache
+}
+
+export interface OperationMetrics {
+    operation_type: string
+    hit_rate: number // Percentage (0-100)
+    hits: number
+    misses: number
+    avg_similarity?: number // Only for semantic cache
+    ttl_seconds: number
+}
+
+export interface PerformanceMetricsResponse {
+    success: boolean
+    performance_metrics: {
+        cache_stats: CacheStats
+    }
+    operation_metrics?: OperationMetrics[]
+    last_updated?: string // ISO 8601 timestamp
+}
+
+export interface CacheAnalysisResponse {
+    success: boolean
+    effectiveness_rating: 'poor' | 'fair' | 'good' | 'excellent'
+    recommendations: string[]
+    potential_additional_savings: {
+        cost_usd: number
+        time_seconds: number
+    }
+    current_vs_potential: {
+        current_hit_rate: number
+        potential_hit_rate: number
+    }
+}
+
+export interface CacheClearRequest {
+    operation_type?: string
+    pattern?: string
+}
+
+export interface CacheClearResponse {
+    success: boolean
+    message: string
+    cleared_entries: number
+}
+
+export interface PerformanceConfig {
+    cache_enabled: boolean
+    cache_type: 'hash' | 'semantic_vectorset'
+    optimizations_enabled: boolean
+    batch_processing_enabled: boolean
+    default_cache_ttl_seconds: number
+    similarity_thresholds: {
+        global: number
+        query_optimization: number
+        memory_relevance: number
+        context_analysis: number
+        memory_grounding: number
+        extraction_evaluation: number
+        conversation: number
+        answer_generation: number
+    }
+    ttl_settings: {
+        query_optimization: number
+        memory_relevance: number
+        context_analysis: number
+        memory_grounding: number
+        extraction_evaluation: number
+        conversation: number
+        answer_generation: number
+    }
+}
+
+export interface ConfigResponse {
+    success: boolean
+    config: PerformanceConfig
+}
+
+export interface ConfigUpdateRequest {
+    config: Partial<PerformanceConfig>
+}
+
+export interface ConfigUpdateResponse {
+    success: boolean
+    message: string
+    config: PerformanceConfig
+}
+
 class MemoryAgentAPI {
     private baseUrl: string
 
@@ -522,6 +622,55 @@ class MemoryAgentAPI {
         return this.request<ClearAllResponse>('/api/memory', {
             method: 'DELETE',
         })
+    }
+
+    // Performance API methods
+    async getPerformanceMetrics(): Promise<PerformanceMetricsResponse> {
+        return this.request<PerformanceMetricsResponse>('/api/performance/metrics')
+    }
+
+    async clearCache(request?: CacheClearRequest): Promise<CacheClearResponse> {
+        return this.request<CacheClearResponse>('/api/performance/cache/clear', {
+            method: 'POST',
+            body: JSON.stringify(request || {}),
+        })
+    }
+
+    async analyzeCacheEffectiveness(): Promise<CacheAnalysisResponse> {
+        return this.request<CacheAnalysisResponse>('/api/performance/cache/analyze')
+    }
+
+    async getConfig(): Promise<ConfigResponse> {
+        return this.request<ConfigResponse>('/api/config')
+    }
+
+    async updateConfig(request: ConfigUpdateRequest): Promise<ConfigUpdateResponse> {
+        return this.request<ConfigUpdateResponse>('/api/config', {
+            method: 'PUT',
+            body: JSON.stringify(request)
+        })
+    }
+
+    // LLM Configuration methods
+    async getLLMConfig(): Promise<import('@/types').LLMConfigResponse> {
+        return this.request<import('@/types').LLMConfigResponse>('/api/llm/config')
+    }
+
+    async updateLLMConfig(request: import('@/types').LLMConfigUpdateRequest): Promise<import('@/types').LLMConfigUpdateResponse> {
+        return this.request<import('@/types').LLMConfigUpdateResponse>('/api/llm/config', {
+            method: 'PUT',
+            body: JSON.stringify(request)
+        })
+    }
+
+    async getOllamaModels(baseUrl?: string): Promise<import('@/types').OllamaModelsResponse> {
+        const params = new URLSearchParams()
+        if (baseUrl) {
+            params.append('base_url', baseUrl)
+        }
+        
+        const endpoint = '/api/llm/ollama/models' + (params.toString() ? '?' + params.toString() : '')
+        return this.request<import('@/types').OllamaModelsResponse>(endpoint)
     }
 }
 
