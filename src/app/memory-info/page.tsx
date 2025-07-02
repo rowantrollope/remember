@@ -2,11 +2,17 @@
 
 import type React from "react"
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
-import { Brain, AlertCircle, CheckCircle, Settings, RotateCcw, BarChart3 } from "lucide-react"
+import {
+    Accordion,
+    AccordionContent,
+    AccordionItem,
+    AccordionTrigger,
+} from "@/components/ui/accordion"
+import { Brain, AlertCircle, CheckCircle, Settings, RotateCcw, Cog } from "lucide-react"
 import { type MemoryInfoResponse } from "@/lib/api"
 import { useConfiguredAPI } from "@/hooks/useConfiguredAPI"
 import { ClearAllMemoriesDialog } from "@/components/ClearAllMemoriesDialog"
@@ -193,14 +199,17 @@ export default function MemoryInfoPage() {
                         </>
                     )}
                     {/* Settings Section */}
-                    <Card className="">
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2 text-xl">
-                                <Settings className="w-6 h-6" />
-                                Application Settings
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-6">
+                    <div className="space-y-4">
+                        <h2 className="text-2xl font-bold text-gray-900">Configuration</h2>
+                        <Accordion type="multiple" className="w-full space-y-2">
+                            <AccordionItem value="app-settings" className="border rounded-lg px-4">
+                                <AccordionTrigger className="text-lg font-semibold">
+                                    <div className="flex items-center gap-2">
+                                        <Settings className="w-5 h-5" />
+                                        Application Settings
+                                    </div>
+                                </AccordionTrigger>
+                                <AccordionContent className="space-y-6 pt-4">
                             <div className="space-y-4">
                                 <div className="space-y-2">
                                     <Label htmlFor="question-top-k" className="text-sm font-medium">
@@ -380,19 +389,19 @@ export default function MemoryInfoPage() {
                                     </p>
                                 </div>
                             </div>
-                        </CardContent>
-                    </Card>
+                                </AccordionContent>
+                            </AccordionItem>
 
-                    {/* System Details */}
-                    {!isLoading && memoryInfo && (
-                        <Card className="">
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2 text-xl">
-                                    <Brain className="w-6 h-6" />
-                                    Remem Agent Configuration
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-6">
+                            {/* System Details */}
+                            {!isLoading && memoryInfo && (
+                                <AccordionItem value="system-details" className="border rounded-lg px-4">
+                                    <AccordionTrigger className="text-lg font-semibold">
+                                        <div className="flex items-center gap-2">
+                                            <Brain className="w-5 h-5" />
+                                            Remem Agent Configuration
+                                        </div>
+                                    </AccordionTrigger>
+                                    <AccordionContent className="space-y-6 pt-4">
                                 <div className="grid grid-cols-2 gap-6">
                                     <div className="space-y-4">
                                         <h3 className="font-semibold text-gray-900">Embedding Model</h3>
@@ -443,34 +452,51 @@ export default function MemoryInfoPage() {
                                         </div>
                                     </div>
                                 )}
-                            </CardContent>
-                        </Card>
-                    )}
+                                    </AccordionContent>
+                                </AccordionItem>
+                            )}
 
-                    {/* LLM Configuration Section */}
-                    {apiStatus === 'ready' && (
-                        <LLMConfigurationPanel />
-                    )}
+                            {/* LLM Configuration Section */}
+                            {apiStatus === 'ready' && (
+                                <AccordionItem value="llm-config" className="border rounded-lg px-4">
+                                    <AccordionTrigger className="text-lg font-semibold">
+                                        <div className="flex items-center gap-2">
+                                            <Cog className="w-5 h-5" />
+                                            LLM Configuration
+                                        </div>
+                                    </AccordionTrigger>
+                                    <AccordionContent className="pt-4">
+                                        <LLMConfigurationPanel />
+                                    </AccordionContent>
+                                </AccordionItem>
+                            )}
 
-                    {/* Clear All Memories Section */}
-                    {apiStatus === 'ready' && (
-                        <Card className="">
-                            <CardHeader>
-                                <CardTitle className="text-xl text-red-600">Danger Zone</CardTitle>
-                            </CardHeader>
-                            <CardContent className="w-full space-y-4 flex items-center justify-center">
-                                <p className="text-gray-600">
-                                    Permanently delete all memories from your memory bank and clear your local chat history. <br />This action cannot be undone.
-                                </p>
-                                <div className="grow"></div>
-                                <ClearAllMemoriesDialog
-                                    onConfirm={handleClearAllMemories}
-                                    isLoading={isClearingMemories}
-                                    memoryCount={memoryInfo?.memory_count || 0}
-                                />
-                            </CardContent>
-                        </Card>
-                    )}
+                            {/* Clear All Memories Section */}
+                            {apiStatus === 'ready' && (
+                                <AccordionItem value="danger-zone" className="border rounded-lg px-4 border-red-200">
+                                    <AccordionTrigger className="text-lg font-semibold text-red-600">
+                                        <div className="flex items-center gap-2">
+                                            <AlertCircle className="w-5 h-5" />
+                                            Danger Zone
+                                        </div>
+                                    </AccordionTrigger>
+                                    <AccordionContent className="pt-4">
+                                        <div className="w-full space-y-4 flex items-center justify-center">
+                                            <p className="text-gray-600">
+                                                Permanently delete all memories from your memory bank and clear your local chat history. <br />This action cannot be undone.
+                                            </p>
+                                            <div className="grow"></div>
+                                            <ClearAllMemoriesDialog
+                                                onConfirm={handleClearAllMemories}
+                                                isLoading={isClearingMemories}
+                                                memoryCount={memoryInfo?.memory_count || 0}
+                                            />
+                                        </div>
+                                    </AccordionContent>
+                                </AccordionItem>
+                            )}
+                        </Accordion>
+                    </div>
                     {/* No Data State */}
                     {!isLoading && !memoryInfo && apiStatus === 'ready' && (
                         <div className="text-center py-12">
