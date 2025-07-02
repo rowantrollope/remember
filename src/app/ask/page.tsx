@@ -158,7 +158,7 @@ export default function AskPage() {
                             <ChatBox
                                 messages={messages}
                                 isLoading={isLoading}
-                                loadingText="Thinking..."
+                                loadingText="Searching..."
                                 showMemoryIndicators={true}
                                 enableMemoryExpansion={true}
                                 copiedId={copiedId}
