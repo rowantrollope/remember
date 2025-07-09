@@ -27,7 +27,10 @@ These endpoints provide core memory operations for developers building agents.
 
 Store a new memory with optional contextual grounding.
 
-**POST** `/api/memory`
+**POST** `/api/memory/{vectorstore_name}`
+
+**Parameters:**
+- `vectorstore_name` (string, required): Name of the vectorstore (e.g., "memories")
 
 **Request Body:**
 ```json
@@ -37,7 +40,7 @@ Store a new memory with optional contextual grounding.
 }
 ```
 
-**Parameters:**
+**Body Parameters:**
 - `text` (string, required): Memory text to store
 - `apply_grounding` (boolean, optional): Whether to apply contextual grounding (default: true)
 
@@ -54,7 +57,10 @@ Store a new memory with optional contextual grounding.
 
 Search for memories using vector similarity.
 
-**POST** `/api/memory/search`
+**POST** `/api/memory/{vectorstore_name}/search`
+
+**Parameters:**
+- `vectorstore_name` (string, required): Name of the vectorstore (e.g., "memories")
 
 **Request Body:**
 ```json
@@ -65,7 +71,7 @@ Search for memories using vector similarity.
 }
 ```
 
-**Parameters:**
+**Body Parameters:**
 - `query` (string, required): Search query text
 - `top_k` (integer, optional): Number of results to return (default: 5)
 - `filter` (string, optional): Filter expression for Redis VSIM command
@@ -94,7 +100,10 @@ Answer questions using sophisticated confidence analysis and structured response
 
 **⭐ This endpoint calls `memory_agent.answer_question()` directly for the highest quality responses.**
 
-**POST** `/api/memory/answer`
+**POST** `/api/memory/{vectorstore_name}/ask`
+
+**Parameters:**
+- `vectorstore_name` (string, required): Name of the vectorstore (e.g., "memories")
 
 **Request Body:**
 ```json
@@ -105,7 +114,7 @@ Answer questions using sophisticated confidence analysis and structured response
 }
 ```
 
-**Parameters:**
+**Body Parameters:**
 - `question` (string, required): Question to answer
 - `top_k` (integer, optional): Number of memories to retrieve for context (default: 5)
 - `filter` (string, optional): Filter expression for Redis VSIM command
@@ -140,7 +149,10 @@ Answer questions using sophisticated confidence analysis and structured response
 
 Get statistics about stored memories and system information.
 
-**GET** `/api/memory`
+**GET** `/api/memory/{vectorstore_name}`
+
+**Parameters:**
+- `vectorstore_name` (string, required): Name of the vectorstore (e.g., "memories")
 
 **Response:**
 ```json
@@ -162,7 +174,10 @@ Set and get current context for memory grounding.
 
 #### Set Context
 
-**POST** `/api/memory/context`
+**POST** `/api/memory/{vectorstore_name}/context`
+
+**Parameters:**
+- `vectorstore_name` (string, required): Name of the vectorstore (e.g., "memories")
 
 **Request Body:**
 ```json
@@ -200,7 +215,10 @@ Set and get current context for memory grounding.
 
 #### Get Context
 
-**GET** `/api/memory/context`
+**GET** `/api/memory/{vectorstore_name}/context`
+
+**Parameters:**
+- `vectorstore_name` (string, required): Name of the vectorstore (e.g., "memories")
 
 **Response:**
 ```json
@@ -230,7 +248,11 @@ Set and get current context for memory grounding.
 
 Delete a specific memory by ID.
 
-**DELETE** `/api/memory/{memory_id}`
+**DELETE** `/api/memory/{vectorstore_name}/{memory_id}`
+
+**Parameters:**
+- `vectorstore_name` (string, required): Name of the vectorstore (e.g., "memories")
+- `memory_id` (string, required): ID of the memory to delete
 
 **Response:**
 ```json
@@ -245,7 +267,10 @@ Delete a specific memory by ID.
 
 Delete all memories from the system.
 
-**DELETE** `/api/memory`
+**DELETE** `/api/memory/{vectorstore_name}/all`
+
+**Parameters:**
+- `vectorstore_name` (string, required): Name of the vectorstore (e.g., "memories")
 
 **Response:**
 ```json
@@ -286,7 +311,7 @@ This endpoint provides a conversational interface using the LangGraph workflow f
 }
 ```
 
-**Key Differences from `/api/memory/answer`:**
+**Key Differences from `/api/memory/{vectorstore_name}/ask`:**
 - Uses full LangGraph workflow with tool orchestration
 - Can perform multi-step reasoning and complex conversations
 - More flexible but potentially higher latency
@@ -335,17 +360,17 @@ Common HTTP status codes:
 
 ```bash
 # Store a memory
-curl -X POST http://localhost:5001/api/memory \
+curl -X POST http://localhost:5001/api/memory/memories \
   -H "Content-Type: application/json" \
   -d '{"text": "I love pizza with pepperoni"}'
 
 # Search for memories
-curl -X POST http://localhost:5001/api/memory/search \
+curl -X POST http://localhost:5001/api/memory/memories/search \
   -H "Content-Type: application/json" \
   -d '{"query": "pizza", "top_k": 3}'
 
 # Answer a question
-curl -X POST http://localhost:5001/api/memory/answer \
+curl -X POST http://localhost:5001/api/memory/memories/ask \
   -H "Content-Type: application/json" \
   -d '{"question": "What kind of pizza do I like?"}'
 ```
@@ -354,7 +379,7 @@ curl -X POST http://localhost:5001/api/memory/answer \
 
 ```bash
 # Set context first
-curl -X POST http://localhost:5001/api/memory/context \
+curl -X POST http://localhost:5001/api/memory/memories/context \
   -H "Content-Type: application/json" \
   -d '{
     "location": "New York",
@@ -363,7 +388,7 @@ curl -X POST http://localhost:5001/api/memory/context \
   }'
 
 # Store memory (will be grounded with context)
-curl -X POST http://localhost:5001/api/memory \
+curl -X POST http://localhost:5001/api/memory/memories \
   -H "Content-Type: application/json" \
   -d '{"text": "We had an amazing dinner here"}'
 ```
@@ -383,12 +408,12 @@ curl -X POST http://localhost:5001/api/chat \
 
 ### Memory vs Answer vs Chat
 
-**Use `/api/memory/search`** when you need:
+**Use `/api/memory/{vectorstore_name}/search`** when you need:
 - Raw vector similarity search results
 - Multiple memory candidates for further processing
 - Building your own confidence analysis
 
-**Use `/api/memory/answer`** when you need:
+**Use `/api/memory/{vectorstore_name}/ask`** when you need:
 - High-quality question answering with confidence scores
 - Structured responses with supporting evidence
 - Single-step question answering
@@ -400,8 +425,8 @@ curl -X POST http://localhost:5001/api/chat \
 
 ### Performance Considerations
 
-- `/api/memory/search`: Fastest, single vector search
-- `/api/memory/answer`: Medium, includes LLM analysis for confidence
+- `/api/memory/{vectorstore_name}/search`: Fastest, single vector search
+- `/api/memory/{vectorstore_name}/ask`: Medium, includes LLM analysis for confidence
 - `/api/chat`: Slowest, full LangGraph workflow with potential multiple LLM calls
 
 ### Memory Grounding
@@ -433,13 +458,19 @@ The `filter` parameter supports Redis VectorSet filter syntax:
 
 ### API Migration Guide
 
-**Old API → New API:**
-- `/api/remember` → `/api/memory`
-- `/api/recall` → `/api/memory/search`
-- `/api/ask` → `/api/memory/answer` (for structured responses) or `/api/chat` (for conversations)
-- `/api/memory-info` → `/api/memory` (GET)
-- `/api/context` → `/api/memory/context`
-- `/api/delete/{id}` → `/api/memory/{id}` (DELETE)
-- `/api/delete-all` → `/api/memory` (DELETE)
+**IMPORTANT: All endpoints now require explicit vectorstore name in URL path**
 
-The new API provides cleaner, more RESTful endpoints with better separation of concerns between developer operations and chat applications.
+**Old API → New API:**
+- `/api/remember` → `/api/memory/{vectorstore_name}` (POST)
+- `/api/recall` → `/api/memory/{vectorstore_name}/search` (POST)
+- `/api/ask` → `/api/memory/{vectorstore_name}/ask` (POST) or `/api/chat` (for conversations)
+- `/api/memory-info` → `/api/memory/{vectorstore_name}` (GET)
+- `/api/context` → `/api/memory/{vectorstore_name}/context` (GET/POST)
+- `/api/delete/{id}` → `/api/memory/{vectorstore_name}/{id}` (DELETE)
+- `/api/delete-all` → `/api/memory/{vectorstore_name}/all` (DELETE)
+
+**Example Migration:**
+- OLD: `POST /api/memory/search`
+- NEW: `POST /api/memory/memories/search`
+
+Use "memories" as the default vectorstore name for existing functionality. All request/response formats remain the same, only URLs changed.

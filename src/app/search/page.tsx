@@ -608,7 +608,7 @@ export default function SearchPage() {
             {/* Search Content */}
             <div className="h-full flex flex-col">
                 <ApiPageHeader
-                    endpoint="(POST) /api/memory/search"
+                    endpoint="(POST) /api/memory/memories/search"
                     hasMessages={hasMessages}
                     onClearChat={clearSearch}
                     isLoading={isLoading}

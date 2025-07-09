@@ -210,6 +210,8 @@ export default function InvestmentDemo() {
     const [hasLoadedProfile, setHasLoadedProfile] = useState(false)
     const [showHelpDialog, setShowHelpDialog] = useState(false)
     const [showMemoriesDialog, setShowMemoriesDialog] = useState(false)
+    const [showLoadMemoriesDialog, setShowLoadMemoriesDialog] = useState(false)
+    const [isLoadingProfile, setIsLoadingProfile] = useState(false)
     const [currentMemories, setCurrentMemories] = useState<any[]>([])
     const [documentContent, setDocumentContent] = useState(microsoft2024Annual)
     const [standardSessionId, setStandardSessionId] = useState<string | null>(null)
@@ -276,21 +278,24 @@ export default function InvestmentDemo() {
     const loadInvestorProfile = async () => {
         if (hasLoadedProfile) return
 
+        setIsLoadingProfile(true)
         try {
-            // Load investor profile memories
+            // Load investor profile memories with grounding disabled
             for (const memory of investorProfileMemories) {
-                await memoryAPI.remember(memory, true)
+                await memoryAPI.remember(memory, false)
             }
 
-            // Load document analysis context
+            // Load document analysis context with grounding disabled
             for (const memory of documentAnalysisMemories) {
-                await memoryAPI.remember(memory, true)
+                await memoryAPI.remember(memory, false)
             }
 
             setHasLoadedProfile(true)
             await refreshCurrentMemories()
         } catch (error) {
             console.error('Failed to load investor profile:', error)
+        } finally {
+            setIsLoadingProfile(false)
         }
     }
 
@@ -517,14 +522,75 @@ export default function InvestmentDemo() {
                     </CardHeader>
                     <CardContent>
                         <div className="flex flex-wrap gap-3">
-                            <Button
-                                onClick={loadInvestorProfile}
-                                disabled={hasLoadedProfile}
-                                className="bg-purple-600 hover:bg-purple-700"
-                            >
-                                <Database className="w-4 h-4 mr-2" />
-                                {hasLoadedProfile ? "Profile Loaded" : "Load Sample Investor Profile"}
-                            </Button>
+                            <Dialog open={showLoadMemoriesDialog} onOpenChange={setShowLoadMemoriesDialog}>
+                                <DialogTrigger asChild>
+                                    <Button
+                                        disabled={hasLoadedProfile}
+                                        className="bg-purple-600 hover:bg-purple-700"
+                                    >
+                                        <Database className="w-4 h-4 mr-2" />
+                                        {hasLoadedProfile ? "Profile Loaded" : "Load Sample Investor Profile"}
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
+                                    <DialogHeader>
+                                        <DialogTitle>Sample Investor Profile & Analysis Context</DialogTitle>
+                                        <DialogDescription>
+                                            These memories will help the memory-enhanced investment agent provide personalized financial analysis based on your investment philosophy and preferences.
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    <div className="flex-1 overflow-y-auto space-y-4 pr-2">
+                                        <div>
+                                            <h4 className="font-semibold text-gray-800 mb-2">Investor Profile Memories:</h4>
+                                            <div className="space-y-2">
+                                                {investorProfileMemories.map((memory, index) => (
+                                                    <div key={index} className="p-3 bg-purple-50 rounded-lg border text-sm">
+                                                        {memory}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <h4 className="font-semibold text-gray-800 mb-2">Document Analysis Context:</h4>
+                                            <div className="space-y-2">
+                                                {documentAnalysisMemories.map((memory, index) => (
+                                                    <div key={index} className="p-3 bg-blue-50 rounded-lg border text-sm">
+                                                        {memory}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="flex justify-end gap-2 pt-4 border-t">
+                                        <Button
+                                            variant="outline"
+                                            onClick={() => setShowLoadMemoriesDialog(false)}
+                                        >
+                                            Cancel
+                                        </Button>
+                                        <Button
+                                            onClick={async () => {
+                                                await loadInvestorProfile()
+                                                setShowLoadMemoriesDialog(false)
+                                            }}
+                                            disabled={isLoadingProfile || hasLoadedProfile}
+                                            className="bg-purple-600 hover:bg-purple-700"
+                                        >
+                                            {isLoadingProfile ? (
+                                                <>
+                                                    <div className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-gray-300 border-t-purple-600" />
+                                                    Loading...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Database className="w-4 h-4 mr-2" />
+                                                    Load Profile
+                                                </>
+                                            )}
+                                        </Button>
+                                    </div>
+                                </DialogContent>
+                            </Dialog>
                             <Button
                                 onClick={() => {
                                     refreshCurrentMemories()
@@ -922,11 +988,11 @@ const MemoryEnhancedFinancialChat = () => {
                         <div className="bg-green-50 p-4 rounded-lg">
                             <h4 className="font-semibold text-green-800 mb-2">API Endpoints Used:</h4>
                             <ul className="text-sm text-green-700 space-y-1">
-                                <li>• <code>POST /api/memory</code> - Store investor profile memories</li>
+                                <li>• <code>POST /api/memory/memories</code> - Store investor profile memories</li>
                                 <li>• <code>POST /api/agent/session</code> - Create memory-enabled chat session</li>
                                 <li>• <code>POST /api/agent/session/{'{session_id}'}</code> - Send messages with memory context</li>
-                                <li>• <code>POST /api/memory/search</code> - Search and view current memories</li>
-                                <li>• <code>DELETE /api/memory</code> - Clear all memories</li>
+                                <li>• <code>POST /api/memory/memories/search</code> - Search and view current memories</li>
+                                <li>• <code>DELETE /api/memory/memories/all</code> - Clear all memories</li>
                             </ul>
                         </div>
                     </CardContent>

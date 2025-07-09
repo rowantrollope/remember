@@ -51,14 +51,14 @@ export interface ApiMemory {
             weather?: string
             temperature?: string
             mood?: string
-            [key: string]: any
+            [key: string]: unknown
         }
     }
     metadata?: {
         location?: string
         tags?: string[]
         confidence?: number
-        [key: string]: any
+        [key: string]: unknown
     }
 }
 
@@ -109,7 +109,7 @@ export interface RememberResponse {
             weather?: string
             temperature?: string
             mood?: string
-            [key: string]: any
+            [key: string]: unknown
         }
     }
 }
@@ -260,7 +260,7 @@ export interface ContextResponse {
             weather?: string
             temperature?: string
             mood?: string
-            [key: string]: any
+            [key: string]: unknown
         }
     }
     message?: string
@@ -414,9 +414,11 @@ export interface ConfigUpdateResponse {
 
 class MemoryAgentAPI {
     private baseUrl: string
+    private vectorStoreName: string
 
-    constructor(baseUrl: string = DEFAULT_API_BASE_URL) {
+    constructor(baseUrl: string = DEFAULT_API_BASE_URL, vectorStoreName: string = 'memories') {
         this.baseUrl = baseUrl
+        this.vectorStoreName = vectorStoreName
     }
 
     // Method to update the base URL dynamically
@@ -427,6 +429,16 @@ class MemoryAgentAPI {
     // Method to get current base URL
     getBaseUrl(): string {
         return this.baseUrl
+    }
+
+    // Method to update the vectorstore name dynamically
+    updateVectorStoreName(newVectorStoreName: string) {
+        this.vectorStoreName = newVectorStoreName
+    }
+
+    // Method to get current vectorstore name
+    getVectorStoreName(): string {
+        return this.vectorStoreName
     }
 
     private async request<T>(
@@ -458,29 +470,29 @@ class MemoryAgentAPI {
     }
 
     async remember(memory: string, applyGrounding: boolean = true): Promise<RememberResponse> {
-        return this.request<RememberResponse>('/api/memory', {
+        return this.request<RememberResponse>(`/api/memory/${this.vectorStoreName}`, {
             method: 'POST',
             body: JSON.stringify({ text: memory, apply_grounding: applyGrounding }),
         })
     }
 
     async recall(query: string, topK: number = 5, minSimilarity?: number): Promise<RecallResponse> {
-        const body: any = { query, top_k: topK }
+        const body: { query: string; top_k: number; min_similarity?: number } = { query, top_k: topK }
         if (minSimilarity !== undefined) {
             body.min_similarity = minSimilarity
         }
-        return this.request<RecallResponse>('/api/memory/search', {
+        return this.request<RecallResponse>(`/api/memory/${this.vectorStoreName}/search`, {
             method: 'POST',
             body: JSON.stringify(body),
         })
     }
 
     async ask(question: string, topK: number = 5, minSimilarity?: number): Promise<AskResponse> {
-        const body: any = { question, top_k: topK }
+        const body: { question: string; top_k: number; min_similarity?: number } = { question, top_k: topK }
         if (minSimilarity !== undefined) {
             body.min_similarity = minSimilarity
         }
-        return this.request<AskResponse>('/api/memory/ask', {
+        return this.request<AskResponse>(`/api/memory/${this.vectorStoreName}/ask`, {
             method: 'POST',
             body: JSON.stringify(body),
         })
@@ -503,7 +515,11 @@ class MemoryAgentAPI {
     }
 
     async chatWithSession(request: SessionChatRequest): Promise<SessionChatResponse> {
-        const body: any = { message: request.message }
+        const body: {
+            message: string;
+            top_k?: number;
+            min_similarity?: number;
+        } = { message: request.message }
         if (request.top_k !== undefined) {
             body.top_k = request.top_k
         }
@@ -535,17 +551,17 @@ class MemoryAgentAPI {
 
 
     async getMemoryInfo(): Promise<MemoryInfoResponse> {
-        return this.request<MemoryInfoResponse>('/api/memory')
+        return this.request<MemoryInfoResponse>(`/api/memory/${this.vectorStoreName}`)
     }
 
     async deleteMemory(memoryId: string): Promise<DeleteResponse> {
-        return this.request<DeleteResponse>(`/api/memory/${memoryId}`, {
+        return this.request<DeleteResponse>(`/api/memory/${this.vectorStoreName}/${memoryId}`, {
             method: 'DELETE',
         })
     }
 
     async getContext(): Promise<ContextResponse> {
-        return this.request<ContextResponse>('/api/memory/context')
+        return this.request<ContextResponse>(`/api/memory/${this.vectorStoreName}/context`)
     }
 
     async setContext(context: {
@@ -553,16 +569,16 @@ class MemoryAgentAPI {
         activity?: string
         people_present?: string[]
         weather?: string
-        [key: string]: any
+        [key: string]: unknown
     }): Promise<ContextResponse> {
-        return this.request<ContextResponse>('/api/memory/context', {
+        return this.request<ContextResponse>(`/api/memory/${this.vectorStoreName}/context`, {
             method: 'POST',
             body: JSON.stringify(context),
         })
     }
 
     async clearAllMemories(): Promise<ClearAllResponse> {
-        return this.request<ClearAllResponse>('/api/memory', {
+        return this.request<ClearAllResponse>(`/api/memory/${this.vectorStoreName}/all`, {
             method: 'DELETE',
         })
     }
@@ -620,5 +636,5 @@ class MemoryAgentAPI {
 // Export the MemoryAgentAPI class for direct instantiation
 export { MemoryAgentAPI }
 
-// Create a default instance for backward compatibility
-export const memoryAPI = new MemoryAgentAPI()
+// Create a default instance for backward compatibility with 'memories' as default vectorstore
+export const memoryAPI = new MemoryAgentAPI(DEFAULT_API_BASE_URL, 'memories')

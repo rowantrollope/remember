@@ -21,7 +21,7 @@ export function CodeExamplesSection() {
     const examples = [
         {
             title: "Store a Memory",
-            code: `curl -X POST http://localhost:5001/api/memory \\
+            code: `curl -X POST http://localhost:5001/api/memory/memories \\
   -H "Content-Type: application/json" \\
   -d '{
     "text": "Had lunch with Sarah at the new Italian place",
@@ -30,7 +30,7 @@ export function CodeExamplesSection() {
         },
         {
             title: "Ask a Question",
-            code: `curl -X POST http://localhost:5001/api/memory/answer \\
+            code: `curl -X POST http://localhost:5001/api/memory/memories/ask \\
   -H "Content-Type: application/json" \\
   -d '{
     "question": "Where did I eat Italian food recently?",
@@ -39,7 +39,7 @@ export function CodeExamplesSection() {
         },
         {
             title: "Search Memories",
-            code: `curl -X POST http://localhost:5001/api/memory/search \\
+            code: `curl -X POST http://localhost:5001/api/memory/memories/search \\
   -H "Content-Type: application/json" \\
   -d '{
     "query": "lunch with friends",
@@ -48,7 +48,7 @@ export function CodeExamplesSection() {
         },
         {
             title: "Set Context",
-            code: `curl -X POST http://localhost:5001/api/memory/context \\
+            code: `curl -X POST http://localhost:5001/api/memory/memories/context \\
   -H "Content-Type: application/json" \\
   -d '{
     "location": "San Francisco, CA",

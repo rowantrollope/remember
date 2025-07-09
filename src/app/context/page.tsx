@@ -29,7 +29,7 @@ export default function ContextPage() {
                 <div className=" w-full bg-white/50 flex justify-between items-center">
                     <div className="grow"></div>
                     <div className="font-mono text-muted-foreground">
-                        (GET & POST) /api/memory/context
+                        (GET & POST) /api/memory/memories/context
                     </div>
                 </div>
                 <ContextTab

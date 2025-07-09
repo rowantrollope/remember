@@ -11,7 +11,7 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog"
-import { Plane, Brain, HelpCircle, Compass, Map, GitBranch } from "lucide-react"
+import { Plane, Brain, HelpCircle, Compass, Map, GitBranch, Upload, CheckCircle } from "lucide-react"
 import { PageLayout } from "@/components/PageLayout"
 import { ChatCard } from "@/components/ChatCard"
 import { ChatMessage } from "@/components/ChatBox"
@@ -22,7 +22,24 @@ import { useSettings } from "@/hooks/useSettings"
 // Travel agent system prompt
 const TRAVEL_AGENT_PROMPT = `You are an expert travel agent helping users plan amazing trips. You provide personalized recommendations for destinations, accommodations, activities, restaurants, and travel logistics. You consider factors like budget, travel style, interests, dietary restrictions, and past travel experiences when making suggestions. Be helpful, enthusiastic, and detailed in your responses.`
 
-
+// Sample travel memories to demonstrate the memory-enhanced agent
+const sampleMemories = [
+    "I prefer boutique hotels over large chain hotels because I enjoy unique, personalized experiences",
+    "My budget for international trips is typically around $3000-4000 per person for a week-long vacation",
+    "I'm vegetarian and always need to research restaurant options before traveling to new destinations",
+    "I love adventure activities like hiking, rock climbing, and water sports when I travel",
+    "I prefer traveling during shoulder seasons (spring/fall) to avoid crowds and get better prices",
+    "I have a fear of flying so I prefer destinations I can reach by train or car when possible",
+    "I'm interested in cultural experiences, museums, and historical sites rather than beach vacations",
+    "I always book accommodations with kitchen facilities because I like to cook some of my own meals",
+    "I prefer small group tours or self-guided travel rather than large tour groups",
+    "I have food allergies to nuts and shellfish, so I need to be very careful about restaurant choices",
+    "I love photography and always seek out scenic viewpoints and unique architecture",
+    "I prefer destinations with good public transportation since I don't like renting cars abroad",
+    "I enjoy wine tasting and often plan trips around visiting vineyards and wine regions",
+    "I'm an early riser and like to start sightseeing early to beat the crowds",
+    "I prefer staying in city centers or walkable neighborhoods rather than suburban areas"
+]
 
 // Sample questions that demonstrate memory value for travel planning
 const sampleQuestions = [
@@ -50,10 +67,13 @@ export default function TravelDemo() {
     const [isMemoryLoading, setIsMemoryLoading] = useState(false)
     const [isLanggraphLoading, setIsLanggraphLoading] = useState(false)
     const [showHelpDialog, setShowHelpDialog] = useState(false)
+    const [showMemoriesDialog, setShowMemoriesDialog] = useState(false)
+    const [isLoadingMemories, setIsLoadingMemories] = useState(false)
+    const [memoriesLoaded, setMemoriesLoaded] = useState(false)
 
     const [standardSessionId, setStandardSessionId] = useState<string | null>(null)
     const [memorySessionId, setMemorySessionId] = useState<string | null>(null)
-    const { apiStatus, error, clearError, askQuestion } = useMemoryAPI()
+    const { apiStatus, error, clearError, askQuestion, saveMemory } = useMemoryAPI()
     const { api } = useConfiguredAPI()
     const { settings } = useSettings()
 
@@ -420,6 +440,49 @@ export default function TravelDemo() {
         setLanggraphMessages([])
     }
 
+    const loadSampleMemories = async () => {
+        setIsLoadingMemories(true)
+        try {
+            let successCount = 0
+            let failureCount = 0
+
+            for (const memory of sampleMemories) {
+                try {
+                    // Use API directly to disable grounding for sample memories
+                    const result = await api.remember(memory, false)
+                    if (result.success) {
+                        successCount++
+                    } else {
+                        failureCount++
+                    }
+                } catch (error) {
+                    console.error('Failed to save memory:', memory, error)
+                    failureCount++
+                }
+                // Small delay between requests to avoid overwhelming the API
+                await new Promise(resolve => setTimeout(resolve, 100))
+            }
+
+            setMemoriesLoaded(true)
+            console.log(`Loaded ${successCount} sample memories successfully, ${failureCount} failed`)
+
+            // Show a success message in the memory chat
+            const successMessage: ChatMessage = {
+                id: Date.now().toString(),
+                question: "Load Sample Memories",
+                answer: `Successfully loaded ${successCount} sample travel memories! These memories include your travel preferences, budget, dietary restrictions, and travel style. Now ask me about travel recommendations and I'll use these memories to provide personalized suggestions.`,
+                created_at: new Date(),
+                hasMemory: true
+            }
+            setMemoryMessages(prev => [...prev, successMessage])
+
+        } catch (error) {
+            console.error('Failed to load sample memories:', error)
+        } finally {
+            setIsLoadingMemories(false)
+        }
+    }
+
     return (
         <PageLayout
             error={error}
@@ -432,41 +495,110 @@ export default function TravelDemo() {
                     <div className="flex items-center justify-center gap-3">
                         <Plane className="w-8 h-8 text-blue-600" />
                         <h1 className="text-3xl font-bold text-gray-900">Travel Agent Demo</h1>
-                        <Dialog open={showHelpDialog} onOpenChange={setShowHelpDialog}>
-                            <DialogTrigger asChild>
-                                <Button variant="outline" size="sm">
-                                    <HelpCircle className="w-4 h-4 mr-2" />
-                                    Sample Questions
-                                </Button>
-                            </DialogTrigger>
-                            <DialogContent className="max-w-2xl">
-                                <DialogHeader>
-                                    <DialogTitle>Sample Questions to Try</DialogTitle>
-                                    <DialogDescription>
-                                        Click any question to populate both travel agent tabs with the same query
-                                    </DialogDescription>
-                                </DialogHeader>
-                                <div className="grid gap-2 max-h-96 overflow-y-auto">
-                                    {sampleQuestions.map((question, index) => (
+                        <div className="flex flex-col gap-2">
+                            <Dialog open={showHelpDialog} onOpenChange={setShowHelpDialog}>
+                                <DialogTrigger asChild>
+                                    <Button variant="outline" size="sm">
+                                        <HelpCircle className="w-4 h-4 mr-2" />
+                                        Sample Questions
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent className="max-w-2xl">
+                                    <DialogHeader>
+                                        <DialogTitle>Sample Questions to Try</DialogTitle>
+                                        <DialogDescription>
+                                            Click any question to populate both travel agent tabs with the same query
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    <div className="grid gap-2 max-h-96 overflow-y-auto">
+                                        {sampleQuestions.map((question, index) => (
+                                            <Button
+                                                key={index}
+                                                variant="ghost"
+                                                className="justify-start text-left h-auto p-3 whitespace-normal"
+                                                onClick={() => {
+                                                    handleSampleQuestion(question)
+                                                    setShowHelpDialog(false)
+                                                }}
+                                            >
+                                                {question}
+                                            </Button>
+                                        ))}
+                                    </div>
+                                </DialogContent>
+                            </Dialog>
+                            <Dialog open={showMemoriesDialog} onOpenChange={setShowMemoriesDialog}>
+                                <DialogTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        disabled={memoriesLoaded}
+                                    >
+                                        {memoriesLoaded ? (
+                                            <>
+                                                <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
+                                                Memories Loaded
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Upload className="w-4 h-4 mr-2" />
+                                                Load Sample Memories
+                                            </>
+                                        )}
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent className="max-w-3xl max-h-[80vh] overflow-hidden flex flex-col">
+                                    <DialogHeader>
+                                        <DialogTitle>Sample Travel Memories</DialogTitle>
+                                        <DialogDescription>
+                                            These sample memories will help the memory-enhanced travel agent provide personalized recommendations based on your preferences.
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    <div className="flex-1 overflow-y-auto space-y-2 pr-2">
+                                        {sampleMemories.map((memory, index) => (
+                                            <div key={index} className="p-3 bg-gray-50 rounded-lg border text-sm">
+                                                {memory}
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="flex justify-end gap-2 pt-4 border-t">
                                         <Button
-                                            key={index}
-                                            variant="ghost"
-                                            className="justify-start text-left h-auto p-3 whitespace-normal"
-                                            onClick={() => {
-                                                handleSampleQuestion(question)
-                                                setShowHelpDialog(false)
-                                            }}
+                                            variant="outline"
+                                            onClick={() => setShowMemoriesDialog(false)}
                                         >
-                                            {question}
+                                            Cancel
                                         </Button>
-                                    ))}
-                                </div>
-                            </DialogContent>
-                        </Dialog>
+                                        <Button
+                                            onClick={async () => {
+                                                await loadSampleMemories()
+                                                setShowMemoriesDialog(false)
+                                            }}
+                                            disabled={isLoadingMemories || memoriesLoaded}
+                                        >
+                                            {isLoadingMemories ? (
+                                                <>
+                                                    <div className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600" />
+                                                    Loading...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Upload className="w-4 h-4 mr-2" />
+                                                    Load Memories
+                                                </>
+                                            )}
+                                        </Button>
+                                    </div>
+                                </DialogContent>
+                            </Dialog>
+                        </div>
                     </div>
                     <p className="text-lg text-gray-600 max-w-4xl mx-auto">
                         Compare different travel agent implementations. Switch between tabs to see how the standard agent treats each question independently,
                         the memory-enhanced agent learns your preferences, and the Langgraph agent provides advanced conversational capabilities.
+                    </p>
+                    <p className="text-sm text-gray-500 max-w-3xl mx-auto">
+                        💡 <strong>Tip:</strong> Click &ldquo;Load Sample Memories&rdquo; to populate the memory-enhanced agent with sample travel preferences,
+                        then ask questions to see how it provides personalized recommendations based on your stored preferences.
                     </p>
                 </div>
 
@@ -474,18 +606,20 @@ export default function TravelDemo() {
 
                 {/* Tabbed Chat Interface */}
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                    <TabsList className="grid w-full grid-cols-3 mb-6">
-                        <TabsTrigger value="standard" className="flex items-center gap-2">
+                    <TabsList className="grid w-full grid-cols-3 mb-6 overflow-hidden">
+                        <TabsTrigger value="standard" className="flex justify-start items-center gap-2 overflow-hidden">
                             <Compass className="w-4 h-4" />
                             Travel Agent (No Memory)
                         </TabsTrigger>
-                        <TabsTrigger value="memory" className="flex items-center gap-2">
+                        <TabsTrigger value="memory" className="flex justify-start items-center gap-2 overflow-hidden">
                             <Brain className="w-4 h-4" />
                             Travel Agent + Remem
                         </TabsTrigger>
-                        <TabsTrigger value="langgraph" className="flex items-center gap-2">
+                        <TabsTrigger value="langgraph" className="flex justify-start items-center gap-2 overflow-hidden overflow-ellipsis">
                             <GitBranch className="w-4 h-4" />
+                            <div>
                             Travel Agent, Langgraph + Remem
+                            </div>
                         </TabsTrigger>
                     </TabsList>
 
@@ -563,20 +697,20 @@ export default function TravelDemo() {
                     <h3 className="text-lg font-semibold text-blue-900 mb-3">How to Use This Demo</h3>
                     <div className="grid md:grid-cols-2 gap-4 text-sm text-blue-800">
                         <div>
-                            <h4 className="font-medium mb-2">1. Switch Between Tabs</h4>
+                            <h4 className="font-medium mb-2">1. Load Sample Memories</h4>
+                            <p>Click &ldquo;Load Sample Memories&rdquo; to populate the memory-enhanced agent with sample travel preferences and constraints.</p>
+                        </div>
+                        <div>
+                            <h4 className="font-medium mb-2">2. Switch Between Tabs</h4>
                             <p>Use the tabs above to switch between the Standard, Memory-Enhanced, and Langgraph travel agents.</p>
                         </div>
                         <div>
-                            <h4 className="font-medium mb-2">2. Ask Similar Questions</h4>
+                            <h4 className="font-medium mb-2">3. Ask Similar Questions</h4>
                             <p>Try asking the same questions in all tabs to compare the different response styles and capabilities.</p>
                         </div>
                         <div>
-                            <h4 className="font-medium mb-2">3. Share Your Preferences</h4>
-                            <p>Tell the memory-enhanced agent about your travel style, budget, or interests.</p>
-                        </div>
-                        <div>
                             <h4 className="font-medium mb-2">4. Notice the Difference</h4>
-                            <p>See how the memory-enhanced agent provides more personalized and contextual recommendations.</p>
+                            <p>See how the memory-enhanced agent provides more personalized and contextual recommendations based on stored preferences.</p>
                         </div>
                     </div>
                 </div>

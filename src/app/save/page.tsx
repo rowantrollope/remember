@@ -132,7 +132,7 @@ export default function SavePage() {
             {/* Memory Save Content */}
             <div className="h-full flex flex-col">
                 <ApiPageHeader
-                    endpoint="(POST) /api/memory"
+                    endpoint="(POST) /api/memory/memories"
                     hasMessages={hasMessages}
                     onClearChat={clearChat}
                     isLoading={isLoading}

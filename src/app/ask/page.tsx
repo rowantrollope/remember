@@ -143,7 +143,7 @@ export default function AskPage() {
             {/* Ask API Content */}
             <div className="h-full flex flex-col">
                 <ApiPageHeader
-                    endpoint="(POST) /api/memory/ask"
+                    endpoint="(POST) /api/memory/memories/ask"
                     hasMessages={hasMessages}
                     onClearChat={clearChat}
                     isLoading={isLoading}

@@ -86,7 +86,8 @@ export default function RetailDemo() {
         setIsLoadingMemories(true)
         try {
             for (const memory of CUSTOMER_PROFILE_MEMORIES) {
-                const result = await saveMemory(memory)
+                // Use API directly to disable grounding for sample memories
+                const result = await api.remember(memory, false)
                 if (!result.success) {
                     console.error('Failed to save memory:', memory)
                 }

@@ -171,7 +171,7 @@ export default function RecallPage() {
             {/* Recall API Content */}
             <div className="h-full flex flex-col">
                 <ApiPageHeader
-                    endpoint="(POST) /api/memory/search"
+                    endpoint="(POST) /api/memory/memories/search"
                     hasMessages={hasMessages}
                     onClearChat={clearChat}
                     isLoading={isLoading}
