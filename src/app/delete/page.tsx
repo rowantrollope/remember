@@ -20,6 +20,7 @@ import {
 
 // Hooks
 import { useMemoryAPI } from "@/hooks"
+import { useSettings } from "@/hooks/useSettings"
 
 // Icons
 import { Trash2, AlertTriangle, CheckCircle } from "lucide-react"
@@ -38,6 +39,13 @@ export default function DeletePage() {
         deleteMemory,
         clearError,
     } = useMemoryAPI()
+
+    const { settings, updateSetting } = useSettings()
+
+    // Handle vectorstore change
+    const handleVectorStoreChange = (newVectorStoreName: string) => {
+        updateSetting('vectorStoreName', newVectorStoreName)
+    }
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault()
@@ -82,15 +90,18 @@ export default function DeletePage() {
         >
             <div className="h-full flex flex-col">
                 <ApiPageHeader
-                    endpoint="(DELETE) /api/memory/{memory_id}"
+                    endpoint={`(DELETE) /api/memory/${settings.vectorStoreName}/{memory_id}`}
                     hasMessages={false}
                     onClearChat={() => {}}
                     isLoading={isLoading || isDeleting}
                     title="Delete Memory"
                     showSettingsButton={false}
+                    showVectorStoreSelector={true}
+                    vectorStoreName={settings.vectorStoreName}
+                    onVectorStoreChange={handleVectorStoreChange}
                 />
 
-                <div className="flex-1 flex items-center justify-center -mt-40 bg-white">
+                <div className="flex-1 flex items-center justify-center bg-white">
                     <div className="w-full max-w-md">
                         <div className="text-center mb-8">
                             <h1 className="text-3xl font-bold text-gray-900 mb-2">Delete Memory</h1>

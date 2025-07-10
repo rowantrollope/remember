@@ -18,6 +18,7 @@ import { ChatMessage } from "@/components/ChatBox"
 import { useMemoryAPI } from "@/hooks"
 import { useConfiguredAPI } from "@/hooks/useConfiguredAPI"
 import { useSettings } from "@/hooks/useSettings"
+import { MemoryAgentAPI } from "@/lib/api"
 
 // Travel agent system prompt
 const TRAVEL_AGENT_PROMPT = `You are an expert travel agent helping users plan amazing trips. You provide personalized recommendations for destinations, accommodations, activities, restaurants, and travel logistics. You consider factors like budget, travel style, interests, dietary restrictions, and past travel experiences when making suggestions. Be helpful, enthusiastic, and detailed in your responses.`
@@ -73,9 +74,12 @@ export default function TravelDemo() {
 
     const [standardSessionId, setStandardSessionId] = useState<string | null>(null)
     const [memorySessionId, setMemorySessionId] = useState<string | null>(null)
-    const { apiStatus, error, clearError, askQuestion, saveMemory } = useMemoryAPI()
-    const { api } = useConfiguredAPI()
+    const { apiStatus, error, clearError, askQuestion } = useMemoryAPI()
+    const { baseUrl } = useConfiguredAPI()
     const { settings } = useSettings()
+
+    // Create dedicated API instance for travel demo
+    const travelAPI = new MemoryAgentAPI(baseUrl, 'travel_agent_memory')
 
 
 
@@ -84,7 +88,7 @@ export default function TravelDemo() {
         if (standardSessionId) return standardSessionId
 
         try {
-            const standardSessionResponse = await api.createChatSession({
+            const standardSessionResponse = await travelAPI.createChatSession({
                 system_prompt: TRAVEL_AGENT_PROMPT,
                 session_id: `travel-standard-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
                 config: {
@@ -104,14 +108,14 @@ export default function TravelDemo() {
             console.error('Failed to create standard session:', error)
         }
         return null
-    }, [api, standardSessionId])
+    }, [travelAPI, standardSessionId])
 
     // Create memory session (with memory retrieval) - Travel Demo specific
     const createMemorySession = useCallback(async () => {
         if (memorySessionId) return memorySessionId
 
         try {
-            const memorySessionResponse = await api.createChatSession({
+            const memorySessionResponse = await travelAPI.createChatSession({
                 system_prompt: TRAVEL_AGENT_PROMPT,
                 session_id: `travel-memory-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
                 config: {
@@ -131,7 +135,7 @@ export default function TravelDemo() {
             console.error('Failed to create memory session:', error)
         }
         return null
-    }, [api, memorySessionId, settings.questionTopK])
+    }, [travelAPI, memorySessionId, settings.questionTopK])
 
     // Create sessions on component mount
     useEffect(() => {
@@ -148,7 +152,7 @@ export default function TravelDemo() {
             }
 
             if (standardSessionId) {
-                const response = await api.chatWithSession({
+                const response = await travelAPI.chatWithSession({
                     session_id: standardSessionId,
                     message: question,
                     min_similarity: settings.minSimilarity
@@ -182,7 +186,7 @@ export default function TravelDemo() {
 
             // Use session-based chat API (no memory)
             if (standardSessionId) {
-                const response = await api.chatWithSession({
+                const response = await travelAPI.chatWithSession({
                     session_id: standardSessionId,
                     message: standardQuestion,
                     min_similarity: settings.minSimilarity
@@ -258,7 +262,7 @@ export default function TravelDemo() {
 
             // Use session-based chat API (with memory)
             if (memorySessionId) {
-                const response = await api.chatWithSession({
+                const response = await travelAPI.chatWithSession({
                     session_id: memorySessionId,
                     message: memoryQuestion,
                     top_k: settings.questionTopK,
@@ -449,7 +453,7 @@ export default function TravelDemo() {
             for (const memory of sampleMemories) {
                 try {
                     // Use API directly to disable grounding for sample memories
-                    const result = await api.remember(memory, false)
+                    const result = await travelAPI.remember(memory, false)
                     if (result.success) {
                         successCount++
                     } else {

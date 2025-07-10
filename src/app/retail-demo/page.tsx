@@ -18,6 +18,7 @@ import { ChatMessage } from "@/components/ChatBox"
 import { useMemoryAPI } from "@/hooks"
 import { useConfiguredAPI } from "@/hooks/useConfiguredAPI"
 import { useSettings } from "@/hooks/useSettings"
+import { MemoryAgentAPI } from "@/lib/api"
 
 interface RetailChatMessage extends ChatMessage {
     hasMemory?: boolean
@@ -52,9 +53,12 @@ const CUSTOMER_PROFILE_MEMORIES = [
 ]
 
 export default function RetailDemo() {
-    const { saveMemory, error, clearError, apiStatus } = useMemoryAPI()
-    const { api } = useConfiguredAPI()
+    const { error, clearError, apiStatus } = useMemoryAPI()
+    const { baseUrl } = useConfiguredAPI()
     const { settings } = useSettings()
+
+    // Create dedicated API instance for retail demo
+    const retailAPI = new MemoryAgentAPI(baseUrl, 'retail_agent_memory')
 
     // Session management
     const [standardSessionId, setStandardSessionId] = useState<string | null>(null)
@@ -87,7 +91,7 @@ export default function RetailDemo() {
         try {
             for (const memory of CUSTOMER_PROFILE_MEMORIES) {
                 // Use API directly to disable grounding for sample memories
-                const result = await api.remember(memory, false)
+                const result = await retailAPI.remember(memory, false)
                 if (!result.success) {
                     console.error('Failed to save memory:', memory)
                 }
@@ -106,7 +110,7 @@ export default function RetailDemo() {
         if (standardSessionId) return standardSessionId
 
         try {
-            const response = await api.createChatSession({
+            const response = await retailAPI.createChatSession({
                 system_prompt: RETAIL_AGENT_PROMPT,
                 session_id: `retail-standard-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
                 config: {
@@ -125,14 +129,14 @@ export default function RetailDemo() {
             console.error('Failed to create standard session:', error)
         }
         return null
-    }, [api, standardSessionId])
+    }, [retailAPI, standardSessionId])
 
     // Create memory session (with memory retrieval) - Retail Demo specific
     const createMemorySession = useCallback(async () => {
         if (memorySessionId) return memorySessionId
 
         try {
-            const response = await api.createChatSession({
+            const response = await retailAPI.createChatSession({
                 system_prompt: MEMORY_ENHANCED_PROMPT,
                 session_id: `retail-memory-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
                 config: {
@@ -152,7 +156,7 @@ export default function RetailDemo() {
             console.error('Failed to create memory session:', error)
         }
         return null
-    }, [api, memorySessionId, settings.questionTopK])
+    }, [retailAPI, memorySessionId, settings.questionTopK])
 
     const handleStandardSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -170,7 +174,7 @@ export default function RetailDemo() {
             // Use session-based chat API (no memory)
             if (sessionId) {
                 const messageWithBasket = `${SAMPLE_BASKET}\n\nQuestion: ${standardQuestion}`
-                const response = await api.chatWithSession({
+                const response = await retailAPI.chatWithSession({
                     session_id: sessionId,
                     message: messageWithBasket,
                     top_k: settings.questionTopK,
@@ -213,7 +217,7 @@ export default function RetailDemo() {
             // Use session-based chat API (with memory)
             if (sessionId) {
                 const messageWithBasket = `${SAMPLE_BASKET}\n\nQuestion: ${memoryQuestion}`
-                const response = await api.chatWithSession({
+                const response = await retailAPI.chatWithSession({
                     session_id: sessionId,
                     message: messageWithBasket,
                     top_k: settings.questionTopK,

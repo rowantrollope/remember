@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dialog'
 import { Settings, RotateCcw } from 'lucide-react'
 import { useSettings } from '@/hooks/useSettings'
+import { VectorStoreSelector } from './VectorStoreSelector'
 
 export function RecallSettingsDialog() {
     const { settings, updateSetting, resetSettings } = useSettings()
@@ -103,7 +104,7 @@ export function RecallSettingsDialog() {
                         Options
                     </DialogTitle>
                     <DialogDescription>
-                        Configure how many memories to retrieve and the similarity threshold for API calls.
+                        Configure how many memories to retrieve, the similarity threshold for API calls, and which vectorstore to use.
                     </DialogDescription>
                 </DialogHeader>
                 
@@ -168,6 +169,24 @@ export function RecallSettingsDialog() {
                         </div>
                         <p className="text-xs text-gray-600">
                             Current: <span className="font-mono font-medium">{settings.minSimilarity}</span>
+                        </p>
+                    </div>
+
+                    {/* Vectorstore Selection */}
+                    <div className="space-y-2">
+                        <Label className="text-sm font-medium">
+                            Vectorstore Name
+                        </Label>
+                        <p className="text-xs text-gray-500">
+                            Select which vectorstore to use for memory operations. Demo vectorstores are pre-configured for specific use cases.
+                        </p>
+                        <VectorStoreSelector
+                            value={settings.vectorStoreName}
+                            onValueChange={(value) => updateSetting('vectorStoreName', value)}
+                            className="w-full"
+                        />
+                        <p className="text-xs text-gray-600">
+                            Current: <span className="font-mono font-medium">{settings.vectorStoreName}</span>
                         </p>
                     </div>
 

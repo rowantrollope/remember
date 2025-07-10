@@ -90,6 +90,7 @@ export function useMemoryAPI() {
         setError(null)
 
         try {
+            console.log('useMemoryAPI: askQuestion called with vectorstore:', memoryAPI.getVectorStoreName())
             const response = await memoryAPI.ask(question, topK, minSimilarity)
 
             if (response.success) {
@@ -351,6 +352,12 @@ export function useMemoryAPI() {
 
     const clearError = () => setError(null)
 
+    const clearSearchResults = useCallback(() => {
+        setSearchResults([])
+        setExcludedMemories([])
+        setFilteringInfo(null)
+    }, [])
+
     return {
         // State
         memories,
@@ -369,6 +376,7 @@ export function useMemoryAPI() {
         searchMemories,
         deleteMemory,
         clearAllMemories,
+        clearSearchResults,
         getContext,
         updateContext,
         setGroundingEnabled,

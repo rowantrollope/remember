@@ -12,6 +12,7 @@ import { ApiPageHeader } from "@/components/ApiPageHeader"
 // Hooks
 import { useMemoryAPI } from "@/hooks"
 import { usePersistentChat } from "@/hooks/usePersistentChat"
+import { useSettings } from "@/hooks/useSettings"
 
 // Types
 import type { MemorySaveResponse } from "@/hooks/usePersistentChat"
@@ -31,13 +32,6 @@ export default function SavePage() {
     const [input, setInput] = useState("")
     const [messages, setMessages] = useState<UnifiedChatMessage[]>([])
 
-    // Use persistent chat hook for memory save responses (for persistence)
-    const {
-        memorySaveResponses,
-        addMemorySaveResponse,
-        clearChatHistory,
-    } = usePersistentChat()
-
     const {
         isLoading,
         error,
@@ -48,13 +42,30 @@ export default function SavePage() {
         clearError,
     } = useMemoryAPI()
 
-    // Convert persistent memory save responses to messages on component mount
+    const { settings, updateSetting } = useSettings()
+
+    // Use persistent chat hook for memory save responses (for persistence)
+    const {
+        memorySaveResponses,
+        addMemorySaveResponse,
+        clearChatHistory,
+    } = usePersistentChat(settings.vectorStoreName)
+
+    // Handle vectorstore change
+    const handleVectorStoreChange = (newVectorStoreName: string) => {
+        updateSetting('vectorStoreName', newVectorStoreName)
+    }
+
+    // Convert persistent memory save responses to messages when vectorstore changes
     useEffect(() => {
         if (memorySaveResponses.length > 0) {
             const convertedMessages = memorySaveResponsesToMessages(memorySaveResponses)
             setMessages(convertedMessages)
+        } else {
+            // Clear messages when switching to vectorstore with no history
+            setMessages([])
         }
-    }, [memorySaveResponses])
+    }, [memorySaveResponses, settings.vectorStoreName])
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -132,11 +143,14 @@ export default function SavePage() {
             {/* Memory Save Content */}
             <div className="h-full flex flex-col">
                 <ApiPageHeader
-                    endpoint="(POST) /api/memory/memories"
+                    endpoint={`(POST) /api/memory/${settings.vectorStoreName}`}
                     hasMessages={hasMessages}
                     onClearChat={clearChat}
                     isLoading={isLoading}
                     title="Add memory"
+                    showVectorStoreSelector={true}
+                    vectorStoreName={settings.vectorStoreName}
+                    onVectorStoreChange={handleVectorStoreChange}
                 />
                 {hasMessages ? (
                     // Layout when there are messages - ChatBox + input at bottom
@@ -167,7 +181,8 @@ export default function SavePage() {
                     </>
                 ) : (
                     // Layout when no messages - input centered vertically with prompt
-                    <div className="flex-1 flex items-center justify-center -mt-40 bg-white">
+                    <div className="flex-1 flex items-center justify-center bg-white">
+                        
                         <div className="w-full">
                             <div className="text-center mb-8">
                                 <h1 className="text-3xl font-bold text-gray-900 mb-2">

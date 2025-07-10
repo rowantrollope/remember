@@ -2,38 +2,30 @@ import { useMemo } from 'react'
 import { MemoryAgentAPI } from '@/lib/api'
 import { useSettings } from './useSettings'
 
-// Create a singleton API instance that can be reconfigured
-let apiInstance: MemoryAgentAPI | null = null
-
 export function useConfiguredAPI() {
-    const { isLoaded, getApiBaseUrl } = useSettings()
+    const { isLoaded, getApiBaseUrl, settings } = useSettings()
 
-    // Create or update the API instance when settings change
+    // Create a new API instance when settings change
+    // This ensures that vectorstore changes are properly reflected
     const api = useMemo(() => {
         const baseUrl = isLoaded ? getApiBaseUrl() : 'http://localhost:5001'
+        const vectorStoreName = isLoaded ? settings.vectorStoreName : 'memories'
 
-        if (!apiInstance) {
-            apiInstance = new MemoryAgentAPI(baseUrl)
-        } else {
-            // Update the existing instance with new base URL
-            apiInstance.updateBaseUrl(baseUrl)
-        }
-
-        return apiInstance
-    }, [isLoaded, getApiBaseUrl])
+        console.log('useConfiguredAPI: Creating API instance with:', { baseUrl, vectorStoreName })
+        return new MemoryAgentAPI(baseUrl, vectorStoreName)
+    }, [isLoaded, getApiBaseUrl, settings.vectorStoreName])
 
     return {
         api,
         isLoaded,
-        baseUrl: isLoaded ? getApiBaseUrl() : 'http://localhost:5001'
+        baseUrl: isLoaded ? getApiBaseUrl() : 'http://localhost:5001',
+        vectorStoreName: isLoaded ? settings.vectorStoreName : 'memories'
     }
 }
 
-// Export a function to get the configured API instance
+// Export a function to get a default API instance
 // This can be used in places where hooks can't be used
+// Note: This will use default settings and won't reflect user preferences
 export function getConfiguredAPI(): MemoryAgentAPI {
-    if (!apiInstance) {
-        apiInstance = new MemoryAgentAPI('http://localhost:5001')
-    }
-    return apiInstance
+    return new MemoryAgentAPI('http://localhost:5001', 'memories')
 }

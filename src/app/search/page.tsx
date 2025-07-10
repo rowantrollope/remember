@@ -457,6 +457,7 @@ export default function SearchPage() {
         error,
         apiStatus,
         searchMemories,
+        clearSearchResults,
         clearError,
     } = useMemoryAPI()
 
@@ -477,16 +478,21 @@ export default function SearchPage() {
     }
 
     // Get settings for search top_k
-    const { settings } = useSettings()
+    const { settings, updateSetting } = useSettings()
+
+    // Handle vectorstore change
+    const handleVectorStoreChange = (newVectorStoreName: string) => {
+        updateSetting('vectorStoreName', newVectorStoreName)
+    }
 
     // Use persistent chat hook for search responses (for persistence)
     const {
         searchResponses: persistentSearchResponses,
         addSearchResponse,
         updateSearchResponses,
-    } = usePersistentChat()
+    } = usePersistentChat(settings.vectorStoreName)
 
-    // Restore chat messages from persistent storage on component mount
+    // Restore chat messages from persistent storage when vectorstore changes
     useEffect(() => {
         if (persistentSearchResponses.length > 0) {
             const messages: UnifiedChatMessage[] = []
@@ -501,11 +507,13 @@ export default function SearchPage() {
                 }
                 messages.push(userMessage)
 
-                // Add assistant response with search results
+                // Add assistant response with search results or "No Memories Found"
                 const assistantMessage: UnifiedChatMessage = {
                     id: `assistant-${index}-${Date.now()}`,
                     type: 'assistant',
-                    content: `Found ${searchResponse.results.length} matching memories`,
+                    content: searchResponse.results.length > 0
+                        ? `Found ${searchResponse.results.length} matching memories`
+                        : 'No Memories Found',
                     created_at: searchResponse.timestamp,
                     supporting_memories: searchResponse.results,
                     excluded_memories: searchResponse.excludedMemories,
@@ -515,40 +523,66 @@ export default function SearchPage() {
             })
 
             setChatMessages(messages)
+        } else {
+            // Clear chat messages and search results when switching to vectorstore with no history
+            setChatMessages([])
+            clearSearchResults()
         }
-    }, [persistentSearchResponses])
+    }, [persistentSearchResponses, settings.vectorStoreName, clearSearchResults])
 
     // Save search results when they are updated (after a successful search)
     useEffect(() => {
-        if (searchResults.length > 0 && chatMessages.length > 0) {
+        if (chatMessages.length > 0) {
             // Check if the last message is already an assistant response with search results
             const lastMessage = chatMessages[chatMessages.length - 1]
             if (lastMessage.type === 'user') {
-                // Add assistant response with search results
-                const assistantMessage: UnifiedChatMessage = {
-                    id: `assistant-${Date.now()}`,
-                    type: 'assistant',
-                    content: `Found ${searchResults.length} matching memories`,
-                    created_at: new Date().toISOString(),
-                    supporting_memories: searchResults,
-                    excluded_memories: excludedMemories,
-                    filtering_info: filteringInfo || undefined
-                }
-                setChatMessages(prev => [...prev, assistantMessage])
+                if (searchResults.length > 0) {
+                    // Add assistant response with search results
+                    const assistantMessage: UnifiedChatMessage = {
+                        id: `assistant-${Date.now()}`,
+                        type: 'assistant',
+                        content: `Found ${searchResults.length} matching memories`,
+                        created_at: new Date().toISOString(),
+                        supporting_memories: searchResults,
+                        excluded_memories: excludedMemories,
+                        filtering_info: filteringInfo || undefined
+                    }
+                    setChatMessages(prev => [...prev, assistantMessage])
 
-                // Save to persistent storage
-                const searchResponse: SearchResponse = {
-                    success: true,
-                    query: lastMessage.content,
-                    results: searchResults,
-                    excludedMemories: excludedMemories,
-                    filteringInfo: filteringInfo || undefined,
-                    timestamp: new Date().toISOString()
+                    // Save to persistent storage
+                    const searchResponse: SearchResponse = {
+                        success: true,
+                        query: lastMessage.content,
+                        results: searchResults,
+                        excludedMemories: excludedMemories,
+                        filteringInfo: filteringInfo || undefined,
+                        timestamp: new Date().toISOString()
+                    }
+                    addSearchResponse(searchResponse)
+                } else if (searchResults.length === 0 && !isLoading) {
+                    // Add "No Memories Found" message when search returns no results
+                    const noResultsMessage: UnifiedChatMessage = {
+                        id: `assistant-${Date.now()}`,
+                        type: 'assistant',
+                        content: 'No Memories Found',
+                        created_at: new Date().toISOString()
+                    }
+                    setChatMessages(prev => [...prev, noResultsMessage])
+
+                    // Save empty search response to persistent storage
+                    const searchResponse: SearchResponse = {
+                        success: true,
+                        query: lastMessage.content,
+                        results: [],
+                        excludedMemories: [],
+                        filteringInfo: filteringInfo || undefined,
+                        timestamp: new Date().toISOString()
+                    }
+                    addSearchResponse(searchResponse)
                 }
-                addSearchResponse(searchResponse)
             }
         }
-    }, [searchResults, excludedMemories, filteringInfo, chatMessages, addSearchResponse])
+    }, [searchResults, excludedMemories, filteringInfo, chatMessages, addSearchResponse, isLoading])
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -594,6 +628,7 @@ export default function SearchPage() {
     const clearSearch = () => {
         setChatMessages([])
         updateSearchResponses([])
+        clearSearchResults()
     }
 
     // Check if there are any chat messages
@@ -608,12 +643,15 @@ export default function SearchPage() {
             {/* Search Content */}
             <div className="h-full flex flex-col">
                 <ApiPageHeader
-                    endpoint="(POST) /api/memory/memories/search"
+                    endpoint={`(POST) /api/memory/${settings.vectorStoreName}/search`}
                     hasMessages={hasMessages}
                     onClearChat={clearSearch}
                     isLoading={isLoading}
                     title="Search Memory"
                     showSettingsButton={true}
+                    showVectorStoreSelector={true}
+                    vectorStoreName={settings.vectorStoreName}
+                    onVectorStoreChange={handleVectorStoreChange}
                 />
                 {hasMessages ? (
                     // Layout when there are chat messages - input at bottom
@@ -642,7 +680,7 @@ export default function SearchPage() {
                     </>
                 ) : (
                     // Layout when no messages - input centered vertically with prompt
-                    <div className="flex-1 flex items-center justify-center -mt-40 bg-white">
+                    <div className="flex-1 flex items-center justify-center">
                         <div className="w-full">
                             <div className="text-center mb-8">
                                 <h1 className="text-3xl font-bold text-gray-900 mb-2">Search Memories</h1>

@@ -20,7 +20,8 @@ import { ChatCard } from "@/components/ChatCard"
 import { ChatMessage } from "@/components/ChatBox"
 import { useMemoryAPI } from "@/hooks"
 import { useSettings } from "@/hooks/useSettings"
-import { memoryAPI } from "@/lib/api"
+import { useConfiguredAPI } from "@/hooks/useConfiguredAPI"
+import { MemoryAgentAPI } from "@/lib/api"
 
 // Complete Microsoft 2024 Annual Report content for comprehensive analysis
 const microsoft2024Annual = `MICROSOFT CORPORATION
@@ -217,7 +218,11 @@ export default function InvestmentDemo() {
     const [standardSessionId, setStandardSessionId] = useState<string | null>(null)
     const [memorySessionId, setMemorySessionId] = useState<string | null>(null)
     const { apiStatus, error, clearError } = useMemoryAPI()
+    const { baseUrl } = useConfiguredAPI()
     const { settings } = useSettings()
+
+    // Create dedicated API instance for investment demo
+    const investmentAPI = new MemoryAgentAPI(baseUrl, 'investment_agent_memory')
 
 
 
@@ -226,7 +231,7 @@ export default function InvestmentDemo() {
         if (standardSessionId) return standardSessionId
 
         try {
-            const response = await memoryAPI.createChatSession({
+            const response = await investmentAPI.createChatSession({
                 system_prompt: `You are a financial analyst helping to analyze Microsoft's 2024 Annual Report. You have access to the complete financial document but no memory of previous conversations. Provide detailed analysis based on the document content. Here is the document: ${documentContent}`,
                 session_id: `investment-standard-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
                 config: {
@@ -252,7 +257,7 @@ export default function InvestmentDemo() {
         if (memorySessionId) return memorySessionId
 
         try {
-            const response = await memoryAPI.createChatSession({
+            const response = await investmentAPI.createChatSession({
                 system_prompt: `You are a personalized financial advisor with access to Microsoft's 2024 Annual Report and the investor's profile and preferences stored in memory. Use both the document and the investor's stated criteria to provide tailored investment analysis. Always reference the investor's specific preferences when making recommendations. Here is the document: ${documentContent}`,
                 session_id: `investment-memory-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
                 config: {
@@ -282,12 +287,12 @@ export default function InvestmentDemo() {
         try {
             // Load investor profile memories with grounding disabled
             for (const memory of investorProfileMemories) {
-                await memoryAPI.remember(memory, false)
+                await investmentAPI.remember(memory, false)
             }
 
             // Load document analysis context with grounding disabled
             for (const memory of documentAnalysisMemories) {
-                await memoryAPI.remember(memory, false)
+                await investmentAPI.remember(memory, false)
             }
 
             setHasLoadedProfile(true)
@@ -302,7 +307,7 @@ export default function InvestmentDemo() {
     // View current memories
     const refreshCurrentMemories = async () => {
         try {
-            const response = await memoryAPI.recall("investor profile financial analysis", 20)
+            const response = await investmentAPI.recall("investor profile financial analysis", 20)
             if (response.success) {
                 setCurrentMemories(response.memories || [])
             }
@@ -314,7 +319,7 @@ export default function InvestmentDemo() {
     // Clear all memories
     const clearAllMemories = async () => {
         try {
-            await memoryAPI.clearAllMemories()
+            await investmentAPI.clearAllMemories()
             setHasLoadedProfile(false)
             setCurrentMemories([])
         } catch (error) {
@@ -336,7 +341,7 @@ export default function InvestmentDemo() {
 
             // Use session-based chat API (no memory)
             if (standardSessionId) {
-                const response = await memoryAPI.chatWithSession({
+                const response = await investmentAPI.chatWithSession({
                     session_id: standardSessionId,
                     message: standardQuestion,
                     top_k: settings.questionTopK,
@@ -382,7 +387,7 @@ export default function InvestmentDemo() {
 
             // Use session-based chat API (with memory)
             if (memorySessionId) {
-                const response = await memoryAPI.chatWithSession({
+                const response = await investmentAPI.chatWithSession({
                     session_id: memorySessionId,
                     message: memoryQuestion,
                     top_k: settings.questionTopK,

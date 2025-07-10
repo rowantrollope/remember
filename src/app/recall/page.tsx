@@ -37,7 +37,12 @@ export default function RecallPage() {
 
     const { api } = useConfiguredAPI()
     const { apiStatus, clearError: clearMemoryError } = useMemoryAPI()
-    const { settings, isLoaded } = useSettings()
+    const { settings, isLoaded, updateSetting } = useSettings()
+
+    // Handle vectorstore change
+    const handleVectorStoreChange = (newVectorStoreName: string) => {
+        updateSetting('vectorStoreName', newVectorStoreName)
+    }
 
     // Debug: Log settings when they change
     useEffect(() => {
@@ -49,15 +54,18 @@ export default function RecallPage() {
         recallResponses: persistentRecallResponses,
         addRecallResponse,
         updateRecallResponses,
-    } = usePersistentChat()
+    } = usePersistentChat(settings.vectorStoreName)
 
-    // Convert persistent recall responses to messages on component mount only
+    // Convert persistent recall responses to messages when vectorstore changes
     useEffect(() => {
-        if (persistentRecallResponses.length > 0 && messages.length === 0) {
+        if (persistentRecallResponses.length > 0) {
             const convertedMessages = recallResponsesToMessages(persistentRecallResponses)
             setMessages(convertedMessages)
+        } else {
+            // Clear messages when switching to vectorstore with no history
+            setMessages([])
         }
-    }, [persistentRecallResponses, messages.length])
+    }, [persistentRecallResponses, settings.vectorStoreName])
 
     // Function to copy ID to clipboard with visual feedback
     const copyIdToClipboard = async (fullId: string) => {
@@ -171,12 +179,15 @@ export default function RecallPage() {
             {/* Recall API Content */}
             <div className="h-full flex flex-col">
                 <ApiPageHeader
-                    endpoint="(POST) /api/memory/memories/search"
+                    endpoint={`(POST) /api/memory/${settings.vectorStoreName}/search`}
                     hasMessages={hasMessages}
                     onClearChat={clearChat}
                     isLoading={isLoading}
                     title="Search Memory"
                     showSettingsButton={true}
+                    showVectorStoreSelector={true}
+                    vectorStoreName={settings.vectorStoreName}
+                    onVectorStoreChange={handleVectorStoreChange}
                 />
 
                 {hasMessages ? (

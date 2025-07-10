@@ -43,13 +43,6 @@ export default function AskPage() {
         }
     }
 
-    // Use persistent chat hook for conversations (for persistence)
-    const {
-        conversations: persistentConversations,
-        addConversation,
-        updateConversations,
-    } = usePersistentChat()
-
     const {
         isLoading,
         error,
@@ -60,15 +53,30 @@ export default function AskPage() {
         clearError,
     } = useMemoryAPI()
 
-    const { settings } = useSettings()
+    const { settings, updateSetting } = useSettings()
 
-    // Convert persistent conversations to messages on component mount
+    // Use persistent chat hook for conversations (for persistence)
+    const {
+        conversations: persistentConversations,
+        addConversation,
+        updateConversations,
+    } = usePersistentChat(settings.vectorStoreName)
+
+    // Handle vectorstore change
+    const handleVectorStoreChange = (newVectorStoreName: string) => {
+        updateSetting('vectorStoreName', newVectorStoreName)
+    }
+
+    // Convert persistent conversations to messages when vectorstore changes
     useEffect(() => {
         if (persistentConversations.length > 0) {
             const convertedMessages = conversationToMessages(persistentConversations)
             setMessages(convertedMessages)
+        } else {
+            // Clear messages when switching to vectorstore with no history
+            setMessages([])
         }
-    }, [persistentConversations])
+    }, [persistentConversations, settings.vectorStoreName])
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -91,6 +99,7 @@ export default function AskPage() {
         setMessages(prev => [...prev, userMessage, thinkingMessage])
 
         try {
+            console.log('About to ask question with vectorstore:', settings.vectorStoreName) // Debug logging
             const result = await askQuestion(currentInput, settings.questionTopK, settings.minSimilarity)
             console.log('Ask question result:', result) // Debug logging
 
@@ -143,12 +152,15 @@ export default function AskPage() {
             {/* Ask API Content */}
             <div className="h-full flex flex-col">
                 <ApiPageHeader
-                    endpoint="(POST) /api/memory/memories/ask"
+                    endpoint={`(POST) /api/memory/${settings.vectorStoreName}/ask`}
                     hasMessages={hasMessages}
                     onClearChat={clearChat}
                     isLoading={isLoading}
                     title="Ask Memory A Question"
                     showSettingsButton={true}
+                    showVectorStoreSelector={true}
+                    vectorStoreName={settings.vectorStoreName}
+                    onVectorStoreChange={handleVectorStoreChange}
                 />
 
                 {hasMessages ? (
@@ -182,7 +194,7 @@ export default function AskPage() {
                     </>
                 ) : (
                     // Layout when no messages - input centered vertically with prompt
-                    <div className="flex-1 flex items-center justify-center -mt-40 bg-white">
+                    <div className="flex-1 flex items-center justify-center bg-white">
                         <div className="w-full">
                             <div className="text-center mb-8">
                                 <h1 className="text-3xl font-bold text-gray-900 mb-2">

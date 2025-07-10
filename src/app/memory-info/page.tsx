@@ -33,11 +33,11 @@ export default function MemoryInfoPage() {
     const [tempServerUrl, setTempServerUrl] = useState<string>('http://localhost')
     const [tempServerPort, setTempServerPort] = useState<string>('5001')
 
-    // Get chat history clearing function
-    const { clearChatHistory } = usePersistentChat()
-
     // Get settings and configured API
     const { settings, updateSetting, resetSettings } = useSettings()
+
+    // Get chat history clearing function
+    const { clearChatHistory } = usePersistentChat(settings.vectorStoreName)
     const { api: memoryAPI, isLoaded: apiConfigLoaded } = useConfiguredAPI()
 
     // Sync temp values with settings when settings change
