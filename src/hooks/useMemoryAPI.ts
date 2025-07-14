@@ -300,7 +300,7 @@ export function useMemoryAPI() {
                 setExcludedMemories([])
                 setFilteringInfo(null)
                 // Note: conversations are managed by usePersistentChat hook
-                return { success: true, deletedCount: response.deleted_count }
+                return { success: true, deletedCount: response.memories_deleted }
             } else {
                 setError('Failed to clear all memories')
                 return { success: false, deletedCount: 0 }

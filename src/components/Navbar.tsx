@@ -42,6 +42,12 @@ export function Navbar() {
             icon: Trash2,
             isActive: pathname === "/delete"
         },
+        {
+            href: "/delete_all",
+            label: "Delete all memories",
+            icon: Trash2,
+            isActive: pathname === "/delete_all"
+        },
     ]
 
     const demoItems = [

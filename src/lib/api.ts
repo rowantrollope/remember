@@ -235,7 +235,8 @@ export interface DeleteResponse {
 export interface ClearAllResponse {
     success: boolean
     message: string
-    deleted_count: number
+    memories_deleted: number
+    vectorset_existed?: boolean
 }
 
 export interface ContextResponse {

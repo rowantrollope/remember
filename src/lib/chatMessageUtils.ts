@@ -94,12 +94,75 @@ export function memorySaveResponsesToMessages(responses: MemorySaveResponse[]): 
 
         // System response
         const isThinking = saveResponse.response?.message === "thinking..."
+
+        // Create a nicely formatted success message
+        const formatSuccessMessage = (response: any) => {
+            if (!response) return "Memory saved successfully"
+
+            const memoryId = response.memory_id
+
+            let message = `✅ Memory "${saveResponse.originalText}" saved successfully!\n\n`
+
+            // Add grounding information if available
+            if (response.grounding_applied) {
+                message += `🔗 Contextual grounding applied\n`
+
+                if (response.grounding_info?.changes_made && response.grounding_info.changes_made.length > 0) {
+                    message += `📝 Enhanced with context:\n`
+                    response.grounding_info.changes_made.forEach((change: any) => {
+                        message += `   • "${change.original}" → "${change.replacement}"\n`
+                    })
+                }
+
+                if (response.grounding_info?.dependencies_found) {
+                    const deps = response.grounding_info.dependencies_found
+                    if (deps.temporal && deps.temporal.length > 0) {
+                        message += `⏰ Temporal context: ${deps.temporal.join(', ')}\n`
+                    }
+                    if (deps.spatial && deps.spatial.length > 0) {
+                        message += `📍 Location context: ${deps.spatial.join(', ')}\n`
+                    }
+                    if (deps.social && deps.social.length > 0) {
+                        message += `👥 Social context: ${deps.social.join(', ')}\n`
+                    }
+                    if (deps.environmental && deps.environmental.length > 0) {
+                        message += `🌍 Environmental context: ${deps.environmental.join(', ')}\n`
+                    }
+                }
+            } else {
+                message += `📝 Stored as provided (no contextual grounding)\n`
+            }
+
+            // Add context snapshot information if available
+            if (response.context_snapshot) {
+                const context = response.context_snapshot
+                message += `\n📊 Context captured:\n`
+
+                if (context.temporal?.date) {
+                    message += `   📅 Date: ${context.temporal.date}\n`
+                }
+                if (context.spatial?.location) {
+                    message += `   📍 Location: ${context.spatial.location}\n`
+                }
+                if (context.spatial?.activity) {
+                    message += `   🎯 Activity: ${context.spatial.activity}\n`
+                }
+                if (context.environmental?.mood) {
+                    message += `   😊 Mood: ${context.environmental.mood}\n`
+                }
+            }
+
+            message += `\n🆔 Full Memory ID: ${memoryId}`
+
+            return message
+        }
+
         messages.push({
             id: `save-${index}-response`,
             type: 'memory_save',
             content: isThinking ?
                 "Thinking..." :
-                `✓ Memory saved successfully\nMemory ID: ${saveResponse.response?.memory_id}`,
+                formatSuccessMessage(saveResponse.response),
             created_at: saveResponse.timestamp,
             memory_id: saveResponse.response?.memory_id,
             save_success: !isThinking && saveResponse.success,

@@ -16,6 +16,7 @@ import { useSettings } from "@/hooks/useSettings"
 
 // Types
 import type { MemorySaveResponse } from "@/hooks/usePersistentChat"
+import type { RememberResponse } from "@/lib/api"
 
 // Utils
 import { memorySaveResponsesToMessages, createThinkingMessage, updateThinkingMessage } from "@/lib/chatMessageUtils"
@@ -90,11 +91,72 @@ export default function SavePage() {
         try {
             const result = await saveMemory(currentInput)
             if (result.success && result.response) {
+                // Create a nicely formatted success message
+                const formatSuccessMessage = (response: RememberResponse) => {
+                    const memoryId = response.memory_id
+                    const shortId = memoryId ? memoryId.split('-').pop() || memoryId : 'unknown'
+
+                    let message = `Memory "${shortId}" saved successfully!\n\n`
+
+                    // Add grounding information if available
+                    if (response.grounding_applied) {
+                        message += `🔗 Contextual grounding applied\n`
+
+                        if (response.grounding_info?.changes_made && response.grounding_info.changes_made.length > 0) {
+                            message += `📝 Enhanced with context:\n`
+                            response.grounding_info.changes_made.forEach((change) => {
+                                message += `   • "${change.original}" → "${change.replacement}"\n`
+                            })
+                        }
+
+                        if (response.grounding_info?.dependencies_found) {
+                            const deps = response.grounding_info.dependencies_found
+                            if (deps.temporal && deps.temporal.length > 0) {
+                                message += `⏰ Temporal context: ${deps.temporal.join(', ')}\n`
+                            }
+                            if (deps.spatial && deps.spatial.length > 0) {
+                                message += `📍 Location context: ${deps.spatial.join(', ')}\n`
+                            }
+                            if (deps.social && deps.social.length > 0) {
+                                message += `👥 Social context: ${deps.social.join(', ')}\n`
+                            }
+                            if (deps.environmental && deps.environmental.length > 0) {
+                                message += `🌍 Environmental context: ${deps.environmental.join(', ')}\n`
+                            }
+                        }
+                    } else {
+                        message += `📝 Stored as provided (no contextual grounding)\n`
+                    }
+
+                    // Add context snapshot information if available
+                    if (response.context_snapshot) {
+                        const context = response.context_snapshot
+                        message += `\n📊 Context captured:\n`
+
+                        if (context.temporal?.date) {
+                            message += `   📅 Date: ${context.temporal.date}\n`
+                        }
+                        if (context.spatial?.location) {
+                            message += `   📍 Location: ${context.spatial.location}\n`
+                        }
+                        if (context.spatial?.activity) {
+                            message += `   🎯 Activity: ${context.spatial.activity}\n`
+                        }
+                        if (context.environmental?.mood) {
+                            message += `   😊 Mood: ${context.environmental.mood}\n`
+                        }
+                    }
+
+                    message += `\n🆔 Full Memory ID: ${memoryId}`
+
+                    return message
+                }
+
                 // Create success message with grounding information
                 const successMessage: UnifiedChatMessage = {
                     id: `save-${Date.now()}`,
                     type: 'memory_save',
-                    content: `✓ Memory saved successfully\nMemory ID: ${result.response.memory_id}`,
+                    content: formatSuccessMessage(result.response),
                     created_at: new Date().toISOString(),
                     memory_id: result.response.memory_id,
                     save_success: true,

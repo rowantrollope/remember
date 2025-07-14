@@ -94,7 +94,6 @@ export function RecallSettingsDialog() {
                     className="flex items-center gap-2"
                 >
                     <Settings className="w-4 h-4" />
-                    Options
                 </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-md">
