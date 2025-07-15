@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Trash2, AlertTriangle, CheckCircle, Info } from "lucide-react"
 import { ApiPageHeader } from "@/components/ApiPageHeader"
+import { PageLayout } from "@/components/PageLayout"
 import { useMemoryAPI } from "@/hooks/useMemoryAPI"
 import { useSettings } from "@/hooks/useSettings"
 import { useConfiguredAPI } from "@/hooks/useConfiguredAPI"
@@ -110,17 +111,22 @@ export default function DeleteAllPage() {
     }
 
     return (
-        <div className="container mx-auto p-4 max-w-4xl">
-            <ApiPageHeader
-                endpoint="/api/memory/{vectorstore_name}/all"
-                hasMessages={false}
-                onClearChat={() => {}}
-                isLoading={isLoading || isDeleting}
-                title="Delete All Memories"
-                showVectorStoreSelector={true}
-                vectorStoreName={settings.vectorStoreName}
-                onVectorStoreChange={handleVectorStoreChange}
-            />
+        <PageLayout
+            error={error}
+            apiStatus={apiStatus}
+            onClearError={clearError}
+        >
+            <div className="container mx-auto p-4 max-w-4xl">
+                <ApiPageHeader
+                    endpoint="/api/memory/{vectorstore_name}/all"
+                    hasMessages={false}
+                    onClearChat={() => {}}
+                    isLoading={isLoading || isDeleting}
+                    title="Delete All Memories"
+                    showVectorStoreSelector={true}
+                    vectorStoreName={settings.vectorStoreName}
+                    onVectorStoreChange={handleVectorStoreChange}
+                />
 
             <div className="space-y-6">
                 {/* API Status */}
@@ -261,6 +267,7 @@ export default function DeleteAllPage() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-        </div>
+            </div>
+        </PageLayout>
     )
 }
