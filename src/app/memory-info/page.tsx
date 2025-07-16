@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useState, useEffect } from "react"
-import { Card, CardContent } from "@/components/ui/card"
+
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
@@ -15,7 +15,6 @@ import {
 import { Brain, AlertCircle, CheckCircle, Settings, RotateCcw, Cog } from "lucide-react"
 import { type MemoryInfoResponse } from "@/lib/api"
 import { useConfiguredAPI } from "@/hooks/useConfiguredAPI"
-import { ClearAllMemoriesDialog } from "@/components/ClearAllMemoriesDialog"
 import { usePersistentChat } from "@/hooks/usePersistentChat"
 import { useSettings } from "@/hooks/useSettings"
 import { Navbar } from "@/components/Navbar"
@@ -26,7 +25,6 @@ export default function MemoryInfoPage() {
     const [apiStatus, setApiStatus] = useState<'ready' | 'not_initialized' | 'unknown'>('unknown')
     const [error, setError] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(true)
-    const [isClearingMemories, setIsClearingMemories] = useState(false)
     const [clearSuccess, setClearSuccess] = useState<string | null>(null)
     const [tempTopK, setTempTopK] = useState<string>('5')
     const [tempMinSimilarity, setTempMinSimilarity] = useState<string>('0.7')
@@ -79,41 +77,6 @@ export default function MemoryInfoPage() {
         initializeAPI()
     }, [memoryAPI, apiConfigLoaded])
 
-    const handleClearAllMemories = async () => {
-        setIsClearingMemories(true)
-        setError(null)
-        setClearSuccess(null)
-
-        try {
-            const response = await memoryAPI.clearAllMemories()
-
-            if (response.success) {
-                setClearSuccess(`Successfully cleared ${response.deleted_count} memories and chat history`)
-
-                // Clear local chat history
-                clearChatHistory()
-
-                // Refresh memory info to show updated count
-                if (apiStatus === 'ready') {
-                    try {
-                        const info = await memoryAPI.getMemoryInfo()
-                        if (info.success) {
-                            setMemoryInfo(info)
-                        }
-                    } catch (error) {
-                        console.warn('Failed to refresh memory info after clearing:', error)
-                    }
-                }
-            } else {
-                setError('Failed to clear memories')
-            }
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to clear memories')
-        } finally {
-            setIsClearingMemories(false)
-        }
-    }
-
     return (
         <div className="min-h-screen ">
             <Navbar />
@@ -161,43 +124,7 @@ export default function MemoryInfoPage() {
                         </div>
                     )}
 
-                    {/* Memory Statistics */}
-                    {!isLoading && memoryInfo && (
-                        <>
-                            <div className="grid grid-cols-3 gap-6">
-                                <Card className="text-center p-4 bg-gradient-to-r from-purple-100 to-blue-100 rounded-lg">
-                                    <CardContent>
-                                        <div>
-                                            <div className="text-3xl font-bold text-purple-600">
-                                                {memoryInfo.memory_count || 0}
-                                            </div>
-                                            <div className="text-sm text-gray-600 mt-1">Total Memories</div>
-                                        </div>
-                                    </CardContent>
-                                </Card>
 
-                                <Card className="text-center p-4 bg-gradient-to-r from-blue-100 to-indigo-100 rounded-lg">
-                                    <CardContent>
-                                        <div className="text-3xl font-bold text-blue-600">
-                                            {memoryInfo.vector_dimension || 0}
-                                        </div>
-                                        <div className="text-sm text-gray-600 mt-1">Vector Dimensions</div>
-                                    </CardContent>
-                                </Card>
-
-                                <Card className="text-center p-4 bg-gradient-to-r from-green-100 to-teal-100 rounded-lg">
-                                    <CardContent className="">
-                                        <div className="text-3xl font-bold text-green-600">
-                                            {memoryInfo.vectorset_info ? Object.keys(memoryInfo.vectorset_info).length : 0}
-                                        </div>
-                                        <div className="text-sm text-gray-600 mt-1">Attributes</div>
-                                    </CardContent>
-                                </Card>
-                            </div>
-
-
-                        </>
-                    )}
                     {/* Settings Section */}
                     <div className="space-y-4">
                         <h2 className="text-2xl font-bold text-gray-900">Configuration</h2>
@@ -467,31 +394,6 @@ export default function MemoryInfoPage() {
                                     </AccordionTrigger>
                                     <AccordionContent className="pt-4">
                                         <LLMConfigurationPanel />
-                                    </AccordionContent>
-                                </AccordionItem>
-                            )}
-
-                            {/* Clear All Memories Section */}
-                            {apiStatus === 'ready' && (
-                                <AccordionItem value="danger-zone" className="border rounded-lg px-4 border-red-200">
-                                    <AccordionTrigger className="text-lg font-semibold text-red-600">
-                                        <div className="flex items-center gap-2">
-                                            <AlertCircle className="w-5 h-5" />
-                                            Danger Zone
-                                        </div>
-                                    </AccordionTrigger>
-                                    <AccordionContent className="pt-4">
-                                        <div className="w-full space-y-4 flex items-center justify-center">
-                                            <p className="text-gray-600">
-                                                Permanently delete all memories from your memory bank and clear your local chat history. <br />This action cannot be undone.
-                                            </p>
-                                            <div className="grow"></div>
-                                            <ClearAllMemoriesDialog
-                                                onConfirm={handleClearAllMemories}
-                                                isLoading={isClearingMemories}
-                                                memoryCount={memoryInfo?.memory_count || 0}
-                                            />
-                                        </div>
                                     </AccordionContent>
                                 </AccordionItem>
                             )}
