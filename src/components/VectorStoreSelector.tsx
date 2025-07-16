@@ -20,16 +20,15 @@ import {
 } from "@/components/ui/popover"
 import { Badge } from "@/components/ui/badge"
 
-// Predefined vectorstore options for demos
+// Predefined vectorset options for demos
 const PREDEFINED_VECTORSTORES = [
-    { value: "memories", label: "memories", description: "Default vectorstore" },
-    { value: "travel_agent_memory", label: "travel_agent_memory", description: "Travel demo vectorstore" },
-    { value: "retail_agent_memory", label: "retail_agent_memory", description: "Retail demo vectorstore" },
-    { value: "investment_agent_memory", label: "investment_agent_memory", description: "Investment demo vectorstore" },
+    { value: "travel_agent_memory", label: "travel_agent_memory", description: "Travel demo Vector Set" },
+    { value: "retail_agent_memory", label: "retail_agent_memory", description: "Retail demo Vector Set" },
+    { value: "investment_agent_memory", label: "investment_agent_memory", description: "Investment demo Vector Set" },
 ]
 
-// localStorage key for custom vectorstore names
-const CUSTOM_VECTORSTORES_STORAGE_KEY = 'custom-vectorstore-names'
+// localStorage key for custom vectorset names
+const CUSTOM_VECTORSTORES_STORAGE_KEY = 'custom-vectorset-names'
 
 interface VectorStoreSelectorProps {
     value: string
@@ -44,13 +43,13 @@ export function VectorStoreSelector({
     onValueChange,
     className,
     disabled = false,
-    placeholder = "Select vectorstore..."
+    placeholder = "Select vectorset..."
 }: VectorStoreSelectorProps) {
     const [open, setOpen] = useState(false)
     const [customValue, setCustomValue] = useState("")
     const [customVectorStores, setCustomVectorStores] = useState<string[]>([])
 
-    // Load custom vectorstore names from localStorage on mount
+    // Load custom vectorset names from localStorage on mount
     useEffect(() => {
         try {
             const saved = localStorage.getItem(CUSTOM_VECTORSTORES_STORAGE_KEY)
@@ -61,20 +60,20 @@ export function VectorStoreSelector({
                 }
             }
         } catch (error) {
-            console.error('Failed to load custom vectorstore names:', error)
+            console.error('Failed to load custom vectorset names:', error)
         }
     }, [])
 
-    // Save custom vectorstore names to localStorage
+    // Save custom vectorset names to localStorage
     const saveCustomVectorStores = useCallback((names: string[]) => {
         try {
             localStorage.setItem(CUSTOM_VECTORSTORES_STORAGE_KEY, JSON.stringify(names))
         } catch (error) {
-            console.error('Failed to save custom vectorstore names:', error)
+            console.error('Failed to save custom vectorset names:', error)
         }
     }, [])
 
-    // Add a new custom vectorstore name
+    // Add a new custom vectorset name
     const addCustomVectorStore = useCallback((name: string) => {
         const trimmedName = name.trim()
         if (!trimmedName) return
@@ -95,7 +94,7 @@ export function VectorStoreSelector({
     const selectedPredefined = PREDEFINED_VECTORSTORES.find(store => store.value === value)
     const isCustomValue = !selectedPredefined && value
 
-    // Automatically add new custom vectorstore names to the persistent list
+    // Automatically add new custom vectorset names to the persistent list
     useEffect(() => {
         if (value && !selectedPredefined && !customVectorStores.includes(value)) {
             addCustomVectorStore(value)
@@ -168,10 +167,10 @@ export function VectorStoreSelector({
                                     </Button>
                                 </div>
                             ) : (
-                                "No vectorstore found."
+                                "No vectorset found."
                             )}
                         </CommandEmpty>
-                        <CommandGroup heading="Predefined Vectorstores">
+                        <CommandGroup heading="Demo Vector Sets">
                             {PREDEFINED_VECTORSTORES.map((store) => (
                                 <CommandItem
                                     key={store.value}
@@ -210,7 +209,7 @@ export function VectorStoreSelector({
                                         <div className="flex flex-col">
                                             <span className="font-medium">{storeName}</span>
                                             <span className="text-xs text-muted-foreground">
-                                                Custom vectorstore
+                                                Custom vectorset
                                             </span>
                                         </div>
                                     </CommandItem>
@@ -227,7 +226,7 @@ export function VectorStoreSelector({
                                     <div className="flex flex-col">
                                         <span className="font-medium">{customValue.trim()}</span>
                                         <span className="text-xs text-muted-foreground">
-                                            Create new custom vectorstore
+                                            Create new custom vectorset
                                         </span>
                                     </div>
                                 </CommandItem>

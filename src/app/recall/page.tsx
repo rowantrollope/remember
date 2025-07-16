@@ -39,9 +39,9 @@ export default function RecallPage() {
     const { apiStatus, clearError: clearMemoryError } = useMemoryAPI()
     const { settings, isLoaded, updateSetting } = useSettings()
 
-    // Handle vectorstore change
+    // Handle vectorset change
     const handleVectorStoreChange = (newVectorStoreName: string) => {
-        updateSetting('vectorStoreName', newVectorStoreName)
+        updateSetting('vectorSetName', newVectorStoreName)
     }
 
     // Debug: Log settings when they change
@@ -54,18 +54,18 @@ export default function RecallPage() {
         recallResponses: persistentRecallResponses,
         addRecallResponse,
         updateRecallResponses,
-    } = usePersistentChat(settings.vectorStoreName)
+    } = usePersistentChat(settings.vectorSetName)
 
-    // Convert persistent recall responses to messages when vectorstore changes
+    // Convert persistent recall responses to messages when vectorset changes
     useEffect(() => {
         if (persistentRecallResponses.length > 0) {
             const convertedMessages = recallResponsesToMessages(persistentRecallResponses)
             setMessages(convertedMessages)
         } else {
-            // Clear messages when switching to vectorstore with no history
+            // Clear messages when switching to vectorset with no history
             setMessages([])
         }
-    }, [persistentRecallResponses, settings.vectorStoreName])
+    }, [persistentRecallResponses, settings.vectorSetName])
 
     // Function to copy ID to clipboard with visual feedback
     const copyIdToClipboard = async (fullId: string) => {
@@ -179,14 +179,14 @@ export default function RecallPage() {
             {/* Recall API Content */}
             <div className="h-full flex flex-col">
                 <ApiPageHeader
-                    endpoint={`(POST) /api/memory/${settings.vectorStoreName}/search`}
+                    endpoint={`(POST) /api/memory/${settings.vectorSetName}/search`}
                     hasMessages={hasMessages}
                     onClearChat={clearChat}
                     isLoading={isLoading}
                     title="Search Memory"
                     showSettingsButton={true}
                     showVectorStoreSelector={true}
-                    vectorStoreName={settings.vectorStoreName}
+                    vectorSetName={settings.vectorSetName}
                     onVectorStoreChange={handleVectorStoreChange}
                 />
 

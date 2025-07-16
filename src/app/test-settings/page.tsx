@@ -25,7 +25,7 @@ export default function TestSettingsPage() {
                 <p><strong>Min Similarity:</strong> {settings.minSimilarity}</p>
                 <p><strong>Server URL:</strong> {settings.serverUrl}</p>
                 <p><strong>Server Port:</strong> {settings.serverPort}</p>
-                <p><strong>Vector Store Name:</strong> {settings.vectorStoreName}</p>
+                <p><strong>Vector Store Name:</strong> {settings.vectorSetName}</p>
                 <p><strong>API Vector Store:</strong> {api.getVectorStoreName()}</p>
             </div>
             
@@ -65,11 +65,11 @@ export default function TestSettingsPage() {
                 <button
                     onClick={async () => {
                         console.log('Testing API call with current settings:', settings)
-                        console.log('API vectorstore name:', api.getVectorStoreName())
+                        console.log('API vectorset name:', api.getVectorStoreName())
                         try {
                             const response = await api.recall("test query", settings.questionTopK, settings.minSimilarity)
                             console.log('API Response:', response)
-                            setTestResult(`API called with vectorstore: ${api.getVectorStoreName()}, topK: ${settings.questionTopK}, minSimilarity: ${settings.minSimilarity}`)
+                            setTestResult(`API called with vectorset: ${api.getVectorStoreName()}, topK: ${settings.questionTopK}, minSimilarity: ${settings.minSimilarity}`)
                         } catch (error) {
                             console.error('API Error:', error)
                             setTestResult(`API Error: ${error}`)

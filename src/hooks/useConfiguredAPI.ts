@@ -6,20 +6,20 @@ export function useConfiguredAPI() {
     const { isLoaded, getApiBaseUrl, settings } = useSettings()
 
     // Create a new API instance when settings change
-    // This ensures that vectorstore changes are properly reflected
+    // This ensures that vectorset changes are properly reflected
     const api = useMemo(() => {
         const baseUrl = isLoaded ? getApiBaseUrl() : 'http://localhost:5001'
-        const vectorStoreName = isLoaded ? settings.vectorStoreName : 'memories'
+        const vectorSetName = isLoaded ? settings.vectorSetName : 'memories'
 
-        console.log('useConfiguredAPI: Creating API instance with:', { baseUrl, vectorStoreName })
-        return new MemoryAgentAPI(baseUrl, vectorStoreName)
-    }, [isLoaded, getApiBaseUrl, settings.vectorStoreName])
+        console.log('useConfiguredAPI: Creating API instance with:', { baseUrl, vectorSetName })
+        return new MemoryAgentAPI(baseUrl, vectorSetName)
+    }, [isLoaded, getApiBaseUrl, settings.vectorSetName])
 
     return {
         api,
         isLoaded,
         baseUrl: isLoaded ? getApiBaseUrl() : 'http://localhost:5001',
-        vectorStoreName: isLoaded ? settings.vectorStoreName : 'memories'
+        vectorSetName: isLoaded ? settings.vectorSetName : 'memories'
     }
 }
 

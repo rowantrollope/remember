@@ -7,7 +7,7 @@ export interface UserSettings {
     minSimilarity: number // Minimum similarity threshold for memory retrieval (0.0 to 1.0)
     serverUrl: string // Base URL for the REMEM server
     serverPort: number // Port for the REMEM server
-    vectorStoreName: string // Name of the vectorstore to use for memory operations
+    vectorSetName: string // Name of the vectorset to use for memory operations
 }
 
 const DEFAULT_SETTINGS: UserSettings = {
@@ -15,7 +15,7 @@ const DEFAULT_SETTINGS: UserSettings = {
     minSimilarity: 0.7, // Default minimum similarity threshold
     serverUrl: 'http://localhost', // Default server URL
     serverPort: 5001, // Default server port
-    vectorStoreName: 'memories' // Default vectorstore name
+    vectorSetName: 'memories' // Default vectorset name
 }
 
 const SETTINGS_STORAGE_KEY = 'memory-app-settings'
@@ -60,10 +60,10 @@ export function useSettings() {
                                    savedSettings.serverPort <= 65535
                                    ? savedSettings.serverPort
                                    : DEFAULT_SETTINGS.serverPort,
-                        vectorStoreName: typeof savedSettings.vectorStoreName === 'string' &&
-                                        savedSettings.vectorStoreName.trim().length > 0
-                                        ? savedSettings.vectorStoreName.trim()
-                                        : DEFAULT_SETTINGS.vectorStoreName
+                        vectorSetName: typeof savedSettings.vectorSetName === 'string' &&
+                                        savedSettings.vectorSetName.trim().length > 0
+                                        ? savedSettings.vectorSetName.trim()
+                                        : DEFAULT_SETTINGS.vectorSetName
                     }
 
                     setSettings(validatedSettings)

@@ -41,15 +41,15 @@ interface ChatState {
 const CHAT_STORAGE_KEY_PREFIX = 'memory-chat-history'
 const STORAGE_VERSION = '1.0'
 
-export function usePersistentChat(vectorStoreName: string = 'memories') {
+export function usePersistentChat(vectorSetName: string = 'memories') {
     const [conversations, setConversations] = useState<Conversation[]>([])
     const [memorySaveResponses, setMemorySaveResponses] = useState<MemorySaveResponse[]>([])
     const [recallResponses, setRecallResponses] = useState<RecallResponse[]>([])
     const [searchResponses, setSearchResponses] = useState<SearchResponse[]>([])
     const [isLoaded, setIsLoaded] = useState(false)
 
-    // Create vectorstore-specific storage key
-    const chatStorageKey = `${CHAT_STORAGE_KEY_PREFIX}-${vectorStoreName}`
+    // Create vectorset-specific storage key
+    const chatStorageKey = `${CHAT_STORAGE_KEY_PREFIX}-${vectorSetName}`
 
     // Load chat history from localStorage on initialization
     useEffect(() => {
@@ -144,7 +144,7 @@ export function usePersistentChat(vectorStoreName: string = 'memories') {
             }
 
             localStorage.setItem(chatStorageKey, JSON.stringify(dataToSave))
-            console.log(`Chat history saved to localStorage for vectorstore: ${vectorStoreName}`, {
+            console.log(`Chat history saved to localStorage for vectorset: ${vectorSetName}`, {
                 conversations: newConversations.length,
                 memorySaves: newMemorySaves.length,
                 recallResponses: newRecallResponses.length,
@@ -153,7 +153,7 @@ export function usePersistentChat(vectorStoreName: string = 'memories') {
         } catch (error) {
             console.error('Failed to save chat history to localStorage:', error)
         }
-    }, [chatStorageKey, vectorStoreName])
+    }, [chatStorageKey, vectorSetName])
 
     // Add a new conversation and persist
     const addConversation = useCallback((conversation: Conversation) => {
@@ -246,8 +246,8 @@ export function usePersistentChat(vectorStoreName: string = 'memories') {
         setRecallResponses([])
         setSearchResponses([])
         localStorage.removeItem(chatStorageKey)
-        console.log(`Chat history cleared for vectorstore: ${vectorStoreName}`)
-    }, [chatStorageKey, vectorStoreName])
+        console.log(`Chat history cleared for vectorset: ${vectorSetName}`)
+    }, [chatStorageKey, vectorSetName])
 
     // Get total message count for debugging
     const getTotalMessageCount = useCallback(() => {

@@ -42,8 +42,8 @@
 
     <script>
         // Simulate the usePersistentChat hook logic
-        function createChatStorageKey(vectorStoreName) {
-            return `memory-chat-history-${vectorStoreName}`;
+        function createChatStorageKey(vectorSetName) {
+            return `memory-chat-history-${vectorSetName}`;
         }
 
         function testStorageKeys() {
@@ -84,7 +84,7 @@
                 localStorage.removeItem('memory-chat-history-test1');
                 localStorage.removeItem('memory-chat-history-test2');
                 
-                // Create test data for two different vectorstores
+                // Create test data for two different vectorsets
                 const testData1 = {
                     version: '1.0',
                     data: {
@@ -109,7 +109,7 @@
                     savedAt: new Date().toISOString()
                 };
                 
-                // Store data for different vectorstores
+                // Store data for different vectorsets
                 localStorage.setItem('memory-chat-history-test1', JSON.stringify(testData1));
                 localStorage.setItem('memory-chat-history-test2', JSON.stringify(testData2));
                 
@@ -122,8 +122,8 @@
                     result.className = 'result success';
                     result.innerHTML = `
                         ✅ Chat history properly isolated:<br>
-                        - test1 vectorstore: "${stored1.data.conversations[0].question}"<br>
-                        - test2 vectorstore: "${stored2.data.conversations[0].question}"
+                        - test1 vectorset: "${stored1.data.conversations[0].question}"<br>
+                        - test2 vectorset: "${stored2.data.conversations[0].question}"
                     `;
                 } else {
                     result.className = 'result error';
@@ -144,7 +144,7 @@
             const result = document.getElementById('clear-specific-result');
             
             try {
-                // Create test data for multiple vectorstores
+                // Create test data for multiple vectorsets
                 const testData = {
                     version: '1.0',
                     data: {
@@ -156,26 +156,26 @@
                     }
                 };
                 
-                localStorage.setItem('memory-chat-history-vectorstore1', JSON.stringify(testData));
-                localStorage.setItem('memory-chat-history-vectorstore2', JSON.stringify(testData));
+                localStorage.setItem('memory-chat-history-vectorset1', JSON.stringify(testData));
+                localStorage.setItem('memory-chat-history-vectorset2', JSON.stringify(testData));
                 
-                // Clear only one vectorstore
-                localStorage.removeItem('memory-chat-history-vectorstore1');
+                // Clear only one vectorset
+                localStorage.removeItem('memory-chat-history-vectorset1');
                 
                 // Check that only one was cleared
-                const cleared = localStorage.getItem('memory-chat-history-vectorstore1');
-                const remaining = localStorage.getItem('memory-chat-history-vectorstore2');
+                const cleared = localStorage.getItem('memory-chat-history-vectorset1');
+                const remaining = localStorage.getItem('memory-chat-history-vectorset2');
                 
                 if (cleared === null && remaining !== null) {
                     result.className = 'result success';
-                    result.innerHTML = `✅ Specific vectorstore cleared successfully while preserving others`;
+                    result.innerHTML = `✅ Specific vectorset cleared successfully while preserving others`;
                 } else {
                     result.className = 'result error';
-                    result.innerHTML = `❌ Clear specific vectorstore failed`;
+                    result.innerHTML = `❌ Clear specific vectorset failed`;
                 }
                 
                 // Clean up
-                localStorage.removeItem('memory-chat-history-vectorstore2');
+                localStorage.removeItem('memory-chat-history-vectorset2');
                 
             } catch (error) {
                 result.className = 'result error';

@@ -38,11 +38,11 @@
 </head>
 <body>
     <h1>Custom Vectorstore Persistence Test</h1>
-    <p>This page tests the localStorage persistence functionality for custom vectorstore names.</p>
+    <p>This page tests the localStorage persistence functionality for custom vectorset names.</p>
 
     <div class="test-section">
         <h2>Test Custom Vectorstore Storage</h2>
-        <input type="text" id="customName" placeholder="Enter custom vectorstore name">
+        <input type="text" id="customName" placeholder="Enter custom vectorset name">
         <button onclick="addCustomVectorstore()">Add Custom Vectorstore</button>
         <button onclick="showCustomVectorstores()">Show Saved Custom Vectorstores</button>
         <button onclick="clearCustomVectorstores()">Clear All Custom Vectorstores</button>
@@ -63,7 +63,7 @@
 
     <script>
         // Constants matching the VectorStoreSelector component
-        const CUSTOM_VECTORSTORES_STORAGE_KEY = 'custom-vectorstore-names';
+        const CUSTOM_VECTORSTORES_STORAGE_KEY = 'custom-vectorset-names';
         const PREDEFINED_VECTORSTORES = [
             'memories',
             'travel_agent_memory', 
@@ -77,18 +77,18 @@
             const name = input.value.trim();
             
             if (!name) {
-                document.getElementById('custom-result').textContent = 'Please enter a vectorstore name';
+                document.getElementById('custom-result').textContent = 'Please enter a vectorset name';
                 return;
             }
 
             // Check if it's predefined
             if (PREDEFINED_VECTORSTORES.includes(name)) {
-                document.getElementById('custom-result').textContent = `"${name}" is a predefined vectorstore and won't be saved as custom`;
+                document.getElementById('custom-result').textContent = `"${name}" is a predefined vectorset and won't be saved as custom`;
                 return;
             }
 
             try {
-                // Get existing custom vectorstores
+                // Get existing custom vectorsets
                 const saved = localStorage.getItem(CUSTOM_VECTORSTORES_STORAGE_KEY);
                 let customStores = [];
                 
@@ -100,9 +100,9 @@
                 if (!customStores.includes(name)) {
                     customStores.push(name);
                     localStorage.setItem(CUSTOM_VECTORSTORES_STORAGE_KEY, JSON.stringify(customStores));
-                    document.getElementById('custom-result').textContent = `Added "${name}" to custom vectorstores.\nTotal custom vectorstores: ${customStores.length}`;
+                    document.getElementById('custom-result').textContent = `Added "${name}" to custom vectorsets.\nTotal custom vectorsets: ${customStores.length}`;
                 } else {
-                    document.getElementById('custom-result').textContent = `"${name}" already exists in custom vectorstores`;
+                    document.getElementById('custom-result').textContent = `"${name}" already exists in custom vectorsets`;
                 }
 
                 input.value = '';
@@ -117,9 +117,9 @@
                 if (saved) {
                     const customStores = JSON.parse(saved);
                     document.getElementById('custom-result').textContent = 
-                        `Custom vectorstores (${customStores.length}):\n${customStores.join('\n')}`;
+                        `Custom vectorsets (${customStores.length}):\n${customStores.join('\n')}`;
                 } else {
-                    document.getElementById('custom-result').textContent = 'No custom vectorstores saved';
+                    document.getElementById('custom-result').textContent = 'No custom vectorsets saved';
                 }
             } catch (error) {
                 document.getElementById('custom-result').textContent = `Error: ${error.message}`;
@@ -128,7 +128,7 @@
 
         function clearCustomVectorstores() {
             localStorage.removeItem(CUSTOM_VECTORSTORES_STORAGE_KEY);
-            document.getElementById('custom-result').textContent = 'Cleared all custom vectorstores';
+            document.getElementById('custom-result').textContent = 'Cleared all custom vectorsets';
         }
 
         function testPredefinedDetection() {

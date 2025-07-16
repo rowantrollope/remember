@@ -42,9 +42,9 @@ export default function DeletePage() {
 
     const { settings, updateSetting } = useSettings()
 
-    // Handle vectorstore change
+    // Handle vectorset change
     const handleVectorStoreChange = (newVectorStoreName: string) => {
-        updateSetting('vectorStoreName', newVectorStoreName)
+        updateSetting('vectorSetName', newVectorStoreName)
     }
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -90,14 +90,14 @@ export default function DeletePage() {
         >
             <div className="h-full flex flex-col">
                 <ApiPageHeader
-                    endpoint={`(DELETE) /api/memory/${settings.vectorStoreName}/{memory_id}`}
+                    endpoint={`(DELETE) /api/memory/${settings.vectorSetName}/{memory_id}`}
                     hasMessages={false}
                     onClearChat={() => {}}
                     isLoading={isLoading || isDeleting}
                     title="Delete Memory"
                     showSettingsButton={false}
                     showVectorStoreSelector={true}
-                    vectorStoreName={settings.vectorStoreName}
+                    vectorSetName={settings.vectorSetName}
                     onVectorStoreChange={handleVectorStoreChange}
                 />
 

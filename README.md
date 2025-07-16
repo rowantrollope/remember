@@ -17,14 +17,14 @@ Before running this application, you need to have the Memory Agent API server ru
 
 ### Memory Agent API
 
-The application expects a Flask API server with the following endpoints (all require vectorstore name):
-- `POST /api/memory/{vectorstore_name}` - Store a new memory
-- `POST /api/memory/{vectorstore_name}/ask` - Ask a question about memories
-- `POST /api/memory/{vectorstore_name}/search` - Search memories
+The application expects a Flask API server with the following endpoints (all require vectorset name):
+- `POST /api/memory/{vectorset_name}` - Store a new memory
+- `POST /api/memory/{vectorset_name}/ask` - Ask a question about memories
+- `POST /api/memory/{vectorset_name}/search` - Search memories
 - `GET /api/status` - Check API status
-- `GET /api/memory/{vectorstore_name}` - Get detailed memory system information
+- `GET /api/memory/{vectorset_name}` - Get detailed memory system information
 
-**Note:** All memory endpoints now require an explicit vectorstore name (e.g., "memories") in the URL path.
+**Note:** All memory endpoints now require an explicit vectorset name (e.g., "memories") in the URL path.
 
 ## Setup
 

@@ -27,10 +27,10 @@ These endpoints provide core memory operations for developers building agents.
 
 Store a new memory with optional contextual grounding.
 
-**POST** `/api/memory/{vectorstore_name}`
+**POST** `/api/memory/{vectorset_name}`
 
 **Parameters:**
-- `vectorstore_name` (string, required): Name of the vectorstore (e.g., "memories")
+- `vectorset_name` (string, required): Name of the vectorset (e.g., "memories")
 
 **Request Body:**
 ```json
@@ -57,10 +57,10 @@ Store a new memory with optional contextual grounding.
 
 Search for memories using vector similarity.
 
-**POST** `/api/memory/{vectorstore_name}/search`
+**POST** `/api/memory/{vectorset_name}/search`
 
 **Parameters:**
-- `vectorstore_name` (string, required): Name of the vectorstore (e.g., "memories")
+- `vectorset_name` (string, required): Name of the vectorset (e.g., "memories")
 
 **Request Body:**
 ```json
@@ -100,10 +100,10 @@ Answer questions using sophisticated confidence analysis and structured response
 
 **⭐ This endpoint calls `memory_agent.answer_question()` directly for the highest quality responses.**
 
-**POST** `/api/memory/{vectorstore_name}/ask`
+**POST** `/api/memory/{vectorset_name}/ask`
 
 **Parameters:**
-- `vectorstore_name` (string, required): Name of the vectorstore (e.g., "memories")
+- `vectorset_name` (string, required): Name of the vectorset (e.g., "memories")
 
 **Request Body:**
 ```json
@@ -149,10 +149,10 @@ Answer questions using sophisticated confidence analysis and structured response
 
 Get statistics about stored memories and system information.
 
-**GET** `/api/memory/{vectorstore_name}`
+**GET** `/api/memory/{vectorset_name}`
 
 **Parameters:**
-- `vectorstore_name` (string, required): Name of the vectorstore (e.g., "memories")
+- `vectorset_name` (string, required): Name of the vectorset (e.g., "memories")
 
 **Response:**
 ```json
@@ -174,10 +174,10 @@ Set and get current context for memory grounding.
 
 #### Set Context
 
-**POST** `/api/memory/{vectorstore_name}/context`
+**POST** `/api/memory/{vectorset_name}/context`
 
 **Parameters:**
-- `vectorstore_name` (string, required): Name of the vectorstore (e.g., "memories")
+- `vectorset_name` (string, required): Name of the vectorset (e.g., "memories")
 
 **Request Body:**
 ```json
@@ -215,10 +215,10 @@ Set and get current context for memory grounding.
 
 #### Get Context
 
-**GET** `/api/memory/{vectorstore_name}/context`
+**GET** `/api/memory/{vectorset_name}/context`
 
 **Parameters:**
-- `vectorstore_name` (string, required): Name of the vectorstore (e.g., "memories")
+- `vectorset_name` (string, required): Name of the vectorset (e.g., "memories")
 
 **Response:**
 ```json
@@ -248,10 +248,10 @@ Set and get current context for memory grounding.
 
 Delete a specific memory by ID.
 
-**DELETE** `/api/memory/{vectorstore_name}/{memory_id}`
+**DELETE** `/api/memory/{vectorset_name}/{memory_id}`
 
 **Parameters:**
-- `vectorstore_name` (string, required): Name of the vectorstore (e.g., "memories")
+- `vectorset_name` (string, required): Name of the vectorset (e.g., "memories")
 - `memory_id` (string, required): ID of the memory to delete
 
 **Response:**
@@ -267,10 +267,10 @@ Delete a specific memory by ID.
 
 Delete all memories from the system.
 
-**DELETE** `/api/memory/{vectorstore_name}/all`
+**DELETE** `/api/memory/{vectorset_name}/all`
 
 **Parameters:**
-- `vectorstore_name` (string, required): Name of the vectorstore (e.g., "memories")
+- `vectorset_name` (string, required): Name of the vectorset (e.g., "memories")
 
 **Response:**
 ```json
@@ -311,7 +311,7 @@ This endpoint provides a conversational interface using the LangGraph workflow f
 }
 ```
 
-**Key Differences from `/api/memory/{vectorstore_name}/ask`:**
+**Key Differences from `/api/memory/{vectorset_name}/ask`:**
 - Uses full LangGraph workflow with tool orchestration
 - Can perform multi-step reasoning and complex conversations
 - More flexible but potentially higher latency
@@ -408,12 +408,12 @@ curl -X POST http://localhost:5001/api/chat \
 
 ### Memory vs Answer vs Chat
 
-**Use `/api/memory/{vectorstore_name}/search`** when you need:
+**Use `/api/memory/{vectorset_name}/search`** when you need:
 - Raw vector similarity search results
 - Multiple memory candidates for further processing
 - Building your own confidence analysis
 
-**Use `/api/memory/{vectorstore_name}/ask`** when you need:
+**Use `/api/memory/{vectorset_name}/ask`** when you need:
 - High-quality question answering with confidence scores
 - Structured responses with supporting evidence
 - Single-step question answering
@@ -425,8 +425,8 @@ curl -X POST http://localhost:5001/api/chat \
 
 ### Performance Considerations
 
-- `/api/memory/{vectorstore_name}/search`: Fastest, single vector search
-- `/api/memory/{vectorstore_name}/ask`: Medium, includes LLM analysis for confidence
+- `/api/memory/{vectorset_name}/search`: Fastest, single vector search
+- `/api/memory/{vectorset_name}/ask`: Medium, includes LLM analysis for confidence
 - `/api/chat`: Slowest, full LangGraph workflow with potential multiple LLM calls
 
 ### Memory Grounding
@@ -458,19 +458,19 @@ The `filter` parameter supports Redis VectorSet filter syntax:
 
 ### API Migration Guide
 
-**IMPORTANT: All endpoints now require explicit vectorstore name in URL path**
+**IMPORTANT: All endpoints now require explicit vectorset name in URL path**
 
 **Old API → New API:**
-- `/api/remember` → `/api/memory/{vectorstore_name}` (POST)
-- `/api/recall` → `/api/memory/{vectorstore_name}/search` (POST)
-- `/api/ask` → `/api/memory/{vectorstore_name}/ask` (POST) or `/api/chat` (for conversations)
-- `/api/memory-info` → `/api/memory/{vectorstore_name}` (GET)
-- `/api/context` → `/api/memory/{vectorstore_name}/context` (GET/POST)
-- `/api/delete/{id}` → `/api/memory/{vectorstore_name}/{id}` (DELETE)
-- `/api/delete-all` → `/api/memory/{vectorstore_name}/all` (DELETE)
+- `/api/remember` → `/api/memory/{vectorset_name}` (POST)
+- `/api/recall` → `/api/memory/{vectorset_name}/search` (POST)
+- `/api/ask` → `/api/memory/{vectorset_name}/ask` (POST) or `/api/chat` (for conversations)
+- `/api/memory-info` → `/api/memory/{vectorset_name}` (GET)
+- `/api/context` → `/api/memory/{vectorset_name}/context` (GET/POST)
+- `/api/delete/{id}` → `/api/memory/{vectorset_name}/{id}` (DELETE)
+- `/api/delete-all` → `/api/memory/{vectorset_name}/all` (DELETE)
 
 **Example Migration:**
 - OLD: `POST /api/memory/search`
 - NEW: `POST /api/memory/memories/search`
 
-Use "memories" as the default vectorstore name for existing functionality. All request/response formats remain the same, only URLs changed.
+Use "memories" as the default vectorset name for existing functionality. All request/response formats remain the same, only URLs changed.

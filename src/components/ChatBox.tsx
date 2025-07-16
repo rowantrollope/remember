@@ -46,7 +46,7 @@ export interface UnifiedChatMessage {
     memory_count?: number
     answer?: string
     coherence_score?: number
-    vectorstore_name?: string
+    vectorset_name?: string
 
     // For memory save responses
     memory_id?: string
@@ -318,9 +318,9 @@ export function ChatBox({
                                     {message.memory_count} memories
                                 </span>
                             )}
-                            {message.vectorstore_name && (
+                            {message.vectorset_name && (
                                 <span className="px-2 py-1 rounded-full bg-purple-100 text-purple-800 font-medium">
-                                    Store: {message.vectorstore_name}
+                                    Store: {message.vectorset_name}
                                 </span>
                             )}
                         </div>

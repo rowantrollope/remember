@@ -47,7 +47,7 @@ export default function DeleteAllPage() {
                 const { MemoryAgentAPI } = await import('@/lib/api')
                 const freshAPI = new MemoryAgentAPI(
                     `${settings.serverUrl}:${settings.serverPort}`,
-                    settings.vectorStoreName
+                    settings.vectorSetName
                 )
 
                 console.log('🚀 EXACT FETCH COMMAND:')
@@ -69,11 +69,11 @@ export default function DeleteAllPage() {
         }
 
         fetchMemoryInfo()
-    }, [apiStatus, settings.vectorStoreName, settings.serverUrl, settings.serverPort])
+    }, [apiStatus, settings.vectorSetName, settings.serverUrl, settings.serverPort])
 
-    // Handle vectorstore change
+    // Handle vectorset change
     const handleVectorStoreChange = (newVectorStoreName: string) => {
-        updateSetting('vectorStoreName', newVectorStoreName)
+        updateSetting('vectorSetName', newVectorStoreName)
         setDeleteSuccess(false)
         setDeletedCount(0)
         setMemoryCount(null) // Reset count to trigger refetch
@@ -85,7 +85,7 @@ export default function DeleteAllPage() {
         clearError()
 
         try {
-            console.log('🗑️ Starting delete all operation for vectorstore:', settings.vectorStoreName)
+            console.log('🗑️ Starting delete all operation for vectorset:', settings.vectorSetName)
             const response = await clearAllMemories()
             console.log('🗑️ Delete all response:', response)
 
@@ -118,13 +118,13 @@ export default function DeleteAllPage() {
         >
             <div className="container mx-auto p-4 max-w-4xl">
                 <ApiPageHeader
-                    endpoint="/api/memory/{vectorstore_name}/all"
+                    endpoint="/api/memory/{vectorset_name}/all"
                     hasMessages={false}
                     onClearChat={() => {}}
                     isLoading={isLoading || isDeleting}
                     title="Delete All Memories"
                     showVectorStoreSelector={true}
-                    vectorStoreName={settings.vectorStoreName}
+                    vectorSetName={settings.vectorSetName}
                     onVectorStoreChange={handleVectorStoreChange}
                 />
 
@@ -155,7 +155,7 @@ export default function DeleteAllPage() {
                     <Alert className="border-green-200 bg-green-50">
                         <CheckCircle className="h-4 w-4 text-green-600" />
                         <AlertDescription className="text-green-800">
-                            Successfully deleted {deletedCount} memories from vectorstore "{settings.vectorStoreName}".
+                            Successfully deleted {deletedCount} memories from vectorset "{settings.vectorSetName}".
                         </AlertDescription>
                     </Alert>
                 )}
@@ -168,7 +168,7 @@ export default function DeleteAllPage() {
                             Delete All Memories
                         </CardTitle>
                         <CardDescription>
-                            Permanently delete all memories from the selected vectorstore. This action cannot be undone.
+                            Permanently delete all memories from the selected vectorset. This action cannot be undone.
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
@@ -177,7 +177,7 @@ export default function DeleteAllPage() {
                             <div className="p-4 bg-gray-50 rounded-lg">
                                 <div className="flex items-center justify-between">
                                     <span className="text-sm font-medium text-gray-700">
-                                        Current memory count in "{settings.vectorStoreName}":
+                                        Current memory count in "{settings.vectorSetName}":
                                     </span>
                                     <span className="text-lg font-bold text-gray-900">
                                         {memoryCount.toLocaleString()}
@@ -190,8 +190,8 @@ export default function DeleteAllPage() {
                         <Alert variant="destructive">
                             <AlertTriangle className="h-4 w-4" />
                             <AlertDescription>
-                                <strong>Warning:</strong> This action will permanently delete ALL memories from the vectorstore "{settings.vectorStoreName}". 
-                                This operation cannot be undone and will affect all applications using this vectorstore.
+                                <strong>Warning:</strong> This action will permanently delete ALL memories from the vectorset "{settings.vectorSetName}". 
+                                This operation cannot be undone and will affect all applications using this vectorset.
                             </AlertDescription>
                         </Alert>
 
@@ -211,7 +211,7 @@ export default function DeleteAllPage() {
 
                         {memoryCount === 0 && (
                             <p className="text-center text-sm text-gray-500">
-                                No memories to delete in this vectorstore.
+                                No memories to delete in this vectorset.
                             </p>
                         )}
                     </CardContent>
@@ -228,7 +228,7 @@ export default function DeleteAllPage() {
                         </DialogTitle>
                         <DialogDescription className="text-left">
                             You are about to permanently delete <strong>ALL {memoryCount?.toLocaleString() || 0} memories</strong> from
-                            the vectorstore "<strong>{settings.vectorStoreName}</strong>".
+                            the vectorset "<strong>{settings.vectorSetName}</strong>".
                             <br /><br />
                             <span className="text-red-600 font-semibold">
                                 This action cannot be undone.

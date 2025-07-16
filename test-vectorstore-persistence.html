@@ -54,10 +54,10 @@
 
     <div class="test-section">
         <h2>Test 1: Add Custom VectorStore</h2>
-        <p>This simulates what happens when a user creates a new vectorstore like "newmem".</p>
-        <button onclick="addCustomVectorStore('newmem')">Add "newmem" to custom vectorstores</button>
-        <button onclick="addCustomVectorStore('test-vectorstore')">Add "test-vectorstore" to custom vectorstores</button>
-        <button onclick="addCustomVectorStore('my-project-memory')">Add "my-project-memory" to custom vectorstores</button>
+        <p>This simulates what happens when a user creates a new vectorset like "newmem".</p>
+        <button onclick="addCustomVectorStore('newmem')">Add "newmem" to custom vectorsets</button>
+        <button onclick="addCustomVectorStore('test-vectorset')">Add "test-vectorset" to custom vectorsets</button>
+        <button onclick="addCustomVectorStore('my-project-memory')">Add "my-project-memory" to custom vectorsets</button>
         <div id="add-result" class="result"></div>
     </div>
 
@@ -89,7 +89,7 @@
 
     <script>
         // Constants matching the VectorStoreSelector component
-        const CUSTOM_VECTORSTORES_STORAGE_KEY = 'custom-vectorstore-names';
+        const CUSTOM_VECTORSTORES_STORAGE_KEY = 'custom-vectorset-names';
         const PREDEFINED_VECTORSTORES = [
             'memories',
             'travel_agent_memory', 
@@ -97,7 +97,7 @@
             'investment_agent_memory'
         ];
 
-        // Function to add a custom vectorstore (simulating the component logic)
+        // Function to add a custom vectorset (simulating the component logic)
         function addCustomVectorStore(name) {
             const trimmedName = name.trim();
             if (!trimmedName) {
@@ -116,7 +116,7 @@
                 return;
             }
 
-            // Get current custom vectorstores
+            // Get current custom vectorsets
             let customVectorStores = [];
             try {
                 const saved = localStorage.getItem(CUSTOM_VECTORSTORES_STORAGE_KEY);
@@ -127,7 +127,7 @@
                     }
                 }
             } catch (error) {
-                console.error('Failed to load custom vectorstore names:', error);
+                console.error('Failed to load custom vectorset names:', error);
             }
 
             // Check if already exists
@@ -143,7 +143,7 @@
             // Save to localStorage
             try {
                 localStorage.setItem(CUSTOM_VECTORSTORES_STORAGE_KEY, JSON.stringify(customVectorStores));
-                document.getElementById('add-result').textContent = `Successfully added "${trimmedName}" to custom vectorstores`;
+                document.getElementById('add-result').textContent = `Successfully added "${trimmedName}" to custom vectorsets`;
                 document.getElementById('add-result').className = 'result success';
             } catch (error) {
                 document.getElementById('add-result').textContent = `Failed to save: ${error.message}`;
@@ -164,7 +164,7 @@
                         document.getElementById('show-result').className = 'result error';
                     }
                 } else {
-                    document.getElementById('show-result').textContent = 'No custom vectorstores found';
+                    document.getElementById('show-result').textContent = 'No custom vectorsets found';
                     document.getElementById('show-result').className = 'result';
                 }
             } catch (error) {
@@ -176,7 +176,7 @@
         function clearCustomVectorStores() {
             try {
                 localStorage.removeItem(CUSTOM_VECTORSTORES_STORAGE_KEY);
-                document.getElementById('clear-result').textContent = 'Successfully cleared all custom vectorstores';
+                document.getElementById('clear-result').textContent = 'Successfully cleared all custom vectorsets';
                 document.getElementById('clear-result').className = 'result success';
             } catch (error) {
                 document.getElementById('clear-result').textContent = `Error: ${error.message}`;

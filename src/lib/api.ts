@@ -415,11 +415,11 @@ export interface ConfigUpdateResponse {
 
 class MemoryAgentAPI {
     private baseUrl: string
-    private vectorStoreName: string
+    private vectorSetName: string
 
-    constructor(baseUrl: string = DEFAULT_API_BASE_URL, vectorStoreName: string = 'memories') {
+    constructor(baseUrl: string = DEFAULT_API_BASE_URL, vectorSetName: string = 'memories') {
         this.baseUrl = baseUrl
-        this.vectorStoreName = vectorStoreName
+        this.vectorSetName = vectorSetName
     }
 
     // Method to update the base URL dynamically
@@ -432,14 +432,14 @@ class MemoryAgentAPI {
         return this.baseUrl
     }
 
-    // Method to update the vectorstore name dynamically
+    // Method to update the vectorset name dynamically
     updateVectorStoreName(newVectorStoreName: string) {
-        this.vectorStoreName = newVectorStoreName
+        this.vectorSetName = newVectorStoreName
     }
 
-    // Method to get current vectorstore name
+    // Method to get current vectorset name
     getVectorStoreName(): string {
-        return this.vectorStoreName
+        return this.vectorSetName
     }
 
     private async request<T>(
@@ -471,7 +471,7 @@ class MemoryAgentAPI {
     }
 
     async remember(memory: string, applyGrounding: boolean = true): Promise<RememberResponse> {
-        return this.request<RememberResponse>(`/api/memory/${this.vectorStoreName}`, {
+        return this.request<RememberResponse>(`/api/memory/${this.vectorSetName}`, {
             method: 'POST',
             body: JSON.stringify({ text: memory, apply_grounding: applyGrounding }),
         })
@@ -482,7 +482,7 @@ class MemoryAgentAPI {
         if (minSimilarity !== undefined) {
             body.min_similarity = minSimilarity
         }
-        return this.request<RecallResponse>(`/api/memory/${this.vectorStoreName}/search`, {
+        return this.request<RecallResponse>(`/api/memory/${this.vectorSetName}/search`, {
             method: 'POST',
             body: JSON.stringify(body),
         })
@@ -493,7 +493,7 @@ class MemoryAgentAPI {
         if (minSimilarity !== undefined) {
             body.min_similarity = minSimilarity
         }
-        return this.request<AskResponse>(`/api/memory/${this.vectorStoreName}/ask`, {
+        return this.request<AskResponse>(`/api/memory/${this.vectorSetName}/ask`, {
             method: 'POST',
             body: JSON.stringify(body),
         })
@@ -509,7 +509,7 @@ class MemoryAgentAPI {
 
     // Session-based chat endpoints
     async createChatSession(request: CreateSessionRequest): Promise<CreateSessionResponse> {
-        return this.request<CreateSessionResponse>('/api/agent/session', {
+        return this.request<CreateSessionResponse>(`/api/agent/${this.vectorSetName}/session`, {
             method: 'POST',
             body: JSON.stringify(request),
         })
@@ -528,7 +528,7 @@ class MemoryAgentAPI {
             body.min_similarity = request.min_similarity
         }
 
-        return this.request<SessionChatResponse>(`/api/agent/session/${request.session_id}`, {
+        return this.request<SessionChatResponse>(`/api/agent/${this.vectorSetName}/session/${request.session_id}`, {
             method: 'POST',
             body: JSON.stringify(body),
         })
@@ -536,33 +536,33 @@ class MemoryAgentAPI {
 
     // Additional session management endpoints
     async getChatSession(sessionId: string): Promise<GetSessionResponse> {
-        return this.request<GetSessionResponse>(`/api/agent/session/${sessionId}`)
+        return this.request<GetSessionResponse>(`/api/agent/${this.vectorSetName}/session/${sessionId}`)
     }
 
     async deleteChatSession(sessionId: string): Promise<DeleteSessionResponse> {
-        return this.request<DeleteSessionResponse>(`/api/agent/session/${sessionId}`, {
+        return this.request<DeleteSessionResponse>(`/api/agent/${this.vectorSetName}/session/${sessionId}`, {
             method: 'DELETE',
         })
     }
 
     async getChatSessions(): Promise<GetSessionsResponse> {
-        return this.request<GetSessionsResponse>('/api/agent/sessions')
+        return this.request<GetSessionsResponse>(`/api/agent/${this.vectorSetName}/sessions`)
     }
 
 
 
     async getMemoryInfo(): Promise<MemoryInfoResponse> {
-        return this.request<MemoryInfoResponse>(`/api/memory/${this.vectorStoreName}`)
+        return this.request<MemoryInfoResponse>(`/api/memory/${this.vectorSetName}`)
     }
 
     async deleteMemory(memoryId: string): Promise<DeleteResponse> {
-        return this.request<DeleteResponse>(`/api/memory/${this.vectorStoreName}/${memoryId}`, {
+        return this.request<DeleteResponse>(`/api/memory/${this.vectorSetName}/${memoryId}`, {
             method: 'DELETE',
         })
     }
 
     async getContext(): Promise<ContextResponse> {
-        return this.request<ContextResponse>(`/api/memory/${this.vectorStoreName}/context`)
+        return this.request<ContextResponse>(`/api/memory/${this.vectorSetName}/context`)
     }
 
     async setContext(context: {
@@ -572,14 +572,14 @@ class MemoryAgentAPI {
         weather?: string
         [key: string]: unknown
     }): Promise<ContextResponse> {
-        return this.request<ContextResponse>(`/api/memory/${this.vectorStoreName}/context`, {
+        return this.request<ContextResponse>(`/api/memory/${this.vectorSetName}/context`, {
             method: 'POST',
             body: JSON.stringify(context),
         })
     }
 
     async clearAllMemories(): Promise<ClearAllResponse> {
-        return this.request<ClearAllResponse>(`/api/memory/${this.vectorStoreName}/all`, {
+        return this.request<ClearAllResponse>(`/api/memory/${this.vectorSetName}/all`, {
             method: 'DELETE',
         })
     }
@@ -637,5 +637,5 @@ class MemoryAgentAPI {
 // Export the MemoryAgentAPI class for direct instantiation
 export { MemoryAgentAPI }
 
-// Create a default instance for backward compatibility with 'memories' as default vectorstore
+// Create a default instance for backward compatibility with 'memories' as default vectorset
 export const memoryAPI = new MemoryAgentAPI(DEFAULT_API_BASE_URL, 'memories')

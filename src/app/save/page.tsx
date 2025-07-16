@@ -50,23 +50,23 @@ export default function SavePage() {
         memorySaveResponses,
         addMemorySaveResponse,
         clearChatHistory,
-    } = usePersistentChat(settings.vectorStoreName)
+    } = usePersistentChat(settings.vectorSetName)
 
-    // Handle vectorstore change
+    // Handle vectorset change
     const handleVectorStoreChange = (newVectorStoreName: string) => {
-        updateSetting('vectorStoreName', newVectorStoreName)
+        updateSetting('vectorSetName', newVectorStoreName)
     }
 
-    // Convert persistent memory save responses to messages when vectorstore changes
+    // Convert persistent memory save responses to messages when vectorset changes
     useEffect(() => {
         if (memorySaveResponses.length > 0) {
             const convertedMessages = memorySaveResponsesToMessages(memorySaveResponses)
             setMessages(convertedMessages)
         } else {
-            // Clear messages when switching to vectorstore with no history
+            // Clear messages when switching to vectorset with no history
             setMessages([])
         }
-    }, [memorySaveResponses, settings.vectorStoreName])
+    }, [memorySaveResponses, settings.vectorSetName])
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -205,13 +205,13 @@ export default function SavePage() {
             {/* Memory Save Content */}
             <div className="h-full flex flex-col">
                 <ApiPageHeader
-                    endpoint={`(POST) /api/memory/${settings.vectorStoreName}`}
+                    endpoint={`(POST) /api/memory/${settings.vectorSetName}`}
                     hasMessages={hasMessages}
                     onClearChat={clearChat}
                     isLoading={isLoading}
                     title="Add memory"
                     showVectorStoreSelector={true}
-                    vectorStoreName={settings.vectorStoreName}
+                    vectorSetName={settings.vectorSetName}
                     onVectorStoreChange={handleVectorStoreChange}
                 />
                 {hasMessages ? (

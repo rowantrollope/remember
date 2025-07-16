@@ -13,7 +13,7 @@ export interface ApiPageHeaderProps {
     title?: string
     showSettingsButton?: boolean
     showVectorStoreSelector?: boolean
-    vectorStoreName?: string
+    vectorSetName?: string
     onVectorStoreChange?: (value: string) => void
 }
 
@@ -25,18 +25,18 @@ export function ApiPageHeader({
     title,
     showSettingsButton = false,
     showVectorStoreSelector = false,
-    vectorStoreName,
+    vectorSetName,
     onVectorStoreChange
 }: ApiPageHeaderProps) {
     return (
         <div className="flex-shrink-0 py-2 space-y-2 text-black ">
             <div className="flex justify-between items-center">
                 <h1 className="text-lg font-semibold text-gray-900">
-                    {showVectorStoreSelector && vectorStoreName && onVectorStoreChange && (
+                    {showVectorStoreSelector && vectorSetName && onVectorStoreChange && (
                         <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium text-gray-700">Vectorstore:</span>
+                            <span className="text-sm font-medium text-gray-700">Vector Set:</span>
                             <VectorStoreSelector
-                                value={vectorStoreName}
+                                value={vectorSetName}
                                 onValueChange={onVectorStoreChange}
                                 disabled={isLoading}
                                 className="w-[300px]"

@@ -60,23 +60,23 @@ export default function AskPage() {
         conversations: persistentConversations,
         addConversation,
         updateConversations,
-    } = usePersistentChat(settings.vectorStoreName)
+    } = usePersistentChat(settings.vectorSetName)
 
-    // Handle vectorstore change
+    // Handle vectorset change
     const handleVectorStoreChange = (newVectorStoreName: string) => {
-        updateSetting('vectorStoreName', newVectorStoreName)
+        updateSetting('vectorSetName', newVectorStoreName)
     }
 
-    // Convert persistent conversations to messages when vectorstore changes
+    // Convert persistent conversations to messages when vectorset changes
     useEffect(() => {
         if (persistentConversations.length > 0) {
             const convertedMessages = conversationToMessages(persistentConversations)
             setMessages(convertedMessages)
         } else {
-            // Clear messages when switching to vectorstore with no history
+            // Clear messages when switching to vectorset with no history
             setMessages([])
         }
-    }, [persistentConversations, settings.vectorStoreName])
+    }, [persistentConversations, settings.vectorSetName])
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -99,7 +99,7 @@ export default function AskPage() {
         setMessages(prev => [...prev, userMessage, thinkingMessage])
 
         try {
-            console.log('About to ask question with vectorstore:', settings.vectorStoreName) // Debug logging
+            console.log('About to ask question with vectorset:', settings.vectorSetName) // Debug logging
             const result = await askQuestion(currentInput, settings.questionTopK, settings.minSimilarity)
             console.log('Ask question result:', result) // Debug logging
 
@@ -152,14 +152,14 @@ export default function AskPage() {
             {/* Ask API Content */}
             <div className="h-full flex flex-col">
                 <ApiPageHeader
-                    endpoint={`(POST) /api/memory/${settings.vectorStoreName}/ask`}
+                    endpoint={`(POST) /api/memory/${settings.vectorSetName}/ask`}
                     hasMessages={hasMessages}
                     onClearChat={clearChat}
                     isLoading={isLoading}
                     title="Ask Memory A Question"
                     showSettingsButton={true}
                     showVectorStoreSelector={true}
-                    vectorStoreName={settings.vectorStoreName}
+                    vectorSetName={settings.vectorSetName}
                     onVectorStoreChange={handleVectorStoreChange}
                 />
 

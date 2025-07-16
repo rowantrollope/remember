@@ -480,9 +480,9 @@ export default function SearchPage() {
     // Get settings for search top_k
     const { settings, updateSetting } = useSettings()
 
-    // Handle vectorstore change
+    // Handle vectorset change
     const handleVectorStoreChange = (newVectorStoreName: string) => {
-        updateSetting('vectorStoreName', newVectorStoreName)
+        updateSetting('vectorSetName', newVectorStoreName)
     }
 
     // Use persistent chat hook for search responses (for persistence)
@@ -490,9 +490,9 @@ export default function SearchPage() {
         searchResponses: persistentSearchResponses,
         addSearchResponse,
         updateSearchResponses,
-    } = usePersistentChat(settings.vectorStoreName)
+    } = usePersistentChat(settings.vectorSetName)
 
-    // Restore chat messages from persistent storage when vectorstore changes
+    // Restore chat messages from persistent storage when vectorset changes
     useEffect(() => {
         if (persistentSearchResponses.length > 0) {
             const messages: UnifiedChatMessage[] = []
@@ -524,11 +524,11 @@ export default function SearchPage() {
 
             setChatMessages(messages)
         } else {
-            // Clear chat messages and search results when switching to vectorstore with no history
+            // Clear chat messages and search results when switching to vectorset with no history
             setChatMessages([])
             clearSearchResults()
         }
-    }, [persistentSearchResponses, settings.vectorStoreName, clearSearchResults])
+    }, [persistentSearchResponses, settings.vectorSetName, clearSearchResults])
 
     // Save search results when they are updated (after a successful search)
     useEffect(() => {
@@ -643,14 +643,14 @@ export default function SearchPage() {
             {/* Search Content */}
             <div className="h-full flex flex-col">
                 <ApiPageHeader
-                    endpoint={`(POST) /api/memory/${settings.vectorStoreName}/search`}
+                    endpoint={`(POST) /api/memory/${settings.vectorSetName}/search`}
                     hasMessages={hasMessages}
                     onClearChat={clearSearch}
                     isLoading={isLoading}
                     title="Search Memory"
                     showSettingsButton={true}
                     showVectorStoreSelector={true}
-                    vectorStoreName={settings.vectorStoreName}
+                    vectorSetName={settings.vectorSetName}
                     onVectorStoreChange={handleVectorStoreChange}
                 />
                 {hasMessages ? (

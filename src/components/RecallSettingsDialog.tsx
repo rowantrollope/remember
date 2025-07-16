@@ -103,7 +103,7 @@ export function RecallSettingsDialog() {
                         Options
                     </DialogTitle>
                     <DialogDescription>
-                        Configure how many memories to retrieve, the similarity threshold for API calls, and which vectorstore to use.
+                        Configure how many memories to retrieve, the similarity threshold for API calls, and which vectorset to use.
                     </DialogDescription>
                 </DialogHeader>
                 
@@ -177,15 +177,15 @@ export function RecallSettingsDialog() {
                             Vectorstore Name
                         </Label>
                         <p className="text-xs text-gray-500">
-                            Select which vectorstore to use for memory operations. Demo vectorstores are pre-configured for specific use cases.
+                            Select which vectorset to use for memory operations. Demo vectorsets are pre-configured for specific use cases.
                         </p>
                         <VectorStoreSelector
-                            value={settings.vectorStoreName}
-                            onValueChange={(value) => updateSetting('vectorStoreName', value)}
+                            value={settings.vectorSetName}
+                            onValueChange={(value) => updateSetting('vectorSetName', value)}
                             className="w-full"
                         />
                         <p className="text-xs text-gray-600">
-                            Current: <span className="font-mono font-medium">{settings.vectorStoreName}</span>
+                            Current: <span className="font-mono font-medium">{settings.vectorSetName}</span>
                         </p>
                     </div>
 

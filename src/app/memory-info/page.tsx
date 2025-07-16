@@ -37,7 +37,7 @@ export default function MemoryInfoPage() {
     const { settings, updateSetting, resetSettings } = useSettings()
 
     // Get chat history clearing function
-    const { clearChatHistory } = usePersistentChat(settings.vectorStoreName)
+    const { clearChatHistory } = usePersistentChat(settings.vectorSetName)
     const { api: memoryAPI, isLoaded: apiConfigLoaded } = useConfiguredAPI()
 
     // Sync temp values with settings when settings change

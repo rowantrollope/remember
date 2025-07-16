@@ -90,7 +90,7 @@ export function useMemoryAPI() {
         setError(null)
 
         try {
-            console.log('useMemoryAPI: askQuestion called with vectorstore:', memoryAPI.getVectorStoreName())
+            console.log('useMemoryAPI: askQuestion called with vectorset:', memoryAPI.getVectorStoreName())
             const response = await memoryAPI.ask(question, topK, minSimilarity)
 
             if (response.success) {
