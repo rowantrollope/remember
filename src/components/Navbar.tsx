@@ -20,31 +20,31 @@ export function Navbar() {
     const apiItems = [
         {
             href: "/save",
-            label: "Add memory",
+            label: "Add",
             icon: Save,
             isActive: pathname === "/save"
         },
         {
             href: "/search",
-            label: "Search memory",
+            label: "Search",
             icon: Search,
             isActive: pathname === "/search"
         },
         {
             href: "/ask",
-            label: "Ask Memory a Question",
+            label: "Ask Question",
             icon: Brain,
             isActive: pathname === "/ask"
         },
         {
             href: "/delete",
-            label: "Delete memory",
+            label: "Delete",
             icon: Trash2,
             isActive: pathname === "/delete"
         },
         {
             href: "/delete_all",
-            label: "Delete all memories",
+            label: "Delete all",
             icon: Trash2,
             isActive: pathname === "/delete_all"
         },

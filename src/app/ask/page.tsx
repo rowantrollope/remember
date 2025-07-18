@@ -156,7 +156,7 @@ export default function AskPage() {
                     hasMessages={hasMessages}
                     onClearChat={clearChat}
                     isLoading={isLoading}
-                    title="Ask Memory A Question"
+                    title="Ask Question"
                     showSettingsButton={true}
                     showVectorStoreSelector={true}
                     vectorSetName={settings.vectorSetName}
